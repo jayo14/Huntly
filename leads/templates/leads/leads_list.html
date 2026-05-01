@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Leads - Huntly{% endblock %}
+{% block header_title %}Leads Management{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <h1 class="text-2xl font-bold text-gray-800">Leads</h1>
+    <button hx-get="{% url 'leads:lead-create' %}"
+            hx-target="#modal-content"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+        + Add Lead
+    </button>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm overflow-hidden"
+     hx-get="{% url 'leads:lead-list-partial' %}"
+     hx-trigger="leadsChanged from:body"
+     hx-target="#leads-table-container">
+    <div id="leads-table-container">
+        {% include 'leads/partials/lead_list_table.html' %}
+    </div>
+</div>
+{% endblock %}

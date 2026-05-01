@@ -1,0 +1,6 @@
+Django>=5.0
+django-environ
+django-htmx
+django-crispy-forms
+crispy-tailwind
+psycopg2-binary
