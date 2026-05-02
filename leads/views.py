@@ -3,8 +3,9 @@ from django.urls import reverse
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from .models import Lead
+from .models import Lead, Message, FollowUpSchedule
 from .forms import LeadForm
+from .services import generate_messages_for_lead, send_lead_email
 
 def lead_list(request):
     leads = Lead.objects.all()
@@ -60,3 +61,27 @@ def update_status(request, pk):
 def lead_list_partial(request):
     leads = Lead.objects.all()
     return render(request, 'leads/partials/lead_list_table.html', {'leads': leads})
+
+def lead_detail(request, pk):
+    lead = get_object_or_404(Lead, pk=pk)
+    messages_qs = lead.messages.all().order_by('type')
+    return render(request, 'leads/lead_detail.html', {'lead': lead, 'messages': messages_qs})
+
+@require_POST
+def generate_messages_view(request, pk):
+    lead = get_object_or_404(Lead, pk=pk)
+    generate_messages_for_lead(lead)
+    messages.success(request, f"Messages generated for {lead.business_name}")
+    return redirect('leads:lead-detail', pk=pk)
+
+@require_POST
+def send_email_view(request, message_pk):
+    message_obj = get_object_or_404(Message, pk=message_pk)
+    success, msg = send_lead_email(message_obj)
+
+    if success:
+        messages.success(request, msg)
+    else:
+        messages.error(request, msg)
+
+    return redirect('leads:lead-detail', pk=message_obj.lead.pk)
