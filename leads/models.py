@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 class Lead(models.Model):
     TONE_CHOICES = [
@@ -35,3 +36,35 @@ class Lead(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+class Message(models.Model):
+    MESSAGE_TYPES = [
+        ('initial', 'Initial Message'),
+        ('followup1', 'Follow-up 1'),
+        ('followup2', 'Follow-up 2'),
+    ]
+
+    lead = models.ForeignKey(Lead, on_delete=models.CASCADE, related_name='messages')
+    type = models.CharField(max_length=20, choices=MESSAGE_TYPES)
+    subject = models.CharField(max_length=255)
+    body = models.TextField()
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.get_type_display()} for {self.lead.business_name}"
+
+class FollowUpSchedule(models.Model):
+    MESSAGE_TYPES = [
+        ('followup1', 'Follow-up 1'),
+        ('followup2', 'Follow-up 2'),
+    ]
+
+    lead = models.ForeignKey(Lead, on_delete=models.CASCADE, related_name='followup_schedules')
+    message_type = models.CharField(max_length=20, choices=MESSAGE_TYPES)
+    scheduled_date = models.DateField()
+    sent = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.get_message_type_display()} scheduled for {self.lead.business_name} on {self.scheduled_date}"
