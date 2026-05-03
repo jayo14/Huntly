@@ -29,9 +29,39 @@ class Lead(models.Model):
     evidence_note = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
     created_at = models.DateTimeField(auto_now_add=True)
+    last_contacted = models.DateTimeField(null=True, blank=True)
+    next_follow_up = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return self.business_name
 
     class Meta:
         ordering = ['-created_at']
+
+class Message(models.Model):
+    lead = models.ForeignKey(Lead, on_delete=models.CASCADE, related_name='messages')
+    subject = models.CharField(max_length=255)
+    body = models.TextField()
+    sent_at = models.DateTimeField(auto_now_add=True)
+    is_reply = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{'Reply' if self.is_reply else 'Sent'} to {self.lead.business_name} at {self.sent_at}"
+
+class AppSetting(models.Model):
+    smtp_host = models.CharField(max_length=255, default='smtp.gmail.com')
+    smtp_port = models.IntegerField(default=587)
+    email_address = models.EmailField(blank=True)
+    email_password = models.CharField(max_length=255, blank=True)
+    daily_send_limit = models.IntegerField(default=50)
+    default_tone = models.CharField(max_length=20, choices=Lead.TONE_CHOICES, default='professional')
+    default_offer = models.TextField(blank=True)
+    auto_send_enabled = models.BooleanField(default=False)
+    follow_ups_enabled = models.BooleanField(default=True)
+
+    def __str__(self):
+        return "Application Settings"
+
+    class Meta:
+        verbose_name = "Application Setting"
+        verbose_name_plural = "Application Settings"

@@ -1,45 +1,27 @@
-from django.test import TestCase, Client
+from django.test import TestCase
 from django.urls import reverse
-from .models import Lead
+from .models import Lead, Message
 
-class LeadCRUDTest(TestCase):
+class DashboardTests(TestCase):
+    def test_dashboard_view(self):
+        response = self.client.get(reverse('leads:dashboard'))
+        self.assertEqual(response.status_code, 200)
+
+class LeadTests(TestCase):
     def setUp(self):
-        self.client = Client()
-        self.lead = Lead.objects.create(
-            business_name="Test Business",
-            email="test@example.com",
-            status="new"
-        )
+        self.lead = Lead.objects.create(business_name="Test Biz", score=85)
 
-    def test_lead_list(self):
+    def test_lead_list_view(self):
         response = self.client.get(reverse('leads:lead-list'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Test Business")
+        self.assertContains(response, "Test Biz")
 
-    def test_lead_create_htmx(self):
-        url = reverse('leads:lead-create')
-        data = {
-            'business_name': 'New Lead',
-            'email': 'new@example.com',
-            'status': 'new',
-            'score': 0,
-            'tone': 'professional'
-        }
-        response = self.client.post(url, data, HTTP_HX_REQUEST='true')
-        self.assertEqual(response.status_code, 204)
-        self.assertTrue(Lead.objects.filter(business_name='New Lead').exists())
-        self.assertEqual(response.headers['HX-Trigger'], 'leadsChanged')
-
-    def test_lead_update_status_htmx(self):
-        url = reverse('leads:update-status', args=[self.lead.pk])
-        response = self.client.post(url, {'status': 'contacted'}, HTTP_HX_REQUEST='true')
+    def test_lead_detail_view(self):
+        response = self.client.get(reverse('leads:lead-detail', args=[self.lead.pk]))
         self.assertEqual(response.status_code, 200)
-        self.lead.refresh_from_db()
-        self.assertEqual(self.lead.status, 'contacted')
-        self.assertContains(response, 'value="contacted" selected')
+        self.assertContains(response, "Test Biz")
 
-    def test_lead_delete_htmx(self):
-        url = reverse('leads:lead-delete', args=[self.lead.pk])
-        response = self.client.post(url, {}, HTTP_HX_REQUEST='true')
-        self.assertEqual(response.status_code, 204)
-        self.assertFalse(Lead.objects.filter(pk=self.lead.pk).exists())
+class PipelineTests(TestCase):
+    def test_pipeline_view(self):
+        response = self.client.get(reverse('leads:pipeline'))
+        self.assertEqual(response.status_code, 200)

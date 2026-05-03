@@ -1,22 +1,59 @@
-<table class="min-w-full divide-y divide-gray-200">
-    <thead class="bg-gray-50">
-        <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-        </tr>
-    </thead>
-    <tbody class="bg-white divide-y divide-gray-200">
-        {% for lead in leads %}
-            {% include 'leads/partials/lead_row.html' %}
-        {% empty %}
-            <tr>
-                <td colspan="5" class="px-6 py-10 text-center text-gray-500">
-                    No leads found. Start by adding one!
+<div class="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
+    <table class="w-full text-left border-collapse">
+        <thead>
+            <tr class="border-b border-neutral-800 bg-neutral-900/50">
+                <th class="px-6 py-4 text-xs font-medium text-neutral-500 uppercase tracking-wider">Business</th>
+                <th class="px-6 py-4 text-xs font-medium text-neutral-500 uppercase tracking-wider">Problem</th>
+                <th class="px-6 py-4 text-xs font-medium text-neutral-500 uppercase tracking-wider text-center">Score</th>
+                <th class="px-6 py-4 text-xs font-medium text-neutral-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-4 text-xs font-medium text-neutral-500 uppercase tracking-wider text-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-neutral-800">
+            {% for lead in leads %}
+            <tr class="hover:bg-neutral-800/50 transition-colors group cursor-pointer"
+                onclick="if(!event.target.closest('button') && !event.target.closest('select')) htmx.ajax('GET', '{% url 'leads:lead-detail' lead.pk %}', {target:'#modal-content'})">
+                <td class="px-6 py-4">
+                    <div class="font-medium text-neutral-200">{{ lead.business_name }}</div>
+                    <div class="text-xs text-neutral-500">{{ lead.website|default:"" }}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm text-neutral-400 line-clamp-1 max-w-md">{{ lead.problem|default:"-" }}</div>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold
+                        {% if lead.score >= 80 %}bg-emerald-500/10 text-emerald-500 border border-emerald-500/20
+                        {% elif lead.score >= 50 %}bg-amber-500/10 text-amber-500 border border-amber-500/20
+                        {% else %}bg-neutral-800 text-neutral-500 border border-neutral-700{% endif %}">
+                        {{ lead.score }}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
+                        {% if lead.status == 'new' %}bg-neutral-800 text-neutral-400 border-neutral-700
+                        {% elif lead.status == 'contacted' %}bg-blue-500/10 text-blue-500 border-blue-500/20
+                        {% elif lead.status == 'replied' %}bg-emerald-500/10 text-emerald-500 border-emerald-500/20
+                        {% elif lead.status == 'proposal' %}bg-purple-500/10 text-purple-500 border-purple-500/20
+                        {% elif lead.status == 'closed' %}bg-neutral-100 text-neutral-900 border-neutral-300
+                        {% endif %}">
+                        {{ lead.get_status_display }}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <button hx-get="{% url 'leads:lead-update' lead.pk %}" hx-target="#modal-content"
+                            class="text-neutral-500 hover:text-white transition-colors">
+                        <i data-lucide="edit-2" class="w-4 h-4"></i>
+                    </button>
                 </td>
             </tr>
-        {% endfor %}
-    </tbody>
-</table>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="px-6 py-12 text-center text-neutral-500">
+                    No leads found matching your criteria.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<script>lucide.createIcons();</script>

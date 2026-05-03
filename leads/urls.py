@@ -4,10 +4,16 @@ from . import views
 app_name = 'leads'
 
 urlpatterns = [
-    path('', views.lead_list, name='lead-list'),
-    path('partial/', views.lead_list_partial, name='lead-list-partial'),
-    path('create/', views.lead_create, name='lead-create'),
-    path('<int:pk>/update/', views.lead_update, name='lead-update'),
-    path('<int:pk>/delete/', views.lead_delete, name='lead-delete'),
-    path('<int:pk>/status/', views.update_status, name='update-status'),
+    path('', views.dashboard, name='dashboard'),
+    path('leads/', views.lead_list, name='lead-list'),
+    path('leads/partial/', views.lead_list_partial, name='lead-list-partial'),
+    path('leads/create/', views.lead_create, name='lead-create'),
+    path('leads/<int:pk>/update/', views.lead_update, name='lead-update'),
+    path('leads/<int:pk>/delete/', views.lead_delete, name='lead-delete'),
+    path('leads/<int:pk>/status/', views.update_status, name='update-status'),
+    path('leads/<int:pk>/detail/', views.lead_detail, name='lead-detail'),
+    path('pipeline/', views.pipeline, name='pipeline'),
+    path('settings/', views.settings_view, name='settings'),
+    path('leads/<int:pk>/generate-message/', views.generate_message, name='generate-message'),
+    path('leads/<int:pk>/send-message/', views.send_message, name='send-message'),
 ]

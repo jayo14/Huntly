@@ -1,0 +1,105 @@
+<div class="flex flex-col h-[80vh]">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-neutral-800 flex items-center justify-between">
+        <div>
+            <h2 class="text-xl font-bold text-neutral-100">{{ lead.business_name }}</h2>
+            <div class="text-sm text-neutral-500">{{ lead.website }}</div>
+        </div>
+        <button @click="show = false" class="text-neutral-500 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+    </div>
+
+    <!-- Body -->
+    <div class="flex-1 flex overflow-hidden">
+        <!-- Left: Context -->
+        <div class="w-1/2 border-r border-neutral-800 overflow-y-auto p-6 space-y-6">
+            <section>
+                <h3 class="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3">Context</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-neutral-500 mb-1">Problem</label>
+                        <p class="text-sm text-neutral-300 bg-neutral-800/50 p-3 rounded-lg border border-neutral-700/50">
+                            {{ lead.problem|default:"No problem described." }}
+                        </p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-neutral-500 mb-1">Evidence</label>
+                        <p class="text-sm text-neutral-400 italic">"{{ lead.evidence_note|default:"No notes." }}"</p>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h3 class="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3">Configuration</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-neutral-500 mb-1">Tone</label>
+                        <select class="w-full bg-neutral-800 border border-neutral-700 rounded-md text-sm py-1.5 px-3 focus:outline-none focus:border-neutral-500">
+                            {% for val, label in lead.TONE_CHOICES %}
+                            <option value="{{ val }}" {% if lead.tone == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-neutral-500 mb-1">Score</label>
+                        <div class="text-lg font-bold text-emerald-500">{{ lead.score }}</div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h3 class="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3">Activity</h3>
+                <div class="space-y-3">
+                    {% for msg in messages %}
+                    <div class="text-xs border-l-2 border-neutral-700 pl-3 py-1">
+                        <div class="text-neutral-300 font-medium">{{ msg.subject }}</div>
+                        <div class="text-neutral-500">{{ msg.sent_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    {% empty %}
+                    <div class="text-xs text-neutral-500">No activity yet.</div>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+        <!-- Right: Actions -->
+        <div class="w-1/2 flex flex-col bg-neutral-900/50" x-data="{ tab: 'initial' }">
+            <!-- Tabs -->
+            <div class="flex border-b border-neutral-800">
+                <button @click="tab = 'initial'" :class="tab === 'initial' ? 'border-b-2 border-white text-white' : 'text-neutral-500'"
+                        class="px-6 py-3 text-sm font-medium transition-colors">Initial</button>
+                <button @click="tab = 'follow1'" :class="tab === 'follow1' ? 'border-b-2 border-white text-white' : 'text-neutral-500'"
+                        class="px-6 py-3 text-sm font-medium transition-colors">Follow-up 1</button>
+                <button @click="tab = 'follow2'" :class="tab === 'follow2' ? 'border-b-2 border-white text-white' : 'text-neutral-500'"
+                        class="px-6 py-3 text-sm font-medium transition-colors">Follow-up 2</button>
+            </div>
+
+            <div class="flex-1 p-6">
+                <form hx-post="{% url 'leads:send-message' lead.pk %}" hx-swap="none" @htmx:after-request="show = false">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs text-neutral-500 mb-1 uppercase">Subject</label>
+                            <input type="text" name="subject" class="w-full bg-neutral-800 border border-neutral-700 rounded-md text-sm py-2 px-3 focus:outline-none focus:border-neutral-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-neutral-500 mb-1 uppercase">Message Body</label>
+                            <textarea name="body" rows="10" class="w-full bg-neutral-800 border border-neutral-700 rounded-md text-sm py-2 px-3 focus:outline-none focus:border-neutral-500 resize-none"></textarea>
+                        </div>
+                        <div class="flex items-center justify-between pt-4">
+                            <button type="button" hx-post="{% url 'leads:generate-message' lead.pk %}" hx-swap="none"
+                                    class="text-sm font-medium text-neutral-400 hover:text-white flex items-center transition-colors">
+                                <i data-lucide="sparkles" class="w-4 h-4 mr-2"></i>
+                                Generate Draft
+                            </button>
+                            <button type="submit" class="bg-white text-black px-6 py-2 rounded-lg text-sm font-bold hover:bg-neutral-200 transition-colors">
+                                Send Email
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>lucide.createIcons();</script>

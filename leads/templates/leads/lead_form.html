@@ -1,44 +1,63 @@
-{% load crispy_forms_tags %}
+<div class="p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold text-neutral-100">{% if lead %}Edit Lead{% else %}New Lead{% endif %}</h2>
+        <button @click="show = false" class="text-neutral-500 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+    </div>
 
-<div class="flex justify-between items-center mb-6">
-    <h2 class="text-xl font-bold">{% if lead %}Edit Lead: {{ lead.business_name }}{% else %}Add New Lead{% endif %}</h2>
-    <button @click="show = false" class="text-gray-400 hover:text-gray-600">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-    </button>
+    <form hx-post="{% if lead %}{% url 'leads:lead-update' lead.pk %}{% else %}{% url 'leads:lead-create' %}{% endif %}"
+          hx-swap="none" @htmx:after-request="if(event.detail.successful) show = false" class="space-y-6">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-1">
+                <label class="text-xs font-bold text-neutral-500 uppercase tracking-widest">Business Name</label>
+                <input type="text" name="business_name" value="{{ lead.business_name|default:'' }}" required
+                       class="w-full bg-neutral-800 border border-neutral-700 rounded-lg py-2 px-3 text-sm focus:border-neutral-500 outline-none">
+            </div>
+            <div class="space-y-1">
+                <label class="text-xs font-bold text-neutral-500 uppercase tracking-widest">Contact Name</label>
+                <input type="text" name="contact_name" value="{{ lead.contact_name|default:'' }}"
+                       class="w-full bg-neutral-800 border border-neutral-700 rounded-lg py-2 px-3 text-sm focus:border-neutral-500 outline-none">
+            </div>
+            <div class="space-y-1">
+                <label class="text-xs font-bold text-neutral-500 uppercase tracking-widest">Email</label>
+                <input type="email" name="email" value="{{ lead.email|default:'' }}"
+                       class="w-full bg-neutral-800 border border-neutral-700 rounded-lg py-2 px-3 text-sm focus:border-neutral-500 outline-none">
+            </div>
+            <div class="space-y-1">
+                <label class="text-xs font-bold text-neutral-500 uppercase tracking-widest">Website</label>
+                <input type="url" name="website" value="{{ lead.website|default:'' }}"
+                       class="w-full bg-neutral-800 border border-neutral-700 rounded-lg py-2 px-3 text-sm focus:border-neutral-500 outline-none">
+            </div>
+            <div class="col-span-full space-y-1">
+                <label class="text-xs font-bold text-neutral-500 uppercase tracking-widest">Problem Description</label>
+                <textarea name="problem" rows="3"
+                          class="w-full bg-neutral-800 border border-neutral-700 rounded-lg py-2 px-3 text-sm focus:border-neutral-500 outline-none resize-none">{{ lead.problem|default:'' }}</textarea>
+            </div>
+            <div class="space-y-1">
+                <label class="text-xs font-bold text-neutral-500 uppercase tracking-widest">Score (0-100)</label>
+                <input type="number" name="score" value="{{ lead.score|default:0 }}" min="0" max="100"
+                       class="w-full bg-neutral-800 border border-neutral-700 rounded-lg py-2 px-3 text-sm focus:border-neutral-500 outline-none">
+            </div>
+            <div class="space-y-1">
+                <label class="text-xs font-bold text-neutral-500 uppercase tracking-widest">Status</label>
+                <select name="status" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg py-2 px-3 text-sm focus:border-neutral-500 outline-none">
+                    {% for val, label in form.fields.status.choices %}
+                    <option value="{{ val }}" {% if lead.status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-6">
+            <button type="button" @click="show = false" class="px-6 py-2 rounded-lg text-sm font-bold text-neutral-400 hover:text-white transition-colors">
+                Cancel
+            </button>
+            <button type="submit" class="bg-white text-black px-6 py-2 rounded-lg text-sm font-bold hover:bg-neutral-200 transition-colors">
+                Save Lead
+            </button>
+        </div>
+    </form>
 </div>
-
-<form hx-post="{% if lead %}{% url 'leads:lead-update' lead.pk %}{% else %}{% url 'leads:lead-create' %}{% endif %}"
-      hx-target="#modal-content"
-      class="space-y-4">
-    {% csrf_token %}
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {{ form.business_name|as_crispy_field }}
-        {{ form.contact_name|as_crispy_field }}
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {{ form.email|as_crispy_field }}
-        {{ form.phone|as_crispy_field }}
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {{ form.website|as_crispy_field }}
-        {{ form.instagram|as_crispy_field }}
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {{ form.score|as_crispy_field }}
-        {{ form.status|as_crispy_field }}
-        {{ form.tone|as_crispy_field }}
-    </div>
-
-    {{ form.problem|as_crispy_field }}
-    {{ form.offer|as_crispy_field }}
-    {{ form.evidence_note|as_crispy_field }}
-
-    <div class="mt-8 flex justify-end space-x-3">
-        <button type="button" @click="show = false" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
-        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Save Lead</button>
-    </div>
-</form>
+<script>lucide.createIcons();</script>

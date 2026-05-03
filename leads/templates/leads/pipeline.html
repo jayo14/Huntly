@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Pipeline | Huntly{% endblock %}
+{% block header_title %}Pipeline{% endblock %}
+
+{% block content %}
+<div x-data="{ mode: 'kanban' }">
+    <div class="flex items-center justify-between mb-8">
+        <h2 class="text-xl font-bold">Sales Pipeline</h2>
+        <div class="bg-neutral-900 p-1 rounded-lg border border-neutral-800 flex">
+            <button @click="mode = 'funnel'" :class="mode === 'funnel' ? 'bg-neutral-800 text-white' : 'text-neutral-500'"
+                    class="px-4 py-1.5 text-xs font-bold rounded-md transition-colors">Funnel View</button>
+            <button @click="mode = 'kanban'" :class="mode === 'kanban' ? 'bg-neutral-800 text-white' : 'text-neutral-500'"
+                    class="px-4 py-1.5 text-xs font-bold rounded-md transition-colors">Kanban Board</button>
+        </div>
+    </div>
+
+    <!-- Funnel View -->
+    <div x-show="mode === 'funnel'" x-cloak class="space-y-4 max-w-4xl mx-auto py-8">
+        {% for stage in stages %}
+        <div class="relative">
+            <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-xl flex items-center justify-between relative z-10">
+                <div>
+                    <span class="text-xs font-bold text-neutral-500 uppercase tracking-widest">{{ stage.label }}</span>
+                    <div class="text-2xl font-bold">{{ stage.leads.count }}</div>
+                </div>
+                <button hx-get="{% url 'leads:lead-list' %}?status={{ stage.status }}" hx-target="#leads-table-container"
+                        @click="window.location.href='{% url 'leads:lead-list' %}?status={{ stage.status }}'"
+                        class="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-lg text-xs font-bold transition-colors">
+                    View Leads
+                </button>
+            </div>
+            {% if not forloop.last %}
+            <div class="flex justify-center -my-1">
+                <div class="w-px h-8 bg-neutral-800"></div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Kanban View -->
+    <div x-show="mode === 'kanban'" x-cloak class="flex gap-4 overflow-x-auto pb-8 h-[calc(100vh-200px)]">
+        {% for stage in stages %}
+        <div class="flex-shrink-0 w-80 flex flex-col">
+            <div class="flex items-center justify-between mb-4 px-2">
+                <h3 class="text-xs font-bold text-neutral-500 uppercase tracking-widest">{{ stage.label }}</h3>
+                <span class="text-xs bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded-full font-bold">{{ stage.leads.count }}</span>
+            </div>
+
+            <div class="flex-1 bg-neutral-900/30 rounded-xl border border-neutral-800/50 p-2 space-y-3 overflow-y-auto">
+                {% for lead in stage.leads %}
+                <div hx-get="{% url 'leads:lead-detail' lead.pk %}" hx-target="#modal-content"
+                     class="bg-neutral-900 border border-neutral-800 p-4 rounded-lg shadow-sm hover:border-neutral-600 transition-colors cursor-pointer group">
+                    <div class="font-medium text-sm text-neutral-200 mb-1">{{ lead.business_name }}</div>
+                    <div class="text-xs text-neutral-500 line-clamp-2 mb-3">{{ lead.problem|default:"No problem described." }}</div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-neutral-600 uppercase">{{ lead.tone }}</span>
+                        <span class="text-xs font-bold {% if lead.score >= 80 %}text-emerald-500{% elif lead.score >= 50 %}text-amber-500{% else %}text-neutral-500{% endif %}">
+                            {{ lead.score }}
+                        </span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="h-32 flex items-center justify-center border border-dashed border-neutral-800 rounded-lg text-xs text-neutral-600">
+                    Empty Stage
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

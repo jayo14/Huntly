@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Huntly{% endblock %}
+{% block header_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div id="dashboard-container" hx-get="{% url 'leads:dashboard' %}" hx-trigger="leadsChanged from:body" hx-target="this">
+    {% include "leads/partials/dashboard_stats.html" %}
+</div>
+{% endblock %}
