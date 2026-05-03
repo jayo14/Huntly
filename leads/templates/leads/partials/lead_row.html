@@ -1,39 +1,36 @@
-<tr id="lead-{{ lead.id }}">
-    <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm font-medium text-gray-900">{{ lead.business_name }}</div>
-        <div class="text-sm text-gray-500">{{ lead.website|default:"" }}</div>
+<tr class="hover:bg-neutral-800/50 transition-colors group cursor-pointer"
+    onclick="if(!event.target.closest('button') && !event.target.closest('select')) htmx.ajax('GET', '{% url 'leads:lead-detail' lead.pk %}', {target:'#modal-content'})">
+    <td class="px-6 py-4">
+        <div class="font-medium text-neutral-200">{{ lead.business_name }}</div>
+        <div class="text-xs text-neutral-500">{{ lead.website|default:"" }}</div>
     </td>
-    <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm text-gray-900">{{ lead.contact_name|default:"N/A" }}</div>
-        <div class="text-sm text-gray-500">{{ lead.email|default:"" }}</div>
+    <td class="px-6 py-4">
+        <div class="text-sm text-neutral-400 line-clamp-1 max-w-md">{{ lead.problem|default:"-" }}</div>
     </td>
-    <td class="px-6 py-4 whitespace-nowrap">
-        <select name="status"
-                hx-post="{% url 'leads:update-status' lead.pk %}"
-                hx-target="closest tr"
-                hx-swap="outerHTML"
-                class="text-sm rounded-full px-3 py-1 font-semibold focus:outline-none
-                {% if lead.status == 'new' %}bg-blue-100 text-blue-800
-                {% elif lead.status == 'contacted' %}bg-yellow-100 text-yellow-800
-                {% elif lead.status == 'replied' %}bg-indigo-100 text-indigo-800
-                {% elif lead.status == 'proposal' %}bg-purple-100 text-purple-800
-                {% elif lead.status == 'closed' %}bg-green-100 text-green-800{% endif %}">
-            {% for value, label in lead.STATUS_CHOICES %}
-                <option value="{{ value }}" {% if lead.status == value %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-        </select>
-    </td>
-    <td class="px-6 py-4 whitespace-nowrap">
-        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+    <td class="px-6 py-4 text-center">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold
+            {% if lead.score >= 80 %}bg-emerald-500/10 text-emerald-500 border border-emerald-500/20
+            {% elif lead.score >= 50 %}bg-amber-500/10 text-amber-500 border border-amber-500/20
+            {% else %}bg-neutral-800 text-neutral-500 border border-neutral-700{% endif %}">
             {{ lead.score }}
         </span>
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-        <button hx-get="{% url 'leads:lead-update' lead.pk %}"
-                hx-target="#modal-content"
-                class="text-indigo-600 hover:text-indigo-900">Edit</button>
-        <button hx-post="{% url 'leads:lead-delete' lead.pk %}"
-                hx-confirm="Are you sure you want to delete this lead?"
-                class="text-red-600 hover:text-red-900">Delete</button>
+    <td class="px-6 py-4">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
+            {% if lead.status == 'new' %}bg-neutral-800 text-neutral-400 border-neutral-700
+            {% elif lead.status == 'contacted' %}bg-blue-500/10 text-blue-500 border-blue-500/20
+            {% elif lead.status == 'replied' %}bg-emerald-500/10 text-emerald-500 border-emerald-500/20
+            {% elif lead.status == 'proposal' %}bg-purple-500/10 text-purple-500 border-purple-500/20
+            {% elif lead.status == 'closed' %}bg-neutral-100 text-neutral-900 border-neutral-300
+            {% endif %}">
+            {{ lead.get_status_display }}
+        </span>
+    </td>
+    <td class="px-6 py-4 text-right">
+        <button hx-get="{% url 'leads:lead-update' lead.pk %}" hx-target="#modal-content"
+                class="text-neutral-500 hover:text-white transition-colors">
+            <i data-lucide="edit-2" class="w-4 h-4"></i>
+        </button>
     </td>
 </tr>
+<script>lucide.createIcons();</script>

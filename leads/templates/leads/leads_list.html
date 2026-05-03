@@ -1,24 +1,50 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
-{% block title %}Leads - Huntly{% endblock %}
+{% block title %}Leads | Huntly{% endblock %}
 {% block header_title %}Leads Management{% endblock %}
 
 {% block content %}
-<div class="mb-6 flex justify-between items-center">
-    <h1 class="text-2xl font-bold text-gray-800">Leads</h1>
-    <button hx-get="{% url 'leads:lead-create' %}"
-            hx-target="#modal-content"
-            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-        + Add Lead
+<div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="flex flex-1 items-center gap-4">
+        <div class="relative flex-1 max-w-md">
+            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500"></i>
+            <input type="text" name="search" placeholder="Search leads..."
+                   class="w-full bg-neutral-900 border border-neutral-800 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-neutral-600 transition-colors"
+                   hx-get="{% url 'leads:lead-list' %}"
+                   hx-trigger="keyup changed delay:500ms"
+                   hx-target="#leads-table-container"
+                   hx-include="[name='status'], [name='needs_action']">
+        </div>
+
+        <select name="status"
+                class="bg-neutral-900 border border-neutral-800 rounded-lg py-2 px-4 text-sm focus:outline-none focus:border-neutral-600 transition-colors"
+                hx-get="{% url 'leads:lead-list' %}"
+                hx-target="#leads-table-container"
+                hx-include="[name='search'], [name='needs_action']">
+            <option value="">All Statuses</option>
+            {% for value, label in status_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="flex items-center gap-2 cursor-pointer group">
+            <input type="checkbox" name="needs_action" value="true"
+                   class="w-4 h-4 rounded border-neutral-800 bg-neutral-900 text-blue-600 focus:ring-0 focus:ring-offset-0"
+                   hx-get="{% url 'leads:lead-list' %}"
+                   hx-target="#leads-table-container"
+                   hx-include="[name='search'], [name='status']">
+            <span class="text-sm text-neutral-400 group-hover:text-neutral-200 transition-colors">Needs Action</span>
+        </label>
+    </div>
+
+    <button hx-get="{% url 'leads:lead-create' %}" hx-target="#modal-content"
+            class="bg-white text-black hover:bg-neutral-200 px-4 py-2 rounded-lg text-sm font-bold flex items-center transition-colors">
+        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+        New Lead
     </button>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm overflow-hidden"
-     hx-get="{% url 'leads:lead-list-partial' %}"
-     hx-trigger="leadsChanged from:body"
-     hx-target="#leads-table-container">
-    <div id="leads-table-container">
-        {% include 'leads/partials/lead_list_table.html' %}
-    </div>
+<div id="leads-table-container" hx-trigger="leadsChanged from:body" hx-get="{% url 'leads:lead-list' %}" hx-target="this">
+    {% include "leads/partials/lead_list_table.html" %}
 </div>
 {% endblock %}
