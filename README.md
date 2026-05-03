@@ -23,7 +23,7 @@ A Django-based lead management CRM for tracking prospects, sending outreach emai
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/jayo14/Huntly.git
+git clone <your-repo-url>
 cd Huntly
 
 # 2. Create and activate a virtual environment
