@@ -1,34 +1,34 @@
-<tr class="hover:bg-neutral-800/50 transition-colors group">
-    <td class="px-6 py-4">
-        <span class="font-medium text-white">{{ rule.name }}</span>
+<tr class="hover:bg-surface-200/50 transition-all group">
+    <td class="px-8 py-5">
+        <span class="font-bold text-surface-950">{{ rule.name }}</span>
     </td>
-    <td class="px-6 py-4">
-        <span class="text-sm text-neutral-400">{{ rule.get_trigger_type_display }}</span>
+    <td class="px-8 py-5">
+        <span class="text-sm text-surface-500 font-medium">{{ rule.get_trigger_type_display }}</span>
     </td>
-    <td class="px-6 py-4">
-        <span class="text-sm px-2.5 py-1 rounded-full bg-neutral-800 border border-neutral-700">
-            {{ rule.get_target_status_display|default:"All" }}
+    <td class="px-8 py-5">
+        <span class="text-[10px] font-bold px-3 py-1.5 rounded-full bg-surface-200 text-surface-600 border border-surface-300">
+            {{ rule.get_target_status_display|default:"ALL STATUSES"|upper }}
         </span>
     </td>
-    <td class="px-6 py-4">
-        <span class="text-sm text-neutral-400">{{ rule.delay_hours }}h</span>
+    <td class="px-8 py-5">
+        <span class="text-sm text-surface-500 font-bold">{{ rule.delay_hours }}h</span>
     </td>
-    <td class="px-6 py-4">
-        <button hx-post="{% url 'leads:toggle-rule' rule.pk %}" hx-target="closest tr" hx-swap="outerHTML" class="relative inline-flex items-center cursor-pointer">
-            <div class="w-10 h-5 bg-neutral-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all {% if rule.is_active %}bg-primary-600{% endif %}"></div>
+    <td class="px-8 py-5">
+        <button hx-post="{% url 'leads:toggle-rule' rule.pk %}" hx-target="closest tr" hx-swap="outerHTML" class="relative inline-flex items-center cursor-pointer group/toggle">
+            <div class="w-11 h-6 bg-surface-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all {% if rule.is_active %}bg-primary-600{% endif %}"></div>
             {% if rule.is_active %}
-                <div class="absolute left-1.5 top-0.5 w-4 h-4 bg-white rounded-full transition-all translate-x-5"></div>
+                <div class="absolute left-1.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all translate-x-5"></div>
             {% else %}
-                <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-all"></div>
+                <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all"></div>
             {% endif %}
         </button>
     </td>
-    <td class="px-6 py-4 text-right">
+    <td class="px-8 py-5 text-right">
         <div class="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button hx-get="{% url 'leads:rule-update' rule.pk %}" hx-target="#modal-content" class="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-lg transition-colors">
+            <button hx-get="{% url 'leads:rule-update' rule.pk %}" hx-target="#modal-content" class="p-2 text-surface-400 hover:text-primary-500 hover:bg-primary-500/10 rounded-xl transition-all">
                 <i data-lucide="edit-3" class="w-4 h-4"></i>
             </button>
-            <button hx-post="{% url 'leads:rule-delete' rule.pk %}" hx-confirm="Are you sure you want to delete this sequence?" hx-target="closest tr" hx-swap="delete" class="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+            <button hx-post="{% url 'leads:rule-delete' rule.pk %}" hx-confirm="Are you sure you want to delete this sequence?" hx-target="closest tr" hx-swap="delete" class="p-2 text-surface-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
         </div>

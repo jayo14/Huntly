@@ -2,6 +2,7 @@
     query: '{{ form.region.value|default:'' }}', 
     results: [], 
     loading: false,
+    selectedRegion: '{{ form.region.value|default:'' }}',
     async searchRegion(q) {
         if (q.length < 3) { this.results = []; return; }
         this.loading = true;
@@ -10,58 +11,81 @@
             const data = await res.json();
             this.results = data.features.map(f => {
                 const p = f.properties;
-                return [p.name, p.city, p.state, p.country].filter(Boolean).join(', ');
+                const parts = [p.name, p.city, p.state, p.country].filter(Boolean);
+                return parts.join(', ');
             });
         } catch (e) {
             console.error(e);
         } finally {
             this.loading = false;
         }
+    },
+    selectRegion(res) {
+        this.query = res;
+        this.selectedRegion = res;
+        this.results = [];
     }
 }">
     <div class="flex items-center justify-between mb-8">
         <div>
-            <h2 class="text-2xl font-bold text-surface-950">Launch Scraper</h2>
+            <h2 class="text-2xl font-bold text-surface-950 font-display">Launch Scraper</h2>
             <p class="text-surface-500 text-sm mt-1">Define your target audience and location.</p>
         </div>
-        <button @click="show = false" class="text-surface-400 hover:text-surface-950 transition-colors">
+        <button @click="show = false" class="p-2 hover:bg-surface-100 rounded-xl transition-colors text-surface-400 hover:text-surface-950">
             <i data-lucide="x" class="w-6 h-6"></i>
         </button>
     </div>
 
     <form hx-post="{% url 'leads:scraper-create' %}" 
           hx-target="#modal-content"
-          hx-on::after-request="if(event.detail.successful) show = false"
+          hx-on::after-request="if(event.detail.successful) { 
+              show = false; 
+              $dispatch('notify', { message: 'Scraping session launched!', type: 'success' });
+          }"
           class="space-y-6">
         {% csrf_token %}
         
         <div class="space-y-6">
             <!-- Session Name -->
             <div class="space-y-2">
-                <label class="block text-sm font-bold text-surface-700">Session Title</label>
-                <input type="text" name="name" required class="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-950 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all" placeholder="e.g. Miami Real Estate Search">
+                <label class="block text-sm font-bold text-surface-700 ml-1">Session Title</label>
+                <input type="text" name="name" required class="w-full bg-surface-100 border border-surface-200 rounded-2xl px-6 py-4 text-surface-950 placeholder:text-surface-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none" placeholder="e.g. Miami Real Estate Search">
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-2">
-                    <label class="block text-sm font-bold text-surface-700">Niche</label>
-                    <input type="text" name="niche" required class="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-950 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all" placeholder="e.g. Dentists">
+                    <label class="block text-sm font-bold text-surface-700 ml-1">Niche / Industry</label>
+                    <input type="text" name="niche" required class="w-full bg-surface-100 border border-surface-200 rounded-2xl px-6 py-4 text-surface-950 placeholder:text-surface-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none" placeholder="e.g. Dentists">
                 </div>
                 
-                <!-- Region with Autocomplete -->
-                <div class="space-y-2 relative">
-                    <label class="block text-sm font-bold text-surface-700">Region / City</label>
+                <!-- Region with Premium Dropdown -->
+                <div class="space-y-2 relative" @click.away="results = []">
+                    <label class="block text-sm font-bold text-surface-700 ml-1">Region / City</label>
                     <div class="relative">
-                        <input type="text" name="region" x-model="query" @input.debounce.300ms="searchRegion(query)" required class="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-950 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all" placeholder="e.g. Miami, FL">
+                        <input type="text" 
+                               name="region" 
+                               autocomplete="off"
+                               x-model="query" 
+                               @input.debounce.300ms="searchRegion(query)" 
+                               required 
+                               class="w-full bg-surface-100 border border-surface-200 rounded-2xl px-6 py-4 text-surface-950 placeholder:text-surface-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none" 
+                               placeholder="e.g. Miami, FL">
                         <div x-show="loading" class="absolute right-4 top-1/2 -translate-y-1/2">
                             <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-primary-500"></i>
+                        </div>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2" x-show="!loading">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-surface-400"></i>
                         </div>
                     </div>
                     
                     <!-- Autocomplete Dropdown -->
-                    <div x-show="results.length > 0" class="absolute z-50 w-full mt-2 bg-surface-50 border border-surface-200 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+                    <div x-show="results.length > 0" 
+                         class="absolute z-[70] w-full mt-2 bg-surface-50 border border-surface-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 border-t-0">
                         <template x-for="res in results" :key="res">
-                            <button type="button" @click="query = res; results = []" class="w-full text-left px-6 py-3 text-sm text-surface-700 hover:bg-primary-500 hover:text-white transition-colors border-b border-surface-100 last:border-0">
+                            <button type="button" 
+                                    @click="selectRegion(res)" 
+                                    class="w-full text-left px-6 py-4 text-sm text-surface-700 hover:bg-primary-600 hover:text-white transition-all flex items-center space-x-3 border-b border-surface-100 last:border-0">
+                                <i data-lucide="map-pin" class="w-4 h-4 shrink-0 opacity-50"></i>
                                 <span x-text="res"></span>
                             </button>
                         </template>
@@ -70,26 +94,28 @@
             </div>
 
             <div class="space-y-2">
-                <label class="block text-sm font-bold text-surface-700">Keywords (Optional)</label>
-                <textarea name="keywords" rows="2" class="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-950 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all" placeholder="e.g. implant, cosmetic surgery..."></textarea>
+                <label class="block text-sm font-bold text-surface-700 ml-1">Keywords (Optional)</label>
+                <textarea name="keywords" rows="2" class="w-full bg-surface-100 border border-surface-200 rounded-2xl px-6 py-4 text-surface-950 placeholder:text-surface-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none resize-none" placeholder="e.g. implant, cosmetic surgery..."></textarea>
             </div>
             
-            <div class="p-4 bg-primary-500/5 border border-primary-500/10 rounded-2xl">
+            <div class="p-5 bg-primary-500/5 border border-primary-500/10 rounded-2xl">
                 <div class="flex items-start space-x-3">
-                    <i data-lucide="info" class="w-5 h-5 text-primary-500 shrink-0 mt-0.5"></i>
+                    <div class="mt-1 w-5 h-5 bg-primary-500/10 rounded-full flex items-center justify-center shrink-0">
+                        <i data-lucide="info" class="w-3 h-3 text-primary-500"></i>
+                    </div>
                     <p class="text-xs text-surface-600 leading-relaxed">
-                        Our engine will search across Google Maps and social directories. This usually takes 5-15 minutes depending on the scope.
+                        Our engine will search across Google Maps and social directories. This usually takes 5-15 minutes depending on the scope. Results will appear in your dashboard.
                     </p>
                 </div>
             </div>
         </div>
 
-        <div class="flex justify-end space-x-3 pt-8 border-t border-surface-200">
-            <button type="button" @click="show = false" class="px-6 py-2.5 rounded-xl border border-surface-200 font-bold hover:bg-surface-100 transition-all text-surface-700">
+        <div class="flex justify-end space-x-4 pt-8 border-t border-surface-200">
+            <button type="button" @click="show = false" class="px-6 py-3 rounded-xl border border-surface-200 font-bold hover:bg-surface-100 transition-all text-surface-700">
                 Cancel
             </button>
-            <button type="submit" class="bg-primary-600 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-primary-500 transition-all shadow-lg shadow-primary-600/20 flex items-center">
-                <i data-lucide="play" class="w-4 h-4 mr-2 fill-current"></i>
+            <button type="submit" class="bg-primary-600 text-white px-10 py-3 rounded-xl font-bold hover:bg-primary-500 transition-all shadow-lg shadow-primary-600/30 flex items-center group">
+                <i data-lucide="play" class="w-4 h-4 mr-2 fill-current group-hover:scale-110 transition-transform"></i>
                 Launch Job
             </button>
         </div>

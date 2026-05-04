@@ -1,16 +1,16 @@
 <div class="overflow-x-auto">
     <table class="w-full text-left">
         <thead>
-            <tr class="text-xs font-bold text-neutral-500 uppercase tracking-wider border-b border-neutral-800">
-                <th class="px-6 py-4">Sequence Name</th>
-                <th class="px-6 py-4">Trigger</th>
-                <th class="px-6 py-4">Target Status</th>
-                <th class="px-6 py-4">Delay</th>
-                <th class="px-6 py-4">Status</th>
-                <th class="px-6 py-4 text-right">Actions</th>
+            <tr class="text-[10px] font-bold text-surface-400 uppercase tracking-widest border-b border-surface-200">
+                <th class="px-8 py-5">Sequence Name</th>
+                <th class="px-8 py-5">Trigger</th>
+                <th class="px-8 py-5">Target Status</th>
+                <th class="px-8 py-5">Delay</th>
+                <th class="px-8 py-5">Status</th>
+                <th class="px-8 py-5 text-right">Actions</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-neutral-800">
+        <tbody class="divide-y divide-surface-200">
             {% for rule in rules %}
                 {% include 'leads/partials/rule_row.html' %}
             {% empty %}

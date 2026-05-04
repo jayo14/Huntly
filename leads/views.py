@@ -352,7 +352,7 @@ def scraper_job_update_name(request, pk):
             job.name = name
             job.save()
             if request.headers.get('HX-Request'):
-                return HttpResponse(status=204, headers={'HX-Trigger': 'jobsChanged'})
+                return HttpResponse(status=200, headers={'HX-Redirect': reverse('leads:scraper-dashboard')})
             return redirect('leads:scraper-dashboard')
     
     return render(request, 'leads/partials/scraper_job_name_form.html', {'job': job})
@@ -372,7 +372,7 @@ def scraper_create(request):
             start_scraping_thread(job.id)
             
             if request.headers.get('HX-Request'):
-                return HttpResponse(status=204, headers={'HX-Trigger': 'jobsChanged'})
+                return HttpResponse(status=200, headers={'HX-Redirect': reverse('leads:scraper-dashboard')})
             return redirect('leads:scraper-dashboard')
     else:
         form = ScraperJobForm()

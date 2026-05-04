@@ -1,59 +1,62 @@
 <!-- KPI Cards -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-xl">
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+    <div class="bg-surface-100 border border-surface-200 p-6 rounded-2xl shadow-sm group hover:shadow-md transition-all">
         <div class="flex items-center justify-between mb-4">
-            <div class="p-2 bg-blue-500/10 rounded-lg">
+            <div class="p-2.5 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform">
                 <i data-lucide="users" class="w-6 h-6 text-blue-500"></i>
             </div>
-            <span class="text-xs font-medium text-neutral-500 uppercase tracking-wider">Total Leads</span>
+            <span class="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Total Leads</span>
         </div>
-        <div class="text-3xl font-bold">{{ total_leads }}</div>
+        <div class="text-3xl font-bold text-surface-950">{{ total_leads }}</div>
     </div>
 
-    <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-xl">
+    <div class="bg-surface-100 border border-surface-200 p-6 rounded-2xl shadow-sm group hover:shadow-md transition-all">
         <div class="flex items-center justify-between mb-4">
-            <div class="p-2 bg-emerald-500/10 rounded-lg">
+            <div class="p-2.5 bg-emerald-500/10 rounded-xl group-hover:scale-110 transition-transform">
                 <i data-lucide="mail" class="w-6 h-6 text-emerald-500"></i>
             </div>
-            <span class="text-xs font-medium text-neutral-500 uppercase tracking-wider">Emails Sent (Today)</span>
+            <span class="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Emails Sent</span>
         </div>
-        <div class="text-3xl font-bold">{{ emails_sent_today }}</div>
+        <div class="text-3xl font-bold text-surface-950">{{ emails_sent_today }}</div>
     </div>
 
-    <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-xl">
+    <div class="bg-surface-100 border border-surface-200 p-6 rounded-2xl shadow-sm group hover:shadow-md transition-all">
         <div class="flex items-center justify-between mb-4">
-            <div class="p-2 bg-purple-500/10 rounded-lg">
+            <div class="p-2.5 bg-purple-500/10 rounded-xl group-hover:scale-110 transition-transform">
                 <i data-lucide="message-square" class="w-6 h-6 text-purple-500"></i>
             </div>
-            <span class="text-xs font-medium text-neutral-500 uppercase tracking-wider">Replies</span>
+            <span class="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Replies</span>
         </div>
-        <div class="text-3xl font-bold">{{ replies_count }}</div>
+        <div class="text-3xl font-bold text-surface-950">{{ replies_count }}</div>
     </div>
 
-    <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-xl">
+    <div class="bg-surface-100 border border-surface-200 p-6 rounded-2xl shadow-sm group hover:shadow-md transition-all">
         <div class="flex items-center justify-between mb-4">
-            <div class="p-2 bg-amber-500/10 rounded-lg">
+            <div class="p-2.5 bg-amber-500/10 rounded-xl group-hover:scale-110 transition-transform">
                 <i data-lucide="trending-up" class="w-6 h-6 text-amber-500"></i>
             </div>
-            <span class="text-xs font-medium text-neutral-500 uppercase tracking-wider">Conversion</span>
+            <span class="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Conversion</span>
         </div>
-        <div class="text-3xl font-bold">{{ conversion_rate }}%</div>
+        <div class="text-3xl font-bold text-surface-950">{{ conversion_rate }}%</div>
     </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
     <!-- Funnel Visualization -->
-    <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-xl">
-        <h3 class="text-lg font-bold mb-6">Pipeline Funnel</h3>
-        <div class="space-y-4">
+    <div class="bg-surface-100 border border-surface-200 p-8 rounded-3xl shadow-sm">
+        <h3 class="text-xl font-bold mb-8 text-surface-950 flex items-center">
+            <i data-lucide="filter" class="w-5 h-5 mr-3 text-primary-500"></i>
+            Pipeline Funnel
+        </h3>
+        <div class="space-y-6">
             {% for stage in funnel_stages %}
-            <div>
-                <div class="flex justify-between text-sm mb-1.5">
-                    <span class="text-neutral-400">{{ stage.label }}</span>
-                    <span class="font-medium">{{ stage.count }}</span>
+            <div class="group">
+                <div class="flex justify-between text-sm mb-2">
+                    <span class="text-surface-500 font-medium">{{ stage.label }}</span>
+                    <span class="font-bold text-surface-950">{{ stage.count }}</span>
                 </div>
-                <div class="w-full bg-neutral-800 rounded-full h-2">
-                    <div class="bg-blue-500 h-2 rounded-full" style="width: {{ stage.percentage }}%"></div>
+                <div class="w-full bg-surface-200 rounded-full h-2.5 overflow-hidden">
+                    <div class="bg-primary-500 h-2.5 rounded-full transition-all duration-1000 group-hover:bg-primary-400" style="width: {{ stage.percentage }}%"></div>
                 </div>
             </div>
             {% endfor %}
@@ -61,22 +64,29 @@
     </div>
 
     <!-- Needs Attention -->
-    <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-xl">
-        <h3 class="text-lg font-bold mb-6">Needs Attention</h3>
+    <div class="bg-surface-100 border border-surface-200 p-8 rounded-3xl shadow-sm">
+        <h3 class="text-xl font-bold mb-8 text-surface-950 flex items-center">
+            <i data-lucide="alert-circle" class="w-5 h-5 mr-3 text-amber-500"></i>
+            Needs Attention
+        </h3>
         <div class="space-y-4">
             {% for lead in needs_attention %}
-            <div class="flex items-center justify-between p-3 border border-neutral-800 rounded-lg hover:bg-neutral-800/50 transition-colors">
-                <div>
-                    <div class="font-medium text-neutral-200">{{ lead.business_name }}</div>
-                    <div class="text-xs text-neutral-500 truncate max-w-[200px]">{{ lead.problem|default:"No problem description" }}</div>
+            <div class="flex items-center justify-between p-4 bg-surface-50 border border-surface-200 rounded-2xl hover:border-primary-500/50 hover:shadow-md transition-all group cursor-pointer"
+                 onclick="htmx.ajax('GET', '{% url 'leads:lead-detail' lead.pk %}', {target:'#modal-content'})">
+                <div class="flex-1 min-w-0 mr-4">
+                    <div class="font-bold text-surface-950 truncate">{{ lead.business_name }}</div>
+                    <div class="text-xs text-surface-500 truncate">{{ lead.problem|default:"No problem description" }}</div>
                 </div>
-                <button hx-get="{% url 'leads:lead-detail' lead.pk %}" hx-target="#modal-content"
-                        class="px-3 py-1 text-xs font-medium bg-neutral-800 hover:bg-neutral-700 rounded-md border border-neutral-700 transition-colors">
-                    View
-                </button>
+                <div class="flex items-center space-x-3">
+                    <span class="text-[10px] font-bold text-surface-400 bg-surface-200 px-2 py-1 rounded-full">{{ lead.score }}</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-surface-300 group-hover:text-primary-500 group-hover:translate-x-1 transition-all"></i>
+                </div>
             </div>
             {% empty %}
-            <div class="text-center py-8 text-neutral-500">No urgent leads found.</div>
+            <div class="flex flex-col items-center justify-center py-12 text-center">
+                <i data-lucide="check-circle" class="w-12 h-12 text-emerald-500/20 mb-4"></i>
+                <p class="text-surface-500 font-medium">All caught up! No urgent leads found.</p>
+            </div>
             {% endfor %}
         </div>
     </div>
