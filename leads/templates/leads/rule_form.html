@@ -1,0 +1,53 @@
+{% load crispy_forms_tags %}
+
+<div class="p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold">{% if rule %}Edit{% else %}New{% endif %} Automation Sequence</h2>
+        <button @click="show = false" class="text-neutral-400 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+    </div>
+
+    <form hx-post="{% if rule %}{% url 'leads:rule-update' rule.pk %}{% else %}{% url 'leads:rule-create' %}{% endif %}" 
+          hx-target="#modal-content"
+          class="space-y-6">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="col-span-2">
+                {{ form.name|as_crispy_field }}
+            </div>
+            <div>
+                {{ form.trigger_type|as_crispy_field }}
+            </div>
+            <div>
+                {{ form.target_status|as_crispy_field }}
+            </div>
+            <div>
+                {{ form.delay_hours|as_crispy_field }}
+            </div>
+            <div>
+                {{ form.is_active|as_crispy_field }}
+            </div>
+            <div class="col-span-2">
+                {{ form.ai_prompt_override|as_crispy_field }}
+                <p class="text-xs text-neutral-500 mt-1 italic">
+                    Note: If left blank, the global default AI prompt will be used.
+                </p>
+            </div>
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-6 border-t border-neutral-800">
+            <button type="button" @click="show = false" class="px-6 py-2.5 rounded-xl border border-neutral-700 font-bold hover:bg-neutral-800 transition-all">
+                Cancel
+            </button>
+            <button type="submit" class="bg-primary-600 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-primary-500 transition-all shadow-lg shadow-primary-600/20">
+                Save Sequence
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>

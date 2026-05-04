@@ -16,4 +16,11 @@ urlpatterns = [
     path('settings/', views.settings_view, name='settings'),
     path('leads/<int:pk>/generate-message/', views.generate_message, name='generate-message'),
     path('leads/<int:pk>/send-message/', views.send_message, name='send-message'),
+    path('automation/', views.automation_dashboard, name='automation-dashboard'),
+    path('automation/rules/partial/', views.rule_list_partial, name='rule-list-partial'),
+    path('automation/rules/create/', views.rule_create, name='rule-create'),
+    path('automation/rules/<int:pk>/update/', views.rule_update, name='rule-update'),
+    path('automation/rules/<int:pk>/delete/', views.rule_delete, name='rule-delete'),
+    path('automation/rules/<int:pk>/toggle/', views.toggle_rule, name='toggle-rule'),
+    path('automation/settings/toggle/', views.toggle_setting, name='toggle-setting'),
 ]

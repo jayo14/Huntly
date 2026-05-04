@@ -7,8 +7,8 @@ from django.contrib.auth.decorators import login_required
 
 from django.utils import timezone
 from django.db.models import Count, Q
-from .models import Lead, Message, AppSetting
-from .forms import LeadForm, AppSettingForm
+from .models import Lead, Message, AppSetting, AutomationRule
+from .forms import LeadForm, AppSettingForm, AutomationRuleForm
 import json
 
 @login_required
@@ -243,3 +243,83 @@ def send_message(request, pk):
         return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
 
     return HttpResponse("Invalid form", status=400)
+
+@login_required
+def automation_dashboard(request):
+    rules = AutomationRule.objects.all()
+    settings = AppSetting.objects.first()
+    if not settings:
+        settings = AppSetting.objects.create()
+    
+    context = {
+        'rules': rules,
+        'settings': settings,
+    }
+    return render(request, 'leads/automation.html', context)
+
+@login_required
+def rule_create(request):
+    if request.method == 'POST':
+        form = AutomationRuleForm(request.POST)
+        if form.is_valid():
+            form.save()
+            if request.headers.get('HX-Request'):
+                return HttpResponse(status=204, headers={'HX-Trigger': 'rulesChanged'})
+            return redirect('leads:automation-dashboard')
+    else:
+        form = AutomationRuleForm()
+    return render(request, 'leads/rule_form.html', {'form': form})
+
+@login_required
+def rule_update(request, pk):
+    rule = get_object_or_404(AutomationRule, pk=pk)
+    if request.method == 'POST':
+        form = AutomationRuleForm(request.POST, instance=rule)
+        if form.is_valid():
+            form.save()
+            if request.headers.get('HX-Request'):
+                return HttpResponse(status=204, headers={'HX-Trigger': 'rulesChanged'})
+            return redirect('leads:automation-dashboard')
+    else:
+        form = AutomationRuleForm(instance=rule)
+    return render(request, 'leads/rule_form.html', {'form': form, 'rule': rule})
+
+@login_required
+@require_POST
+def rule_delete(request, pk):
+    rule = get_object_or_404(AutomationRule, pk=pk)
+    rule.delete()
+    if request.headers.get('HX-Request'):
+        return HttpResponse(status=204, headers={'HX-Trigger': 'rulesChanged'})
+    return redirect('leads:automation-dashboard')
+
+@login_required
+@require_POST
+def toggle_rule(request, pk):
+    rule = get_object_or_404(AutomationRule, pk=pk)
+    rule.is_active = not rule.is_active
+    rule.save()
+    if request.headers.get('HX-Request'):
+        return render(request, 'leads/partials/rule_row.html', {'rule': rule})
+    return redirect('leads:automation-dashboard')
+
+@login_required
+def rule_list_partial(request):
+    rules = AutomationRule.objects.all()
+    return render(request, 'leads/partials/rule_list.html', {'rules': rules})
+
+@login_required
+@require_POST
+def toggle_setting(request):
+    setting = AppSetting.objects.first()
+    if not setting:
+        setting = AppSetting.objects.create()
+    
+    field = request.POST.get('field')
+    if field in ['auto_send_enabled', 'follow_ups_enabled']:
+        current_val = getattr(setting, field)
+        setattr(setting, field, not current_val)
+        setting.save()
+    
+    return HttpResponse(status=204)
+

@@ -52,6 +52,10 @@
                     <i data-lucide="git-branch" class="w-5 h-5 mr-3"></i>
                     Pipeline
                 </a>
+                <a href="{% url 'leads:automation-dashboard' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg {% if request.resolver_match.url_name == 'automation-dashboard' %}bg-neutral-800 text-white{% else %}text-neutral-400 hover:text-white hover:bg-neutral-800{% endif %} transition-colors">
+                    <i data-lucide="zap" class="w-5 h-5 mr-3"></i>
+                    Automation
+                </a>
                 <a href="{% url 'leads:settings' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg {% if request.resolver_match.url_name == 'settings' %}bg-neutral-800 text-white{% else %}text-neutral-400 hover:text-white hover:bg-neutral-800{% endif %} transition-colors">
                     <i data-lucide="settings" class="w-5 h-5 mr-3"></i>
                     Settings

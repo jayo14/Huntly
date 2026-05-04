@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}Automation | Huntly{% endblock %}
+{% block header_title %}Automation Control Center{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 bg-primary-500/10 rounded-xl flex items-center justify-center text-primary-500">
+                    <i data-lucide="zap" class="w-6 h-6"></i>
+                </div>
+                <span class="text-xs font-bold text-neutral-500 uppercase tracking-wider">Active Rules</span>
+            </div>
+            <div class="text-3xl font-bold">{{ rules.count }}</div>
+            <p class="text-sm text-neutral-400 mt-2">Sequences running automatically</p>
+        </div>
+        
+        <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center text-green-500">
+                    <i data-lucide="mail-check" class="w-6 h-6"></i>
+                </div>
+                <span class="text-xs font-bold text-neutral-500 uppercase tracking-wider">Auto-Sends</span>
+            </div>
+            <div class="text-3xl font-bold">124</div>
+            <p class="text-sm text-neutral-400 mt-2">Messages sent by AI this week</p>
+        </div>
+
+        <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
+                    <i data-lucide="clock" class="w-6 h-6"></i>
+                </div>
+                <span class="text-xs font-bold text-neutral-500 uppercase tracking-wider">Time Saved</span>
+            </div>
+            <div class="text-3xl font-bold">18h</div>
+            <p class="text-sm text-neutral-400 mt-2">Compared to manual outreach</p>
+        </div>
+    </div>
+
+    <!-- Global Settings -->
+    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-neutral-800 bg-neutral-800/30 flex items-center justify-between">
+            <h2 class="font-bold flex items-center">
+                <i data-lucide="settings-2" class="w-5 h-5 mr-2 text-primary-400"></i>
+                Global Automation Settings
+            </h2>
+        </div>
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="flex items-start space-x-4">
+                <div class="flex-1">
+                    <h3 class="font-semibold mb-1">Master Automation Switch</h3>
+                    <p class="text-sm text-neutral-400">Enable or disable all automated actions across the entire platform.</p>
+                </div>
+                <div class="flex items-center">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" 
+                               hx-post="{% url 'leads:toggle-setting' %}" 
+                               hx-vals='{"field": "auto_send_enabled"}'
+                               class="sr-only peer" {% if settings.auto_send_enabled %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-neutral-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    </label>
+                </div>
+            </div>
+            <div class="flex items-start space-x-4">
+                <div class="flex-1">
+                    <h3 class="font-semibold mb-1">Follow-up Sequences</h3>
+                    <p class="text-sm text-neutral-400">Automatically ping leads that haven't replied within your specified window.</p>
+                </div>
+                <div class="flex items-center">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" 
+                               hx-post="{% url 'leads:toggle-setting' %}" 
+                               hx-vals='{"field": "follow_ups_enabled"}'
+                               class="sr-only peer" {% if settings.follow_ups_enabled %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-neutral-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Automation Rules -->
+    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-neutral-800 bg-neutral-800/30 flex items-center justify-between">
+            <h2 class="font-bold flex items-center">
+                <i data-lucide="list-tree" class="w-5 h-5 mr-2 text-primary-400"></i>
+                Automation Sequences
+            </h2>
+            <button hx-get="{% url 'leads:rule-create' %}" hx-target="#modal-content" class="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center">
+                <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                New Sequence
+            </button>
+        </div>
+        
+        <div id="rules-list" hx-get="{% url 'leads:rule-list-partial' %}" hx-trigger="load, rulesChanged from:body">
+            <!-- Rules will be loaded here via HTMX -->
+            <div class="p-12 text-center text-neutral-500">
+                <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-4"></i>
+                <p>Loading sequences...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -22,3 +22,13 @@ class AppSettingForm(forms.ModelForm):
             'email_password': forms.PasswordInput(render_value=True),
             'default_offer': forms.Textarea(attrs={'rows': 3}),
         }
+
+from .models import AutomationRule
+
+class AutomationRuleForm(forms.ModelForm):
+    class Meta:
+        model = AutomationRule
+        fields = ['name', 'trigger_type', 'target_status', 'delay_hours', 'ai_prompt_override', 'is_active']
+        widgets = {
+            'ai_prompt_override': forms.Textarea(attrs={'rows': 4, 'placeholder': 'e.g. Focus on their specific pain point mentioned in the problem field...'}),
+        }
