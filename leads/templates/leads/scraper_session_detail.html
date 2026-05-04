@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Session: {{ job.name }} | Huntly{% endblock %}
+{% block header_title %}Scraping Session Detail{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Breadcrumbs -->
+    <nav class="flex items-center space-x-2 text-sm font-medium">
+        <a href="{% url 'leads:scraper-dashboard' %}" class="text-neutral-500 hover:text-primary-500 transition-colors">Scraper</a>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-neutral-400"></i>
+        <span class="text-neutral-900 dark:text-white">{{ job.name }}</span>
+    </nav>
+
+    <!-- Session Info Header -->
+    <div class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-8 rounded-[2rem] shadow-sm">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div class="flex items-center space-x-6">
+                <div class="w-16 h-16 bg-primary-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-primary-600/20">
+                    <i data-lucide="target" class="w-8 h-8"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold mb-1">{{ job.name }}</h1>
+                    <div class="flex flex-wrap items-center gap-3 text-sm">
+                        <span class="text-neutral-500 dark:text-neutral-400 font-medium">{{ job.niche }}</span>
+                        <span class="w-1 h-1 bg-neutral-300 dark:bg-neutral-700 rounded-full"></span>
+                        <span class="text-neutral-500 dark:text-neutral-400 font-medium">{{ job.region }}</span>
+                        <span class="w-1 h-1 bg-neutral-300 dark:bg-neutral-700 rounded-full"></span>
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border 
+                            {% if job.status == 'completed' %}bg-green-500/10 text-green-500 border-green-500/20
+                            {% elif job.status == 'running' %}bg-primary-500/10 text-primary-500 border-primary-500/20
+                            {% else %}bg-neutral-500/10 text-neutral-500 border-neutral-500/20{% endif %}">
+                            {{ job.status }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                {% if job.status == 'running' %}
+                <button hx-post="{% url 'leads:scraper-terminate' job.pk %}" hx-confirm="Stop this session?" class="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-6 py-3 rounded-xl font-bold transition-all border border-red-500/20">
+                    Stop Session
+                </button>
+                {% endif %}
+                <button class="bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-700 px-6 py-3 rounded-xl font-bold hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-all">
+                    Export Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Logs Column -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl overflow-hidden shadow-sm">
+                <div class="px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/30">
+                    <h2 class="font-bold flex items-center">
+                        <i data-lucide="terminal" class="w-5 h-5 mr-2 text-primary-500"></i>
+                        Scraping Logs
+                    </h2>
+                </div>
+                <div class="p-6 space-y-4 max-h-[500px] overflow-y-auto font-mono text-[11px]">
+                    <div class="flex items-start space-x-3">
+                        <span class="text-neutral-400 shrink-0">[{{ job.created_at|date:"H:i:s" }}]</span>
+                        <span class="text-green-500">INIT: Initializing Selenium Webdriver...</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <span class="text-neutral-400 shrink-0">[{{ job.created_at|date:"H:i:s" }}]</span>
+                        <span class="text-blue-400">GEOPY: Normalizing region: {{ job.region }}</span>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <span class="text-neutral-400 shrink-0">[{{ job.created_at|date:"H:i:s" }}]</span>
+                        <span class="text-white">SEARCH: Querying targeted directories for "{{ job.niche }}"...</span>
+                    </div>
+                    {% if job.status == 'completed' %}
+                    <div class="flex items-start space-x-3">
+                        <span class="text-neutral-400 shrink-0">[{{ job.completed_at|date:"H:i:s"|default:"Done" }}]</span>
+                        <span class="text-green-400">FINISH: Found {{ job.leads_found }} prospects. Job closed.</span>
+                    </div>
+                    {% elif job.status == 'running' %}
+                    <div class="flex items-start space-x-3 animate-pulse">
+                        <span class="text-neutral-400 shrink-0">[{{ "now"|date:"H:i:s" }}]</span>
+                        <span class="text-primary-500">FETCHING: Extracting lead metadata...</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Raw Data Column -->
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl overflow-hidden shadow-sm">
+                <div class="px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/30 flex items-center justify-between">
+                    <h2 class="font-bold flex items-center">
+                        <i data-lucide="database" class="w-5 h-5 mr-2 text-primary-500"></i>
+                        Scraped Data Awaiting Review
+                    </h2>
+                    <span class="px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 text-xs font-bold border border-yellow-500/20">
+                        {{ raw_leads.count }} Pending
+                    </span>
+                </div>
+                
+                <div id="raw-leads-list" hx-get="{% url 'leads:raw-lead-list-partial' %}?job_id={{ job.id }}" hx-trigger="load, rawLeadsChanged from:body">
+                    <div class="p-12 text-center text-neutral-400">
+                        <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-4"></i>
+                        <p>Loading session data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

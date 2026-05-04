@@ -7,6 +7,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Immediate theme check to prevent flash
+        if (localStorage.getItem('theme') === 'light') {
+            document.documentElement.classList.remove('dark');
+        } else {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -76,9 +84,11 @@
                     <a href="#pricing" class="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Pricing</a>
                     
                     <!-- Theme Toggle -->
-                    <button id="theme-toggle" class="p-2 rounded-lg bg-neutral-900 border border-white/5 text-neutral-400 hover:text-white transition-all">
-                        <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
-                        <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+                    <button id="theme-toggle" class="relative inline-flex h-8 w-14 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-white/10 transition-all duration-300 focus:outline-none">
+                        <div class="absolute left-1 flex h-6 w-6 items-center justify-center rounded-full bg-white dark:bg-neutral-900 shadow-sm transition-all duration-300 transform dark:translate-x-6">
+                            <i data-lucide="sun" class="w-3.5 h-3.5 text-neutral-400 dark:hidden"></i>
+                            <i data-lucide="moon" class="w-3.5 h-3.5 hidden dark:block text-neutral-200"></i>
+                        </div>
                     </button>
 
                     {% if user.is_authenticated %}
@@ -155,12 +165,6 @@
         // Theme Toggle Logic
         const themeToggle = document.getElementById('theme-toggle');
         const html = document.documentElement;
-
-        if (localStorage.getItem('theme') === 'light') {
-            html.classList.remove('dark');
-        } else {
-            html.classList.add('dark');
-        }
 
         themeToggle.addEventListener('click', () => {
             if (html.classList.contains('dark')) {

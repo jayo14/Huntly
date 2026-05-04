@@ -2,13 +2,16 @@
     {% for job in jobs %}
     <div class="p-4 bg-neutral-800/20 border border-neutral-800 rounded-xl">
         <div class="flex justify-between items-start mb-3">
-            <div>
-                <h4 class="font-bold text-sm text-white">{{ job.niche }}</h4>
-                <p class="text-xs text-neutral-500">{{ job.region }}</p>
+            <div class="flex-1 min-w-0 mr-3">
+                <h4 class="font-bold text-sm text-white truncate">{{ job.name }}</h4>
+                <p class="text-[10px] text-neutral-500 truncate">{{ job.niche }} • {{ job.region }}</p>
             </div>
-            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-primary-500/10 text-primary-400 border border-primary-500/20 animate-pulse">
-                {{ job.status }}
-            </span>
+            <button hx-post="{% url 'leads:scraper-terminate' job.pk %}" 
+                    hx-confirm="Stop this scraping session?"
+                    class="p-1.5 text-neutral-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                    title="Stop Session">
+                <i data-lucide="square" class="w-4 h-4 fill-current"></i>
+            </button>
         </div>
         
         <div class="w-full bg-neutral-800 rounded-full h-1.5 mb-2">

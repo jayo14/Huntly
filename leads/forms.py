@@ -38,8 +38,9 @@ from .models import ScraperJob, RawLead
 class ScraperJobForm(forms.ModelForm):
     class Meta:
         model = ScraperJob
-        fields = ['niche', 'keywords', 'region']
+        fields = ['name', 'niche', 'keywords', 'region']
         widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'e.g. Miami Real Estate Search'}),
             'keywords': forms.TextInput(attrs={'placeholder': 'e.g. restaurant, cafe, bistro'}),
             'niche': forms.TextInput(attrs={'placeholder': 'e.g. Hospitality'}),
             'region': forms.TextInput(attrs={'placeholder': 'e.g. London, UK'}),

@@ -52,6 +52,14 @@ def run_scraper(job_id):
         ]
         
         for i, lead_data in enumerate(mock_leads):
+            # Check for stop request
+            job.refresh_from_db()
+            if job.stop_requested:
+                job.status = 'failed'
+                job.save()
+                driver.quit()
+                return
+
             RawLead.objects.create(
                 job=job,
                 business_name=lead_data['business_name'],

@@ -21,56 +21,80 @@
         }
     </script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        // Immediate theme check to prevent flash
+        if (localStorage.getItem('theme') === 'light') {
+            document.documentElement.classList.remove('dark');
+        } else {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
     <style>
         [x-cloak] { display: none !important; }
+        .sidebar-transition { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-neutral-950 text-neutral-50 font-sans" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-    <div class="flex h-screen overflow-hidden" x-data="{ sidebarOpen: false }">
+<body class="bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 font-sans transition-colors duration-300" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    <div class="flex h-screen overflow-hidden" x-data="{ sidebarOpen: false, sidebarCollapsed: $persist(false).as('sidebarCollapsed') }">
         <!-- Sidebar -->
-        <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-neutral-900 border-r border-neutral-800 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0"
-               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
-            <div class="flex items-center justify-between h-16 px-6 border-b border-neutral-800">
-                <span class="text-xl font-bold tracking-tight">HUNTLY</span>
-                <button @click="sidebarOpen = false" class="md:hidden text-neutral-400 hover:text-white">
+        <aside class="fixed inset-y-0 left-0 z-50 bg-neutral-50 dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 transform transition-all duration-300 ease-in-out md:relative md:translate-x-0 sidebar-transition"
+               :class="{
+                   'translate-x-0': sidebarOpen,
+                   '-translate-x-full': !sidebarOpen,
+                   'w-64': !sidebarCollapsed,
+                   'w-20': sidebarCollapsed
+               }">
+            <div class="flex items-center h-16 px-6 border-b border-neutral-200 dark:border-neutral-800" :class="sidebarCollapsed ? 'justify-center' : 'justify-between'">
+                <span class="text-xl font-bold tracking-tight text-primary-600 dark:text-white" x-show="!sidebarCollapsed" x-transition>HUNTLY</span>
+                <i data-lucide="target" class="w-8 h-8 text-primary-600" x-show="sidebarCollapsed" x-transition></i>
+                <button @click="sidebarOpen = false" class="md:hidden text-neutral-500 hover:text-neutral-900 dark:hover:text-white">
                     <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
             </div>
             <nav class="mt-6 px-4 space-y-1">
-                <a href="{% url 'leads:dashboard' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg {% if request.resolver_match.url_name == 'dashboard' %}bg-neutral-800 text-white{% else %}text-neutral-400 hover:text-white hover:bg-neutral-800{% endif %} transition-colors">
-                    <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>
-                    Dashboard
+                <a href="{% url 'leads:dashboard' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if request.resolver_match.url_name == 'dashboard' %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800{% endif %}" :title="sidebarCollapsed ? 'Dashboard' : ''">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
+                    <span x-show="!sidebarCollapsed" x-transition>Dashboard</span>
                 </a>
-                <a href="{% url 'leads:scraper-dashboard' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg {% if request.resolver_match.url_name == 'scraper-dashboard' %}bg-neutral-800 text-white{% else %}text-neutral-400 hover:text-white hover:bg-neutral-800{% endif %} transition-colors">
-                    <i data-lucide="search" class="w-5 h-5 mr-3"></i>
-                    Scraper
+                <a href="{% url 'leads:scraper-dashboard' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if request.resolver_match.url_name == 'scraper-dashboard' %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800{% endif %}" :title="sidebarCollapsed ? 'Scraper' : ''">
+                    <i data-lucide="search" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
+                    <span x-show="!sidebarCollapsed" x-transition>Scraper</span>
                 </a>
-                <a href="{% url 'leads:lead-list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg {% if request.resolver_match.url_name == 'lead-list' %}bg-neutral-800 text-white{% else %}text-neutral-400 hover:text-white hover:bg-neutral-800{% endif %} transition-colors">
-                    <i data-lucide="users" class="w-5 h-5 mr-3"></i>
-                    Leads
+                <a href="{% url 'leads:lead-list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if request.resolver_match.url_name == 'lead-list' %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800{% endif %}" :title="sidebarCollapsed ? 'Leads' : ''">
+                    <i data-lucide="users" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
+                    <span x-show="!sidebarCollapsed" x-transition>Leads</span>
                 </a>
-                <a href="{% url 'leads:pipeline' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg {% if request.resolver_match.url_name == 'pipeline' %}bg-neutral-800 text-white{% else %}text-neutral-400 hover:text-white hover:bg-neutral-800{% endif %} transition-colors">
-                    <i data-lucide="git-branch" class="w-5 h-5 mr-3"></i>
-                    Pipeline
+                <a href="{% url 'leads:pipeline' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if request.resolver_match.url_name == 'pipeline' %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800{% endif %}" :title="sidebarCollapsed ? 'Pipeline' : ''">
+                    <i data-lucide="git-branch" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
+                    <span x-show="!sidebarCollapsed" x-transition>Pipeline</span>
                 </a>
-                <a href="{% url 'leads:automation-dashboard' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg {% if request.resolver_match.url_name == 'automation-dashboard' %}bg-neutral-800 text-white{% else %}text-neutral-400 hover:text-white hover:bg-neutral-800{% endif %} transition-colors">
-                    <i data-lucide="zap" class="w-5 h-5 mr-3"></i>
-                    Automation
+                <a href="{% url 'leads:automation-dashboard' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if request.resolver_match.url_name == 'automation-dashboard' %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800{% endif %}" :title="sidebarCollapsed ? 'Automation' : ''">
+                    <i data-lucide="zap" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
+                    <span x-show="!sidebarCollapsed" x-transition>Automation</span>
                 </a>
-                <a href="{% url 'leads:settings' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg {% if request.resolver_match.url_name == 'settings' %}bg-neutral-800 text-white{% else %}text-neutral-400 hover:text-white hover:bg-neutral-800{% endif %} transition-colors">
-                    <i data-lucide="settings" class="w-5 h-5 mr-3"></i>
-                    Settings
+                <a href="{% url 'leads:settings' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if request.resolver_match.url_name == 'settings' %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800{% endif %}" :title="sidebarCollapsed ? 'Settings' : ''">
+                    <i data-lucide="settings" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
+                    <span x-show="!sidebarCollapsed" x-transition>Settings</span>
                 </a>
             </nav>
+
+            <!-- Collapse Toggle -->
+            <div class="absolute bottom-4 left-0 w-full px-4 hidden md:block">
+                <button @click="sidebarCollapsed = !sidebarCollapsed" class="flex items-center w-full px-4 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-all">
+                    <i data-lucide="chevron-left" class="w-5 h-5 transition-transform" :class="sidebarCollapsed ? 'rotate-180' : ''"></i>
+                    <span class="ml-3" x-show="!sidebarCollapsed" x-transition>Collapse Sidebar</span>
+                </button>
+            </div>
         </aside>
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden bg-white dark:bg-neutral-950">
             <!-- Top Navigation -->
-            <header class="h-16 bg-neutral-900 border-b border-neutral-800 flex items-center justify-between px-6">
+            <header class="h-16 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between px-6 transition-colors duration-300">
                 <button @click="sidebarOpen = true" class="md:hidden text-neutral-400 hover:text-white">
                     <i data-lucide="menu" class="w-6 h-6"></i>
                 </button>
@@ -79,9 +103,11 @@
                 </div>
                 <div class="flex items-center space-x-6">
                     <!-- Theme Toggle -->
-                    <button id="theme-toggle" class="p-2 rounded-lg bg-neutral-800 border border-neutral-700 text-neutral-400 hover:text-white transition-all">
-                        <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
-                        <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+                    <button id="theme-toggle" class="relative inline-flex h-9 w-16 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 transition-all duration-300 focus:outline-none">
+                        <div class="absolute left-1 flex h-7 w-7 items-center justify-center rounded-full bg-white dark:bg-neutral-900 shadow-sm transition-all duration-300 transform dark:translate-x-7">
+                            <i data-lucide="sun" class="w-4 h-4 text-neutral-400 dark:hidden"></i>
+                            <i data-lucide="moon" class="w-4 h-4 hidden dark:block text-neutral-200"></i>
+                        </div>
                     </button>
                     
                     <div class="flex items-center space-x-3">
@@ -143,13 +169,6 @@
         // Theme Toggle Logic
         const themeToggle = document.getElementById('theme-toggle');
         const html = document.documentElement;
-
-        // Check for saved theme preference
-        if (localStorage.getItem('theme') === 'light') {
-            html.classList.remove('dark');
-        } else {
-            html.classList.add('dark');
-        }
 
         themeToggle.addEventListener('click', () => {
             if (html.classList.contains('dark')) {

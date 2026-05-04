@@ -326,13 +326,22 @@ def toggle_setting(request):
 @login_required
 def scraper_dashboard(request):
     jobs = ScraperJob.objects.all().order_by('-created_at')
-    raw_leads = RawLead.objects.filter(is_approved=False).order_by('-created_at')
     
     context = {
         'jobs': jobs,
-        'raw_leads': raw_leads,
     }
     return render(request, 'leads/scraper.html', context)
+
+@login_required
+def scraper_session_detail(request, pk):
+    job = get_object_or_404(ScraperJob, pk=pk)
+    raw_leads = job.raw_leads.filter(is_approved=False).order_by('-created_at')
+    
+    context = {
+        'job': job,
+        'raw_leads': raw_leads,
+    }
+    return render(request, 'leads/scraper_session_detail.html', context)
 
 from .scraper_service import start_scraping_thread
 
@@ -357,8 +366,24 @@ def scraper_monitor_partial(request):
     return render(request, 'leads/partials/scraper_monitor.html', {'jobs': jobs})
 
 @login_required
+@require_POST
+def scraper_terminate(request, pk):
+    job = get_object_or_404(ScraperJob, pk=pk)
+    job.stop_requested = True
+    job.status = 'failed'
+    job.save()
+    if request.headers.get('HX-Request'):
+        return HttpResponse(status=204, headers={'HX-Trigger': 'jobsChanged'})
+    return redirect('leads:scraper-dashboard')
+
+@login_required
 def raw_lead_list_partial(request):
+    job_id = request.GET.get('job_id')
     raw_leads = RawLead.objects.filter(is_approved=False).order_by('-created_at')
+    
+    if job_id:
+        raw_leads = raw_leads.filter(job_id=job_id)
+        
     return render(request, 'leads/partials/raw_lead_list.html', {'raw_leads': raw_leads})
 
 @login_required

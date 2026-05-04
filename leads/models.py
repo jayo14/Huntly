@@ -92,12 +92,14 @@ class ScraperJob(models.Model):
         ('failed', 'Failed'),
     ]
 
+    name = models.CharField(max_length=255, help_text="Session name for this niche")
     niche = models.CharField(max_length=255)
     keywords = models.CharField(max_length=512)
     region = models.CharField(max_length=255)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     progress = models.IntegerField(default=0)
     leads_found = models.IntegerField(default=0)
+    stop_requested = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
