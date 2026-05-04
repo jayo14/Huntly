@@ -74,6 +74,13 @@
                 <div class="hidden md:flex items-center space-x-8">
                     <a href="#features" class="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Features</a>
                     <a href="#pricing" class="text-sm font-medium text-neutral-400 hover:text-white transition-colors">Pricing</a>
+                    
+                    <!-- Theme Toggle -->
+                    <button id="theme-toggle" class="p-2 rounded-lg bg-neutral-900 border border-white/5 text-neutral-400 hover:text-white transition-all">
+                        <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+                        <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+                    </button>
+
                     {% if user.is_authenticated %}
                         <a href="{% url 'leads:dashboard' %}" class="bg-white text-black px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-neutral-200 transition-all">Dashboard</a>
                     {% else %}
@@ -144,6 +151,27 @@
 
     <script>
         lucide.createIcons();
+
+        // Theme Toggle Logic
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+
+        if (localStorage.getItem('theme') === 'light') {
+            html.classList.remove('dark');
+        } else {
+            html.classList.add('dark');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+            lucide.createIcons();
+        });
     </script>
     {% block extra_js %}{% endblock %}
 </body>

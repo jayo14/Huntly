@@ -334,16 +334,15 @@ def scraper_dashboard(request):
     }
     return render(request, 'leads/scraper.html', context)
 
+from .scraper_service import start_scraping_thread
+
 @login_required
 def scraper_create(request):
     if request.method == 'POST':
         form = ScraperJobForm(request.POST)
         if form.is_valid():
             job = form.save()
-            # In a real app, you'd trigger a background task here
-            # For this demo, we'll simulate a job starting
-            job.status = 'running'
-            job.save()
+            start_scraping_thread(job.id)
             
             if request.headers.get('HX-Request'):
                 return HttpResponse(status=204, headers={'HX-Trigger': 'jobsChanged'})
