@@ -1,0 +1,30 @@
+<div class="p-6 space-y-2 max-h-[600px] overflow-y-auto font-mono text-[11px] bg-surface-950 text-surface-200 rounded-b-3xl selection:bg-primary-500/30"
+     id="scraper-logs-display"
+     {% if job.status == 'running' %}hx-get="{% url 'leads:scraper-logs-partial' job.pk %}" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %}>
+    {% if job.logs %}
+        {% for line in job.logs_list %}
+            <div class="flex items-start space-x-3 hover:bg-surface-800/50 transition-colors py-0.5 px-2 rounded">
+                <span class="text-surface-500 shrink-0 select-none">{{ line.0 }}</span>
+                <span class="{% if '✅' in line.1 %}text-emerald-400{% elif '⚠️' in line.1 %}text-amber-400{% elif '🚨' in line.1 or '❌' in line.1 %}text-red-400{% elif '🔍' in line.1 %}text-blue-400{% else %}text-surface-200{% endif %}">
+                    {{ line.1 }}
+                </span>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="py-10 text-center text-surface-500 italic">
+            Waiting for session logs...
+        </div>
+    {% endif %}
+    
+    {% if job.status == 'running' %}
+    <div class="flex items-center space-x-3 animate-pulse py-2 px-2">
+        <span class="w-1.5 h-1.5 bg-primary-500 rounded-full"></span>
+        <span class="text-primary-400 italic">Browser active, awaiting next event...</span>
+    </div>
+    {% endif %}
+    
+    <script>
+        var objDiv = document.getElementById("scraper-logs-display");
+        objDiv.scrollTop = objDiv.scrollHeight;
+    </script>
+</div>

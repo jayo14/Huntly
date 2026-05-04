@@ -59,30 +59,11 @@
                         Scraping Logs
                     </h2>
                 </div>
-                <div class="p-6 space-y-4 max-h-[500px] overflow-y-auto font-mono text-[11px]">
-                    <div class="flex items-start space-x-3">
-                        <span class="text-surface-400 shrink-0">[{{ job.created_at|date:"H:i:s" }}]</span>
-                        <span class="text-green-500">INIT: Initializing Selenium Webdriver...</span>
+                <div id="logs-container" hx-get="{% url 'leads:scraper-logs-partial' job.pk %}" hx-trigger="load">
+                    <div class="p-12 text-center text-surface-400 bg-surface-950 rounded-b-3xl">
+                        <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-4"></i>
+                        <p>Initializing logs...</p>
                     </div>
-                    <div class="flex items-start space-x-3">
-                        <span class="text-surface-400 shrink-0">[{{ job.created_at|date:"H:i:s" }}]</span>
-                        <span class="text-blue-400">GEOPY: Normalizing region: {{ job.region }}</span>
-                    </div>
-                    <div class="flex items-start space-x-3">
-                        <span class="text-surface-400 shrink-0">[{{ job.created_at|date:"H:i:s" }}]</span>
-                        <span class="text-surface-950">SEARCH: Querying targeted directories for "{{ job.niche }}"...</span>
-                    </div>
-                    {% if job.status == 'completed' %}
-                    <div class="flex items-start space-x-3">
-                        <span class="text-surface-400 shrink-0">[{{ job.completed_at|date:"H:i:s"|default:"Done" }}]</span>
-                        <span class="text-green-400">FINISH: Found {{ job.leads_found }} prospects. Job closed.</span>
-                    </div>
-                    {% elif job.status == 'running' %}
-                    <div class="flex items-start space-x-3 animate-pulse">
-                        <span class="text-surface-400 shrink-0">[{{ "now"|date:"H:i:s" }}]</span>
-                        <span class="text-primary-500">FETCHING: Extracting lead metadata...</span>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>

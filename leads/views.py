@@ -449,4 +449,9 @@ def raw_lead_delete(request, pk):
         return HttpResponse(status=204, headers={'HX-Trigger': 'rawLeadsChanged'})
     return redirect('leads:scraper-dashboard')
 
+@login_required
+def scraper_logs_partial(request, pk):
+    job = get_object_or_404(ScraperJob, pk=pk)
+    return render(request, 'leads/partials/scraper_logs.html', {'job': job})
+
 

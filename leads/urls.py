@@ -33,5 +33,6 @@ urlpatterns = [
     path('scraper/raw-leads/<int:pk>/approve/', views.raw_lead_approve, name='raw-lead-approve'),
     path('scraper/raw-leads/<int:pk>/delete/', views.raw_lead_delete, name='raw-lead-delete'),
     path('scraper/jobs/<int:pk>/rename/', views.scraper_job_update_name, name='scraper-job-rename'),
+    path('scraper/jobs/<int:pk>/logs/partial/', views.scraper_logs_partial, name='scraper-logs-partial'),
     path('profile/', views.profile_view, name='profile'),
 ]

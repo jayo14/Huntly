@@ -107,6 +107,20 @@ class ScraperJob(models.Model):
     def __str__(self):
         return f"{self.niche} in {self.region} ({self.status})"
 
+    @property
+    def logs_list(self):
+        if not self.logs:
+            return []
+        lines = self.logs.strip().split('\n')
+        parsed = []
+        for line in lines:
+            if ']' in line:
+                parts = line.split(']', 1)
+                parsed.append((parts[0] + ']', parts[1].strip()))
+            else:
+                parsed.append(('', line))
+        return parsed
+
 class RawLead(models.Model):
     job = models.ForeignKey(ScraperJob, on_delete=models.CASCADE, related_name='raw_leads')
     business_name = models.CharField(max_length=255)
