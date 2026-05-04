@@ -343,6 +343,24 @@ def scraper_session_detail(request, pk):
     }
     return render(request, 'leads/scraper_session_detail.html', context)
 
+@login_required
+def scraper_job_update_name(request, pk):
+    job = get_object_or_404(ScraperJob, pk=pk)
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        if name:
+            job.name = name
+            job.save()
+            if request.headers.get('HX-Request'):
+                return HttpResponse(status=204, headers={'HX-Trigger': 'jobsChanged'})
+            return redirect('leads:scraper-dashboard')
+    
+    return render(request, 'leads/partials/scraper_job_name_form.html', {'job': job})
+
+@login_required
+def profile_view(request):
+    return render(request, 'leads/profile.html')
+
 from .scraper_service import start_scraping_thread
 
 @login_required
