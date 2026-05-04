@@ -1,0 +1,86 @@
+{% load crispy_forms_tags %}
+
+<div class="p-8">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h2 class="text-2xl font-bold">Review & Clean Lead</h2>
+            <p class="text-neutral-400 text-sm mt-1">Verify details before approving for outreach.</p>
+        </div>
+        <button @click="show = false" class="text-neutral-400 hover:text-white transition-colors">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Edit Form -->
+        <form hx-post="{% url 'leads:raw-lead-review' raw_lead.pk %}" 
+              hx-target="#modal-content"
+              class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="space-y-4">
+                {{ form.business_name|as_crispy_field }}
+                {{ form.contact_name|as_crispy_field }}
+                <div class="grid grid-cols-2 gap-4">
+                    {{ form.email|as_crispy_field }}
+                    {{ form.phone|as_crispy_field }}
+                </div>
+                {{ form.website|as_crispy_field }}
+            </div>
+
+            <div class="flex justify-between space-x-3 pt-8 border-t border-neutral-800">
+                <button type="button" hx-post="{% url 'leads:raw-lead-delete' raw_lead.pk %}" hx-confirm="Delete this raw lead?" class="text-red-500 hover:text-red-400 text-sm font-bold px-4 py-2 rounded-lg hover:bg-red-500/10 transition-all">
+                    Discard Lead
+                </button>
+                <div class="flex space-x-3">
+                    <button type="button" @click="show = false" class="px-6 py-2.5 rounded-xl border border-neutral-700 font-bold hover:bg-neutral-800 transition-all">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-primary-600 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-primary-500 transition-all shadow-lg shadow-primary-600/20">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Scraped Metadata -->
+        <div class="bg-neutral-950/50 border border-neutral-800 rounded-2xl p-6">
+            <h3 class="font-bold mb-4 flex items-center">
+                <i data-lucide="database" class="w-4 h-4 mr-2 text-indigo-400"></i>
+                Scraped Metadata
+            </h3>
+            <div class="space-y-4 text-sm">
+                <div class="pb-3 border-b border-neutral-800">
+                    <span class="text-neutral-500 block mb-1">Source Job</span>
+                    <span class="font-medium">{{ raw_lead.job.niche }} - {{ raw_lead.job.region }}</span>
+                </div>
+                <div class="pb-3 border-b border-neutral-800">
+                    <span class="text-neutral-500 block mb-1">Detected Problem</span>
+                    <p class="text-neutral-300">Website is not mobile responsive and lacks an online booking system.</p>
+                </div>
+                <div>
+                    <span class="text-neutral-500 block mb-1">Raw Scrape Preview</span>
+                    <pre class="bg-black/40 p-3 rounded-lg text-xs text-neutral-400 overflow-x-auto">
+{
+  "maps_id": "ch_12345",
+  "rating": 4.2,
+  "reviews": 156,
+  "last_posted": "2 weeks ago"
+}
+                    </pre>
+                </div>
+            </div>
+            
+            <div class="mt-8">
+                <button hx-post="{% url 'leads:raw-lead-approve' raw_lead.pk %}" class="w-full bg-green-600 text-white py-4 rounded-2xl font-bold hover:bg-green-500 transition-all shadow-xl shadow-green-600/20 flex items-center justify-center">
+                    <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
+                    Approve & Move to Leads
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>

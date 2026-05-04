@@ -32,3 +32,20 @@ class AutomationRuleForm(forms.ModelForm):
         widgets = {
             'ai_prompt_override': forms.Textarea(attrs={'rows': 4, 'placeholder': 'e.g. Focus on their specific pain point mentioned in the problem field...'}),
         }
+
+from .models import ScraperJob, RawLead
+
+class ScraperJobForm(forms.ModelForm):
+    class Meta:
+        model = ScraperJob
+        fields = ['niche', 'keywords', 'region']
+        widgets = {
+            'keywords': forms.TextInput(attrs={'placeholder': 'e.g. restaurant, cafe, bistro'}),
+            'niche': forms.TextInput(attrs={'placeholder': 'e.g. Hospitality'}),
+            'region': forms.TextInput(attrs={'placeholder': 'e.g. London, UK'}),
+        }
+
+class RawLeadForm(forms.ModelForm):
+    class Meta:
+        model = RawLead
+        fields = ['business_name', 'contact_name', 'email', 'phone', 'website']

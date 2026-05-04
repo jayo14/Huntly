@@ -83,3 +83,37 @@ class AutomationRule(models.Model):
 
     def __str__(self):
         return self.name
+
+class ScraperJob(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('running', 'Running'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+
+    niche = models.CharField(max_length=255)
+    keywords = models.CharField(max_length=512)
+    region = models.CharField(max_length=255)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    progress = models.IntegerField(default=0)
+    leads_found = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.niche} in {self.region} ({self.status})"
+
+class RawLead(models.Model):
+    job = models.ForeignKey(ScraperJob, on_delete=models.CASCADE, related_name='raw_leads')
+    business_name = models.CharField(max_length=255)
+    contact_name = models.CharField(max_length=255, blank=True)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    website = models.URLField(blank=True)
+    scraped_data = models.JSONField(default=dict)
+    is_approved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.business_name

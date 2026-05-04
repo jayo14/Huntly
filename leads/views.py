@@ -7,8 +7,8 @@ from django.contrib.auth.decorators import login_required
 
 from django.utils import timezone
 from django.db.models import Count, Q
-from .models import Lead, Message, AppSetting, AutomationRule
-from .forms import LeadForm, AppSettingForm, AutomationRuleForm
+from .models import Lead, Message, AppSetting, AutomationRule, ScraperJob, RawLead
+from .forms import LeadForm, AppSettingForm, AutomationRuleForm, ScraperJobForm, RawLeadForm
 import json
 
 @login_required
@@ -322,4 +322,89 @@ def toggle_setting(request):
         setting.save()
     
     return HttpResponse(status=204)
+
+@login_required
+def scraper_dashboard(request):
+    jobs = ScraperJob.objects.all().order_by('-created_at')
+    raw_leads = RawLead.objects.filter(is_approved=False).order_by('-created_at')
+    
+    context = {
+        'jobs': jobs,
+        'raw_leads': raw_leads,
+    }
+    return render(request, 'leads/scraper.html', context)
+
+@login_required
+def scraper_create(request):
+    if request.method == 'POST':
+        form = ScraperJobForm(request.POST)
+        if form.is_valid():
+            job = form.save()
+            # In a real app, you'd trigger a background task here
+            # For this demo, we'll simulate a job starting
+            job.status = 'running'
+            job.save()
+            
+            if request.headers.get('HX-Request'):
+                return HttpResponse(status=204, headers={'HX-Trigger': 'jobsChanged'})
+            return redirect('leads:scraper-dashboard')
+    else:
+        form = ScraperJobForm()
+    return render(request, 'leads/scraper_job_form.html', {'form': form})
+
+@login_required
+def scraper_monitor_partial(request):
+    jobs = ScraperJob.objects.exclude(status='completed').exclude(status='failed')
+    return render(request, 'leads/partials/scraper_monitor.html', {'jobs': jobs})
+
+@login_required
+def raw_lead_list_partial(request):
+    raw_leads = RawLead.objects.filter(is_approved=False).order_by('-created_at')
+    return render(request, 'leads/partials/raw_lead_list.html', {'raw_leads': raw_leads})
+
+@login_required
+def raw_lead_review(request, pk):
+    raw_lead = get_object_or_404(RawLead, pk=pk)
+    if request.method == 'POST':
+        form = RawLeadForm(request.POST, instance=raw_lead)
+        if form.is_valid():
+            form.save()
+            if request.headers.get('HX-Request'):
+                return HttpResponse(status=204, headers={'HX-Trigger': 'rawLeadsChanged'})
+            return redirect('leads:scraper-dashboard')
+    else:
+        form = RawLeadForm(instance=raw_lead)
+    return render(request, 'leads/raw_lead_review_form.html', {'form': form, 'raw_lead': raw_lead})
+
+@login_required
+@require_POST
+def raw_lead_approve(request, pk):
+    raw_lead = get_object_or_404(RawLead, pk=pk)
+    
+    # Move to Lead model
+    Lead.objects.create(
+        business_name=raw_lead.business_name,
+        contact_name=raw_lead.contact_name,
+        email=raw_lead.email,
+        phone=raw_lead.phone,
+        website=raw_lead.website,
+        status='new'
+    )
+    
+    raw_lead.is_approved = True
+    raw_lead.save()
+    
+    if request.headers.get('HX-Request'):
+        return HttpResponse(status=204, headers={'HX-Trigger': 'rawLeadsChanged'})
+    return redirect('leads:scraper-dashboard')
+
+@login_required
+@require_POST
+def raw_lead_delete(request, pk):
+    raw_lead = get_object_or_404(RawLead, pk=pk)
+    raw_lead.delete()
+    if request.headers.get('HX-Request'):
+        return HttpResponse(status=204, headers={'HX-Trigger': 'rawLeadsChanged'})
+    return redirect('leads:scraper-dashboard')
+
 

@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Scraper | Huntly{% endblock %}
+{% block header_title %}Lead Generation Scraper{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header Actions -->
+    <div class="flex items-center justify-between bg-neutral-900 border border-neutral-800 p-6 rounded-2xl">
+        <div>
+            <h1 class="text-2xl font-bold mb-1">Find New Leads</h1>
+            <p class="text-neutral-400">Launch a new scraping job to find targeted prospects by niche and region.</p>
+        </div>
+        <button hx-get="{% url 'leads:scraper-create' %}" hx-target="#modal-content" class="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl font-bold transition-all flex items-center shadow-lg shadow-primary-600/20">
+            <i data-lucide="search" class="w-5 h-5 mr-2"></i>
+            Start New Scrape
+        </button>
+    </div>
+
+    <!-- Active Monitor -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-neutral-800 bg-neutral-800/30">
+                    <h2 class="font-bold flex items-center">
+                        <i data-lucide="activity" class="w-5 h-5 mr-2 text-primary-400"></i>
+                        Active Monitor
+                    </h2>
+                </div>
+                <div id="scraper-monitor" hx-get="{% url 'leads:scraper-monitor-partial' %}" hx-trigger="load, jobsChanged from:body, every 5s" class="p-6">
+                    <!-- Monitor content loaded here -->
+                    <div class="text-center py-8 text-neutral-500">
+                        <p class="text-sm">No active scraping jobs.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl">
+                <h3 class="text-sm font-bold text-neutral-500 uppercase tracking-wider mb-4">Quick Stats</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-neutral-400 text-sm">Total Scraped</span>
+                        <span class="font-bold">1,240</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-neutral-400 text-sm">Pending Review</span>
+                        <span class="font-bold text-yellow-500">{{ raw_leads.count }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-neutral-400 text-sm">Approved Today</span>
+                        <span class="font-bold text-green-500">42</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Raw Leads Table -->
+        <div class="lg:col-span-2">
+            <div class="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-neutral-800 bg-neutral-800/30 flex items-center justify-between">
+                    <h2 class="font-bold flex items-center">
+                        <i data-lucide="table" class="w-5 h-5 mr-2 text-primary-400"></i>
+                        Raw Data Review
+                    </h2>
+                    <span class="text-xs font-medium bg-yellow-500/10 text-yellow-500 px-2.5 py-0.5 rounded-full border border-yellow-500/20">
+                        {{ raw_leads.count }} leads needing review
+                    </span>
+                </div>
+                
+                <div id="raw-leads-list" hx-get="{% url 'leads:raw-lead-list-partial' %}" hx-trigger="load, rawLeadsChanged from:body">
+                    <div class="p-12 text-center text-neutral-500">
+                        <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-4"></i>
+                        <p>Loading raw data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

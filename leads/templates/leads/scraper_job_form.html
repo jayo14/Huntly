@@ -1,0 +1,54 @@
+{% load crispy_forms_tags %}
+
+<div class="p-8">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h2 class="text-2xl font-bold">Launch Scraper</h2>
+            <p class="text-neutral-400 text-sm mt-1">Define your target audience and location.</p>
+        </div>
+        <button @click="show = false" class="text-neutral-400 hover:text-white transition-colors">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+    </div>
+
+    <form hx-post="{% url 'leads:scraper-create' %}" 
+          hx-target="#modal-content"
+          class="space-y-6">
+        {% csrf_token %}
+        
+        <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="col-span-1">
+                    {{ form.niche|as_crispy_field }}
+                </div>
+                <div class="col-span-1">
+                    {{ form.region|as_crispy_field }}
+                </div>
+            </div>
+            {{ form.keywords|as_crispy_field }}
+            
+            <div class="p-4 bg-primary-500/5 border border-primary-500/20 rounded-xl">
+                <div class="flex items-start space-x-3">
+                    <i data-lucide="info" class="w-5 h-5 text-primary-400 mt-0.5"></i>
+                    <p class="text-xs text-primary-300 leading-relaxed">
+                        Our engine will search across Google Maps, LinkedIn, and social directories to find matches. This usually takes 5-15 minutes depending on the scope.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end space-x-3 pt-8 border-t border-neutral-800">
+            <button type="button" @click="show = false" class="px-6 py-2.5 rounded-xl border border-neutral-700 font-bold hover:bg-neutral-800 transition-all">
+                Cancel
+            </button>
+            <button type="submit" class="bg-primary-600 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-primary-500 transition-all shadow-lg shadow-primary-600/20 flex items-center">
+                <i data-lucide="play" class="w-4 h-4 mr-2 fill-current"></i>
+                Launch Job
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>

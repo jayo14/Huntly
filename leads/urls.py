@@ -23,4 +23,11 @@ urlpatterns = [
     path('automation/rules/<int:pk>/delete/', views.rule_delete, name='rule-delete'),
     path('automation/rules/<int:pk>/toggle/', views.toggle_rule, name='toggle-rule'),
     path('automation/settings/toggle/', views.toggle_setting, name='toggle-setting'),
+    path('scraper/', views.scraper_dashboard, name='scraper-dashboard'),
+    path('scraper/jobs/create/', views.scraper_create, name='scraper-create'),
+    path('scraper/monitor/partial/', views.scraper_monitor_partial, name='scraper-monitor-partial'),
+    path('scraper/raw-leads/partial/', views.raw_lead_list_partial, name='raw-lead-list-partial'),
+    path('scraper/raw-leads/<int:pk>/review/', views.raw_lead_review, name='raw-lead-review'),
+    path('scraper/raw-leads/<int:pk>/approve/', views.raw_lead_approve, name='raw-lead-approve'),
+    path('scraper/raw-leads/<int:pk>/delete/', views.raw_lead_delete, name='raw-lead-delete'),
 ]
