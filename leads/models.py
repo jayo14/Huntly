@@ -65,3 +65,21 @@ class AppSetting(models.Model):
     class Meta:
         verbose_name = "Application Setting"
         verbose_name_plural = "Application Settings"
+
+class AutomationRule(models.Model):
+    TRIGGER_CHOICES = [
+        ('on_new', 'When Lead is Added'),
+        ('on_status_change', 'When Status Changes'),
+        ('no_reply', 'If No Reply After X Days'),
+    ]
+
+    name = models.CharField(max_length=100)
+    trigger_type = models.CharField(max_length=20, choices=TRIGGER_CHOICES, default='on_new')
+    target_status = models.CharField(max_length=20, choices=Lead.STATUS_CHOICES, blank=True)
+    delay_hours = models.IntegerField(default=24, help_text="Wait time before action")
+    ai_prompt_override = models.TextField(blank=True, help_text="Custom AI instructions for this rule")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
