@@ -69,11 +69,19 @@
                 <div class="text-sm font-medium text-neutral-400">
                     {% block header_title %}Huntly{% endblock %}
                 </div>
-                <div class="flex items-center space-x-4">
-                    <span class="text-sm text-neutral-400">{{ user.username|default:"Admin" }}</span>
-                    <div class="w-8 h-8 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-xs font-bold">
-                        {{ user.username.0|upper|default:"A" }}
+                <div class="flex items-center space-x-6">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-sm text-neutral-400 font-medium">{{ user.username }}</span>
+                        <div class="w-8 h-8 rounded-full bg-primary-600 border border-primary-500/20 flex items-center justify-center text-xs font-bold text-white">
+                            {{ user.username.0|upper }}
+                        </div>
                     </div>
+                    <form action="{% url 'core:logout' %}" method="post" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="text-neutral-500 hover:text-white transition-colors">
+                            <i data-lucide="log-out" class="w-5 h-5"></i>
+                        </button>
+                    </form>
                 </div>
             </header>
 

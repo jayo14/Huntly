@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "crispy_tailwind",
 
     # Local
+    "core.apps.CoreConfig",
     "leads.apps.LeadsConfig",
 ]
 
@@ -121,3 +122,9 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# Auth Settings
+LOGIN_URL = 'core:login'
+LOGIN_REDIRECT_URL = 'leads:dashboard'
+LOGOUT_REDIRECT_URL = 'core:landing'
+

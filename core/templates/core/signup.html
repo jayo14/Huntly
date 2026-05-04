@@ -1,0 +1,68 @@
+{% extends 'landing_base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Sign up | Huntly{% endblock %}
+
+{% block content %}
+<section class="min-h-[80vh] flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-md">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl font-display font-bold mb-2">Create Account</h1>
+            <p class="text-neutral-400">Join Huntly and start closing more leads</p>
+        </div>
+
+        <div class="bg-neutral-900 border border-white/5 rounded-3xl p-8 shadow-2xl">
+            <form method="POST" class="space-y-6">
+                {% csrf_token %}
+                {{ form|crispy }}
+                
+                <button type="submit" class="w-full bg-primary-600 text-white py-4 rounded-xl font-bold hover:bg-primary-500 transition-all shadow-lg shadow-primary-600/20">
+                    Get Started
+                </button>
+            </form>
+
+            <div class="mt-8 pt-8 border-t border-white/5 text-center">
+                <p class="text-neutral-400">
+                    Already have an account? 
+                    <a href="{% url 'core:login' %}" class="text-primary-400 font-semibold hover:text-primary-300 transition-colors">Log in</a>
+                </p>
+            </div>
+        </div>
+
+        <p class="mt-8 text-center text-xs text-neutral-500 max-w-xs mx-auto">
+            By creating an account, you agree to our Terms of Service and Privacy Policy.
+        </p>
+    </div>
+</section>
+
+<style>
+    /* Customize Crispy Tailwind Inputs for Dark Mode */
+    input[type="text"], input[type="password"], input[type="email"], select, textarea {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+        border-radius: 0.75rem !important;
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+    }
+    input:focus {
+        border-color: #0ea5e9 !important;
+        box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.1) !important;
+    }
+    label {
+        color: #a3a3a3 !important;
+        font-size: 0.875rem !important;
+        font-weight: 500 !important;
+        margin-bottom: 0.5rem !important;
+    }
+    .text-red-600 {
+        color: #ef4444 !important;
+        font-size: 0.875rem !important;
+        margin-top: 0.25rem !important;
+    }
+    .text-gray-500 {
+        color: #737373 !important;
+        font-size: 0.75rem !important;
+    }
+</style>
+{% endblock %}

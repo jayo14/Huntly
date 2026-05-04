@@ -3,13 +3,17 @@ from django.urls import reverse
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+
 from django.utils import timezone
 from django.db.models import Count, Q
 from .models import Lead, Message, AppSetting
 from .forms import LeadForm, AppSettingForm
 import json
 
+@login_required
 def dashboard(request):
+
     today = timezone.now().date()
     status_filter = request.GET.get('status', '')
 
@@ -59,7 +63,9 @@ def dashboard(request):
 
     return render(request, 'leads/dashboard.html', context)
 
+@login_required
 def lead_list(request):
+
     search = request.GET.get('search', '')
     status = request.GET.get('status', '')
     needs_action = request.GET.get('needs_action', '')
@@ -93,7 +99,9 @@ def lead_list(request):
         return render(request, 'leads/partials/lead_list_table.html', context)
     return render(request, 'leads/leads_list.html', context)
 
+@login_required
 def lead_create(request):
+
     if request.method == 'POST':
         form = LeadForm(request.POST)
         if form.is_valid():
@@ -106,7 +114,9 @@ def lead_create(request):
 
     return render(request, 'leads/lead_form.html', {'form': form})
 
+@login_required
 def lead_update(request, pk):
+
     lead = get_object_or_404(Lead, pk=pk)
     if request.method == 'POST':
         form = LeadForm(request.POST, instance=lead)
@@ -120,16 +130,20 @@ def lead_update(request, pk):
 
     return render(request, 'leads/lead_form.html', {'form': form, 'lead': lead})
 
+@login_required
 @require_POST
 def lead_delete(request, pk):
+
     lead = get_object_or_404(Lead, pk=pk)
     lead.delete()
     if request.headers.get('HX-Request'):
         return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
     return redirect('leads:lead-list')
 
+@login_required
 @require_POST
 def update_status(request, pk):
+
     lead = get_object_or_404(Lead, pk=pk)
     status = request.POST.get('status')
     if status in dict(Lead.STATUS_CHOICES):
@@ -140,10 +154,14 @@ def update_status(request, pk):
         return render(request, 'leads/partials/lead_row.html', {'lead': lead})
     return redirect('leads:lead-list')
 
+@login_required
 def lead_list_partial(request):
+
     return lead_list(request)
 
+@login_required
 def pipeline(request):
+
     stages = []
     for status, label in Lead.STATUS_CHOICES:
         stages.append({
@@ -155,7 +173,9 @@ def pipeline(request):
     context = {'stages': stages}
     return render(request, 'leads/pipeline.html', context)
 
+@login_required
 def settings_view(request):
+
     setting = AppSetting.objects.first()
     if not setting:
         setting = AppSetting.objects.create()
@@ -173,7 +193,9 @@ def settings_view(request):
 
     return render(request, 'leads/settings.html', {'form': form})
 
+@login_required
 def lead_detail(request, pk):
+
     lead = get_object_or_404(Lead, pk=pk)
     messages_list = lead.messages.all().order_by('-sent_at')
 
@@ -183,8 +205,10 @@ def lead_detail(request, pk):
     }
     return render(request, 'leads/lead_detail_modal.html', context)
 
+@login_required
 @require_POST
 def generate_message(request, pk):
+
     lead = get_object_or_404(Lead, pk=pk)
     subject = f"Inquiry regarding {lead.business_name}"
     body = f"Hello {lead.contact_name or 'Team'},\n\nI saw your website ({lead.website}) and noticed you might need help with {lead.problem}.\n\nOur offer: {lead.offer}\n\nLooking forward to hearing from you."
@@ -195,8 +219,10 @@ def generate_message(request, pk):
 
     return HttpResponse(f'<script>document.getElementsByName("subject")[0].value = {subject_js}; document.getElementsByName("body")[0].value = {body_js};</script>')
 
+@login_required
 @require_POST
 def send_message(request, pk):
+
     lead = get_object_or_404(Lead, pk=pk)
     subject = request.POST.get('subject')
     body = request.POST.get('body')
