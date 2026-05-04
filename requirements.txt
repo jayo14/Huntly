@@ -4,3 +4,7 @@ django-htmx
 django-crispy-forms
 crispy-tailwind
 psycopg2-binary
+selenium
+webdriver-manager
+beautifulsoup4
+requests
