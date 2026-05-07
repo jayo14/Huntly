@@ -1,44 +1,81 @@
 {% extends 'base.html' %}
 
+{% block header_title %}Resumes{% endblock %}
+
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">Resumes</h1>
-        <a href="{% url 'resumes:resume-create' %}" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Create New Resume</a>
+<div class="max-w-7xl mx-auto py-8">
+    <div class="flex justify-between items-center mb-10">
+        <div>
+            <h1 class="text-3xl font-black text-surface-950 tracking-tight">Your Resumes</h1>
+            <p class="text-surface-500 font-medium">Manage and download your professional resumes.</p>
+        </div>
+        <a href="{% url 'resumes:resume-create' %}" class="flex items-center px-6 py-3 bg-primary-600 text-white font-black rounded-2xl hover:bg-primary-700 transition shadow-xl shadow-primary-600/20">
+            <i data-lucide="plus" class="w-5 h-5 mr-2"></i>
+            Create New
+        </a>
     </div>
 
-    <div class="bg-white rounded-xl shadow-md overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+    <div class="bg-surface-100 rounded-3xl shadow-sm border border-surface-200 overflow-hidden">
+        <table class="min-w-full divide-y divide-surface-200">
+            <thead class="bg-surface-50/50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th class="px-8 py-5 text-left text-[10px] font-black text-surface-400 uppercase tracking-[0.2em]">Profile</th>
+                    <th class="px-8 py-5 text-left text-[10px] font-black text-surface-400 uppercase tracking-[0.2em]">Contact</th>
+                    <th class="px-8 py-5 text-left text-[10px] font-black text-surface-400 uppercase tracking-[0.2em]">Created</th>
+                    <th class="px-8 py-5 text-right text-[10px] font-black text-surface-400 uppercase tracking-[0.2em]">Actions</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="divide-y divide-surface-200">
                 {% for resume in resumes %}
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">{{ resume.full_name }}</div>
-                        <div class="text-sm text-gray-500">{{ resume.tagline }}</div>
+                <tr class="group hover:bg-surface-50/50 transition-colors">
+                    <td class="px-8 py-6 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-xs mr-4" style="background-color: {{ resume.accent_color|default:'#4F46E5' }};">
+                                {{ resume.full_name.0|upper }}
+                            </div>
+                            <div>
+                                <div class="text-sm font-black text-surface-950">{{ resume.full_name }}</div>
+                                <div class="text-xs text-surface-500 font-medium">{{ resume.tagline }}</div>
+                            </div>
+                        </div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-500">{{ resume.email }}</div>
+                    <td class="px-8 py-6 whitespace-nowrap">
+                        <div class="text-xs font-bold text-surface-600">{{ resume.email }}</div>
+                        <div class="text-[10px] text-surface-400 font-medium">{{ resume.phone|default:"No phone" }}</div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-500">{{ resume.created_at|date:"M d, Y" }}</div>
+                    <td class="px-8 py-6 whitespace-nowrap">
+                        <div class="text-xs font-bold text-surface-500">{{ resume.created_at|date:"M d, Y" }}</div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <a href="{% url 'resumes:resume-update' resume.pk %}" class="text-blue-600 hover:text-blue-900 mr-4">Edit</a>
-                        <a href="{% url 'resumes:resume-download' resume.pk %}" class="text-green-600 hover:text-green-900">Download</a>
+                    <td class="px-8 py-6 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex items-center justify-end space-x-2">
+                            <button hx-get="{% url 'resumes:resume-preview' resume.pk %}"
+                                    hx-target="#modal-content"
+                                    class="p-2.5 text-surface-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
+                                    title="Preview">
+                                <i data-lucide="eye" class="w-5 h-5"></i>
+                            </button>
+                            <a href="{% url 'resumes:resume-update' resume.pk %}"
+                               class="p-2.5 text-surface-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                               title="Edit">
+                                <i data-lucide="edit-3" class="w-5 h-5"></i>
+                            </a>
+                            <a href="{% url 'resumes:resume-download' resume.pk %}"
+                               class="p-2.5 text-surface-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                               title="Download">
+                                <i data-lucide="download" class="w-5 h-5"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="px-6 py-10 text-center text-gray-500">
-                        No resumes created yet.
+                    <td colspan="4" class="px-8 py-20 text-center">
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-16 bg-surface-50 rounded-full flex items-center justify-center mb-4">
+                                <i data-lucide="file-text" class="w-8 h-8 text-surface-200"></i>
+                            </div>
+                            <p class="text-surface-500 font-medium">No resumes found. Start by creating one!</p>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}

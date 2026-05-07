@@ -1,8 +1,10 @@
 import json
 import subprocess
+import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from .models import Resume, Payment
 
 @login_required
@@ -10,30 +12,49 @@ def resume_list(request):
     resumes = Resume.objects.all().order_by('-created_at')
     return render(request, 'resumes/resume_list.html', {'resumes': resumes})
 
+def save_resume_data(resume, data, files):
+    resume.full_name = data.get('full_name')
+    resume.tagline = data.get('tagline', '')
+    resume.location = data.get('location', '')
+    resume.email = data.get('email')
+    resume.phone = data.get('phone', '')
+    resume.linkedin = data.get('linkedin', '')
+    resume.github = data.get('github', '')
+    resume.portfolio = data.get('portfolio', '')
+    resume.summary = data.get('summary', '')
+    resume.technical_skills = data.get('technical_skills', [])
+    resume.experiences = data.get('experiences', [])
+    resume.projects = data.get('projects', [])
+    resume.certifications = data.get('certifications', [])
+    resume.education = data.get('education', [])
+    resume.include_branding = data.get('include_branding', False)
+    resume.accent_color = data.get('accent_color', '#4F46E5')
+
+    if files.get('passport_photo'):
+        resume.passport_photo = files.get('passport_photo')
+
+    resume.save()
+    return resume
+
 @login_required
 def resume_create(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
-        resume = Resume.objects.create(
-            full_name=data.get('full_name'),
-            tagline=data.get('tagline', ''),
-            location=data.get('location', ''),
-            email=data.get('email'),
-            phone=data.get('phone', ''),
-            linkedin=data.get('linkedin', ''),
-            github=data.get('github', ''),
-            portfolio=data.get('portfolio', ''),
-            summary=data.get('summary', ''),
-            technical_skills=data.get('technical_skills'),
-            experiences=data.get('experiences'),
-            projects=data.get('projects'),
-            certifications=data.get('certifications'),
-            education=data.get('education'),
-            include_branding=data.get('include_branding', False)
-        )
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            files = {}
+        else:
+            data = json.loads(request.POST.get('data', '{}'))
+            files = request.FILES
+
+        resume = Resume()
+        resume = save_resume_data(resume, data, files)
 
         # Generate the docx
-        docx_buffer = generate_docx(data)
+        docx_data = data.copy()
+        if resume.passport_photo:
+            docx_data['passport_photo_path'] = resume.passport_photo.path
+
+        docx_buffer = generate_docx(docx_data)
         response = HttpResponse(docx_buffer, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         response['Content-Disposition'] = f'attachment; filename="{resume.full_name.replace(" ", "_")}--_by_Huntly.docx"'
         return response
@@ -44,26 +65,21 @@ def resume_create(request):
 def resume_update(request, pk):
     resume = get_object_or_404(Resume, pk=pk)
     if request.method == 'POST':
-        data = json.loads(request.body)
-        resume.full_name = data.get('full_name')
-        resume.tagline = data.get('tagline')
-        resume.location = data.get('location')
-        resume.email = data.get('email')
-        resume.phone = data.get('phone')
-        resume.linkedin = data.get('linkedin')
-        resume.github = data.get('github')
-        resume.portfolio = data.get('portfolio')
-        resume.summary = data.get('summary')
-        resume.technical_skills = data.get('technical_skills')
-        resume.experiences = data.get('experiences')
-        resume.projects = data.get('projects')
-        resume.certifications = data.get('certifications')
-        resume.education = data.get('education')
-        resume.include_branding = data.get('include_branding', False)
-        resume.save()
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            files = {}
+        else:
+            data = json.loads(request.POST.get('data', '{}'))
+            files = request.FILES
+
+        resume = save_resume_data(resume, data, files)
 
         # Generate the docx
-        docx_buffer = generate_docx(data)
+        docx_data = data.copy()
+        if resume.passport_photo:
+            docx_data['passport_photo_path'] = resume.passport_photo.path
+
+        docx_buffer = generate_docx(docx_data)
         response = HttpResponse(docx_buffer, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         response['Content-Disposition'] = f'attachment; filename="{resume.full_name.replace(" ", "_")}--_by_Huntly.docx"'
         return response
@@ -85,6 +101,8 @@ def resume_update(request, pk):
         'certifications': resume.certifications,
         'education': resume.education,
         'include_branding': resume.include_branding,
+        'accent_color': resume.accent_color,
+        'passport_photo_url': resume.passport_photo.url if resume.passport_photo else None,
     }
     # Add bulletsText to experiences and projects for the UI
     for exp in resume_data['experiences']:
@@ -93,6 +111,11 @@ def resume_update(request, pk):
         proj['bulletsText'] = '\n'.join(proj.get('bullets', []))
 
     return render(request, 'resumes/resume_form.html', {'resume_data_json': json.dumps(resume_data)})
+
+@login_required
+def resume_preview_partial(request, pk):
+    resume = get_object_or_404(Resume, pk=pk)
+    return render(request, 'resumes/partials/resume_preview.html', {'resume': resume})
 
 @login_required
 def resume_download(request, pk):
@@ -113,7 +136,11 @@ def resume_download(request, pk):
         'certifications': resume.certifications,
         'education': resume.education,
         'include_branding': resume.include_branding,
+        'accent_color': resume.accent_color,
     }
+    if resume.passport_photo:
+        data['passport_photo_path'] = resume.passport_photo.path
+
     docx_buffer = generate_docx(data)
     response = HttpResponse(docx_buffer, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     response['Content-Disposition'] = f'attachment; filename="{resume.full_name.replace(" ", "_")}--_by_Huntly.docx"'

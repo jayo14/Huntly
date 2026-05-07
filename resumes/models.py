@@ -25,6 +25,8 @@ class Resume(models.Model):
     education = models.JSONField(default=list, blank=True)
 
     include_branding = models.BooleanField(default=False)
+    accent_color = models.CharField(max_length=7, default="#4F46E5")
+    passport_photo = models.ImageField(upload_to="resumes/passports/", null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

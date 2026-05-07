@@ -8,6 +8,8 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.db.models import Count, Q
 from .models import Lead, Message, AppSetting, AutomationRule, ScraperJob, RawLead
+from resumes.models import Payment
+from django.db.models import Sum
 from .forms import LeadForm, AppSettingForm, AutomationRuleForm, ScraperJobForm, RawLeadForm
 import json
 
@@ -24,6 +26,8 @@ def dashboard(request):
     total_leads = leads_queryset.count()
     emails_sent_today = Message.objects.filter(sent_at__date=today, is_reply=False).count()
     replies_count = Message.objects.filter(is_reply=True).count()
+
+    total_earnings = Payment.objects.aggregate(Sum("amount"))["amount__sum"] or 0
 
     conversion_rate = 0
     if Lead.objects.count() > 0:
@@ -52,6 +56,7 @@ def dashboard(request):
         'emails_sent_today': emails_sent_today,
         'replies_count': replies_count,
         'conversion_rate': round(conversion_rate, 1),
+        'total_earnings': total_earnings,
         'funnel_stages': funnel_stages,
         'needs_attention': needs_attention,
         'status_choices': Lead.STATUS_CHOICES,
