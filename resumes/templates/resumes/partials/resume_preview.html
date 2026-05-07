@@ -1,0 +1,125 @@
+<div class="p-8 bg-white text-gray-900 shadow-inner min-h-[842px] relative" style="font-family: 'Inter', sans-serif;">
+    {% if resume.passport_photo %}
+    <div class="absolute top-8 right-8 w-32 h-32 border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+        <img src="{{ resume.passport_photo.url }}" alt="Passport Photo" class="w-full h-full object-cover">
+    </div>
+    {% endif %}
+
+    <header class="mb-8 pr-36">
+        <h1 class="text-4xl font-bold uppercase tracking-tight mb-2" style="color: {{ resume.accent_color|default:'#4F46E5' }};">
+            {{ resume.full_name }}
+        </h1>
+        <p class="text-lg text-gray-500 font-medium mb-4">{{ resume.tagline }}</p>
+
+        <div class="flex flex-wrap gap-y-2 text-sm text-gray-500">
+            <span class="flex items-center"><i data-lucide="mail" class="w-4 h-4 mr-1.5"></i>{{ resume.email }}</span>
+            <span class="mx-3 text-gray-300">|</span>
+            <span class="flex items-center"><i data-lucide="phone" class="w-4 h-4 mr-1.5"></i>{{ resume.phone }}</span>
+            <span class="mx-3 text-gray-300">|</span>
+            <span class="flex items-center"><i data-lucide="map-pin" class="w-4 h-4 mr-1.5"></i>{{ resume.location }}</span>
+        </div>
+
+        <div class="flex gap-4 mt-3 text-sm">
+            {% if resume.linkedin %}<a href="{{ resume.linkedin }}" class="text-blue-600 hover:underline flex items-center"><i data-lucide="linkedin" class="w-4 h-4 mr-1"></i>LinkedIn</a>{% endif %}
+            {% if resume.github %}<a href="{{ resume.github }}" class="text-gray-700 hover:underline flex items-center"><i data-lucide="github" class="w-4 h-4 mr-1"></i>GitHub</a>{% endif %}
+            {% if resume.portfolio %}<a href="{{ resume.portfolio }}" class="text-emerald-600 hover:underline flex items-center"><i data-lucide="external-link" class="w-4 h-4 mr-1"></i>Portfolio</a>{% endif %}
+        </div>
+    </header>
+
+    <section class="mb-8">
+        <h2 class="text-xs font-bold uppercase tracking-widest mb-3 pb-1 border-b-2" style="color: {{ resume.accent_color|default:'#4F46E5' }}; border-color: {{ resume.accent_color|default:'#4F46E5' }}20;">
+            Professional Summary
+        </h2>
+        <p class="text-sm leading-relaxed text-gray-700">{{ resume.summary }}</p>
+    </section>
+
+    <section class="mb-8">
+        <h2 class="text-xs font-bold uppercase tracking-widest mb-4 pb-1 border-b-2" style="color: {{ resume.accent_color|default:'#4F46E5' }}; border-color: {{ resume.accent_color|default:'#4F46E5' }}20;">
+            Technical Skills
+        </h2>
+        <div class="grid grid-cols-1 gap-y-3">
+            {% for skill in resume.technical_skills %}
+            <div class="flex">
+                <span class="w-32 text-sm font-bold text-gray-800 shrink-0">{{ skill.category }}</span>
+                <span class="text-sm text-gray-600">{{ skill.skills }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="mb-8">
+        <h2 class="text-xs font-bold uppercase tracking-widest mb-4 pb-1 border-b-2" style="color: {{ resume.accent_color|default:'#4F46E5' }}; border-color: {{ resume.accent_color|default:'#4F46E5' }}20;">
+            Professional Experience
+        </h2>
+        {% for exp in resume.experiences %}
+        <div class="mb-6">
+            <div class="flex justify-between items-baseline mb-1">
+                <h3 class="text-base font-bold text-gray-900">{{ exp.role }}</h3>
+                <span class="text-xs font-bold text-gray-400">{{ exp.dates }}</span>
+            </div>
+            <p class="text-sm font-semibold text-gray-600 mb-2">{{ exp.company }}</p>
+            <ul class="list-disc ml-4 space-y-1">
+                {% for bullet in exp.bullets %}
+                <li class="text-sm text-gray-700">{{ bullet }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </section>
+
+    {% if resume.projects %}
+    <section class="mb-8">
+        <h2 class="text-xs font-bold uppercase tracking-widest mb-4 pb-1 border-b-2" style="color: {{ resume.accent_color|default:'#4F46E5' }}; border-color: {{ resume.accent_color|default:'#4F46E5' }}20;">
+            Selected Projects
+        </h2>
+        {% for project in resume.projects %}
+        <div class="mb-4">
+            <div class="flex items-center gap-2 mb-1">
+                <h3 class="text-base font-bold text-gray-900">{{ project.name }}</h3>
+                {% if project.link %}<span class="text-gray-300">|</span><a href="{{ project.link }}" class="text-xs text-blue-600 hover:underline">{{ project.link }}</a>{% endif %}
+            </div>
+            {% if project.stack %}<p class="text-xs italic text-gray-500 mb-2">Stack: {{ project.stack }}</p>{% endif %}
+            <ul class="list-disc ml-4 space-y-1">
+                {% for bullet in project.bullets %}
+                <li class="text-sm text-gray-700">{{ bullet }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    <div class="grid grid-cols-2 gap-8">
+        <section>
+            <h2 class="text-xs font-bold uppercase tracking-widest mb-4 pb-1 border-b-2" style="color: {{ resume.accent_color|default:'#4F46E5' }}; border-color: {{ resume.accent_color|default:'#4F46E5' }}20;">
+                Certifications
+            </h2>
+            {% for cert in resume.certifications %}
+            <div class="mb-3">
+                <p class="text-sm font-bold text-gray-800">{{ cert.name }}</p>
+                <p class="text-xs text-gray-500">{{ cert.issuer }} · {{ cert.date }}</p>
+            </div>
+            {% endfor %}
+        </section>
+
+        <section>
+            <h2 class="text-xs font-bold uppercase tracking-widest mb-4 pb-1 border-b-2" style="color: {{ resume.accent_color|default:'#4F46E5' }}; border-color: {{ resume.accent_color|default:'#4F46E5' }}20;">
+                Education
+            </h2>
+            {% for edu in resume.education %}
+            <div class="mb-3">
+                <p class="text-sm font-bold text-gray-800">{{ edu.degree }}</p>
+                <p class="text-xs text-gray-600">{{ edu.institution }}</p>
+                <p class="text-[10px] text-gray-400 uppercase font-bold">{{ edu.dates }} · {{ edu.location }}</p>
+            </div>
+            {% endfor %}
+        </section>
+    </div>
+
+    {% if resume.include_branding %}
+    <footer class="mt-12 pt-4 border-t border-gray-100 text-center">
+        <p class="text-[10px] italic text-gray-400">Generated by Huntly</p>
+    </footer>
+    {% endif %}
+</div>
+<script>lucide.createIcons();</script>
