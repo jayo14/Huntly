@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+{% load tailwind_filters %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8" x-data="resumeForm()">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        <!-- Progress Bar -->
+        <div class="bg-gray-100 px-6 py-4 border-b">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-semibold text-gray-600" x-text="'Step ' + step + ' of 7: ' + stepTitle()"></span>
+                <span class="text-sm font-semibold text-blue-600" x-text="progress + '%'"></span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" :style="'width: ' + progress + '%'"></div>
+            </div>
+        </div>
+
+        <form method="POST" id="resume-form" @submit.prevent="submitForm">
+            {% csrf_token %}
+
+            <!-- Step 1: Personal Info -->
+            <div x-show="step === 1" class="p-8 space-y-6">
+                <h2 class="text-2xl font-bold text-gray-800">Personal Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                        <input type="text" x-model="formData.full_name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Tagline</label>
+                        <input type="text" x-model="formData.tagline" placeholder="e.g. Full Stack Engineer" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" x-model="formData.email" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Phone</label>
+                        <input type="text" x-model="formData.phone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Location</label>
+                        <input type="text" x-model="formData.location" placeholder="e.g. Lagos, Nigeria" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">LinkedIn URL</label>
+                        <input type="url" x-model="formData.linkedin" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">GitHub URL</label>
+                        <input type="url" x-model="formData.github" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Portfolio URL</label>
+                        <input type="url" x-model="formData.portfolio" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Summary -->
+            <div x-show="step === 2" class="p-8 space-y-6">
+                <h2 class="text-2xl font-bold text-gray-800">Professional Summary</h2>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Write a brief summary of your professional background</label>
+                    <textarea x-model="formData.summary" rows="6" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"></textarea>
+                </div>
+            </div>
+
+            <!-- Step 3: Technical Skills -->
+            <div x-show="step === 3" class="p-8 space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-800">Technical Skills</h2>
+                    <button type="button" @click="addSkill" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">Add Category</button>
+                </div>
+                <template x-for="(skill, index) in formData.technical_skills" :key="index">
+                    <div class="p-4 border rounded-lg bg-gray-50 relative">
+                        <button type="button" @click="removeSkill(index)" class="absolute top-2 right-2 text-red-600 hover:text-red-800">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Category</label>
+                                <input type="text" x-model="skill.category" placeholder="e.g. Frontend" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Skills</label>
+                                <input type="text" x-model="skill.skills" placeholder="e.g. React, Next.js, TypeScript" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Step 4: Experience -->
+            <div x-show="step === 4" class="p-8 space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-800">Professional Experience</h2>
+                    <button type="button" @click="addExperience" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">Add Experience</button>
+                </div>
+                <template x-for="(exp, index) in formData.experiences" :key="index">
+                    <div class="p-4 border rounded-lg bg-gray-50 space-y-4 relative">
+                        <button type="button" @click="removeExperience(index)" class="absolute top-2 right-2 text-red-600 hover:text-red-800">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Role</label>
+                                <input type="text" x-model="exp.role" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Company</label>
+                                <input type="text" x-model="exp.company" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Dates</label>
+                                <input type="text" x-model="exp.dates" placeholder="e.g. Jul 2024 - Present" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Responsibilities (One per line)</label>
+                            <textarea x-model="exp.bulletsText" @input="updateExpBullets(index)" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"></textarea>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Step 5: Projects -->
+            <div x-show="step === 5" class="p-8 space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-800">Selected Projects</h2>
+                    <button type="button" @click="addProject" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">Add Project</button>
+                </div>
+                <template x-for="(proj, index) in formData.projects" :key="index">
+                    <div class="p-4 border rounded-lg bg-gray-50 space-y-4 relative">
+                        <button type="button" @click="removeProject(index)" class="absolute top-2 right-2 text-red-600 hover:text-red-800">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Project Name</label>
+                                <input type="text" x-model="proj.name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Link</label>
+                                <input type="url" x-model="proj.link" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700">Stack</label>
+                                <input type="text" x-model="proj.stack" placeholder="e.g. React, Node.js, MongoDB" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Key Features (One per line)</label>
+                            <textarea x-model="proj.bulletsText" @input="updateProjBullets(index)" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"></textarea>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Step 6: Certifications -->
+            <div x-show="step === 6" class="p-8 space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-800">Certifications & Training</h2>
+                    <button type="button" @click="addCertification" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">Add Certification</button>
+                </div>
+                <template x-for="(cert, index) in formData.certifications" :key="index">
+                    <div class="p-4 border rounded-lg bg-gray-50 relative">
+                        <button type="button" @click="removeCertification(index)" class="absolute top-2 right-2 text-red-600 hover:text-red-800">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Name</label>
+                                <input type="text" x-model="cert.name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Issuer</label>
+                                <input type="text" x-model="cert.issuer" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Date</label>
+                                <input type="text" x-model="cert.date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Step 7: Education & Finalize -->
+            <div x-show="step === 7" class="p-8 space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-800">Education</h2>
+                    <button type="button" @click="addEducation" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">Add Education</button>
+                </div>
+                <template x-for="(edu, index) in formData.education" :key="index">
+                    <div class="p-4 border rounded-lg bg-gray-50 relative">
+                        <button type="button" @click="removeEducation(index)" class="absolute top-2 right-2 text-red-600 hover:text-red-800">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Degree</label>
+                                <input type="text" x-model="edu.degree" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Institution</label>
+                                <input type="text" x-model="edu.institution" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Location</label>
+                                <input type="text" x-model="edu.location" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Dates</label>
+                                <input type="text" x-model="edu.dates" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <div class="pt-8 border-t">
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" x-model="formData.include_branding" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label class="text-sm font-medium text-gray-700">Include "Generated by Huntly" branding</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="bg-gray-50 px-8 py-6 border-t flex justify-between">
+                <button type="button" x-show="step > 1" @click="step--" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition">Back</button>
+                <div x-show="step === 1"></div> <!-- Spacer -->
+
+                <button type="button" x-show="step < 7" @click="step++" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Next</button>
+                <button type="submit" x-show="step === 7" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">Save & Download</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function resumeForm() {
+    return {
+        step: 1,
+        progress: 14,
+        formData: {% if resume_data_json %}{{ resume_data_json|safe }}{% else %}{
+            full_name: '',
+            tagline: '',
+            email: '',
+            phone: '',
+            location: '',
+            linkedin: '',
+            github: '',
+            portfolio: '',
+            summary: '',
+            technical_skills: [{category: '', skills: ''}],
+            experiences: [{role: '', company: '', dates: '', bulletsText: '', bullets: []}],
+            projects: [{name: '', link: '', stack: '', bulletsText: '', bullets: []}],
+            certifications: [{name: '', issuer: '', date: ''}],
+            education: [{degree: '', institution: '', location: '', dates: ''}],
+            include_branding: false
+        }{% endif %},
+        stepTitle() {
+            const titles = [
+                '',
+                'Personal Information',
+                'Professional Summary',
+                'Technical Skills',
+                'Experience',
+                'Projects',
+                'Certifications',
+                'Education'
+            ];
+            return titles[this.step];
+        },
+        init() {
+            this.$watch('step', value => {
+                this.progress = Math.round((value / 7) * 100);
+            });
+        },
+        addSkill() { this.formData.technical_skills.push({category: '', skills: ''}); },
+        removeSkill(index) { this.formData.technical_skills.splice(index, 1); },
+
+        addExperience() { this.formData.experiences.push({role: '', company: '', dates: '', bulletsText: '', bullets: []}); },
+        removeExperience(index) { this.formData.experiences.splice(index, 1); },
+        updateExpBullets(index) {
+            this.formData.experiences[index].bullets = this.formData.experiences[index].bulletsText.split('\n').filter(b => b.trim() !== '');
+        },
+
+        addProject() { this.formData.projects.push({name: '', link: '', stack: '', bulletsText: '', bullets: []}); },
+        removeProject(index) { this.formData.projects.splice(index, 1); },
+        updateProjBullets(index) {
+            this.formData.projects[index].bullets = this.formData.projects[index].bulletsText.split('\n').filter(b => b.trim() !== '');
+        },
+
+        addCertification() { this.formData.certifications.push({name: '', issuer: '', date: ''}); },
+        removeCertification(index) { this.formData.certifications.splice(index, 1); },
+
+        addEducation() { this.formData.education.push({degree: '', institution: '', location: '', dates: ''}); },
+        removeEducation(index) { this.formData.education.splice(index, 1); },
+
+        async submitForm() {
+            const response = await fetch('', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(this.formData)
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = this.formData.full_name.replace(/ /g, '_') + "--_by_Huntly.docx";
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                window.location.href = '{% url "resumes:resume-list" %}';
+            } else {
+                alert('Failed to save resume');
+            }
+        }
+    }
+}
+</script>
+{% endblock %}
