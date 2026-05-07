@@ -1,0 +1,24 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "A Django-based lead management CRM for tracking prospects, sending outreach emails, and managing your sales pipeline.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jayo14/Huntly.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jayo14/Huntly/issues"
+  },
+  "homepage": "https://github.com/jayo14/Huntly#readme",
+  "dependencies": {
+    "docx": "^9.6.1"
+  }
+}

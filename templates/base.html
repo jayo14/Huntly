@@ -148,6 +148,14 @@
                     <i data-lucide="settings" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
                     <span x-show="!sidebarCollapsed" x-transition>Settings</span>
                 </a>
+                <a href="{% url 'resumes:resume-list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if 'resumes' in request.path %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-surface-500 hover:text-surface-950 hover:bg-surface-200{% endif %}" :title="sidebarCollapsed ? 'Resumes' : ''>
+                    <i data-lucide="file-text" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
+                    <span x-show="!sidebarCollapsed" x-transition>Resumes</span>
+                </a>
+                <a href="{% url 'resumes:payment-list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if 'payments' in request.path %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-surface-500 hover:text-surface-950 hover:bg-surface-200{% endif %}" :title="sidebarCollapsed ? 'Payments' : ''>
+                    <i data-lucide="credit-card" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
+                    <span x-show="!sidebarCollapsed" x-transition>Payments</span>
+                </a>
             </nav>
 
             <!-- Collapse Toggle -->

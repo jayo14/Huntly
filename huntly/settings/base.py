@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     # Local
     "core.apps.CoreConfig",
     "leads.apps.LeadsConfig",
+    "resumes.apps.ResumesConfig",
 ]
 
 MIDDLEWARE = [
