@@ -417,7 +417,7 @@ function resumeForm() {
             return descriptions[this.step];
         },
         init() {
-            this.('step', value => {
+            this.$watch('step', value => {
                 this.progress = Math.round((value / 9) * 100);
                 setTimeout(() => lucide.createIcons(), 10);
             });
@@ -425,25 +425,25 @@ function resumeForm() {
                 this.photoPreview = this.formData.passport_photo_url;
             }
         },
-        addSkill() { this.formData.technical_skills.push({category: '', skills: ''}); this.(() => lucide.createIcons()); },
+        addSkill() { this.formData.technical_skills.push({category: '', skills: ''}); this.$nextTick(() => lucide.createIcons()); },
         removeSkill(index) { this.formData.technical_skills.splice(index, 1); },
 
-        addExperience() { this.formData.experiences.push({role: '', company: '', dates: '', bulletsText: '', bullets: []}); this.(() => lucide.createIcons()); },
+        addExperience() { this.formData.experiences.push({role: '', company: '', dates: '', bulletsText: '', bullets: []}); this.$nextTick(() => lucide.createIcons()); },
         removeExperience(index) { this.formData.experiences.splice(index, 1); },
         updateExpBullets(index) {
             this.formData.experiences[index].bullets = this.formData.experiences[index].bulletsText.split('\n').filter(b => b.trim() !== '');
         },
 
-        addProject() { this.formData.projects.push({name: '', link: '', stack: '', bulletsText: '', bullets: []}); this.(() => lucide.createIcons()); },
+        addProject() { this.formData.projects.push({name: '', link: '', stack: '', bulletsText: '', bullets: []}); this.$nextTick(() => lucide.createIcons()); },
         removeProject(index) { this.formData.projects.splice(index, 1); },
         updateProjBullets(index) {
             this.formData.projects[index].bullets = this.formData.projects[index].bulletsText.split('\n').filter(b => b.trim() !== '');
         },
 
-        addCertification() { this.formData.certifications.push({name: '', issuer: '', date: ''}); this.(() => lucide.createIcons()); },
+        addCertification() { this.formData.certifications.push({name: '', issuer: '', date: ''}); this.$nextTick(() => lucide.createIcons()); },
         removeCertification(index) { this.formData.certifications.splice(index, 1); },
 
-        addEducation() { this.formData.education.push({degree: '', institution: '', location: '', dates: ''}); this.(() => lucide.createIcons()); },
+        addEducation() { this.formData.education.push({degree: '', institution: '', location: '', dates: ''}); this.$nextTick(() => lucide.createIcons()); },
         removeEducation(index) { this.formData.education.splice(index, 1); },
 
         handlePhotoUpload(e) {
@@ -513,7 +513,7 @@ function resumeForm() {
         window.addEventListener('open-preview', (e) => {
             this.resume = e.detail;
             this.show = true;
-            this.(() => lucide.createIcons());
+            this.$nextTick(() => lucide.createIcons());
         });
     }
 }"
