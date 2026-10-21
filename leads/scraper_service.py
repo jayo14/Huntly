@@ -2,7 +2,10 @@ import time
 import threading
 import re
 import random
+import ipaddress
+import socket
 from datetime import datetime
+from urllib.parse import urlparse
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -12,6 +15,25 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from .models import ScraperJob, RawLead
 from geopy.geocoders import Nominatim
+
+MAX_SITES = 10
+PAGE_LOAD_TIMEOUT = 15
+
+def is_safe_url(url):
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return False
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        ip_str = socket.gethostbyname(hostname)
+        ip = ipaddress.ip_address(ip_str)
+        if ip.is_private or ip.is_loopback or ip.is_reserved or ip.is_link_local:
+            return False
+        return True
+    except Exception:
+        return False
 
 def add_log(job, message):
     timestamp = datetime.now().strftime("%H:%M:%S")
@@ -34,6 +56,7 @@ def run_scraper(job_id):
 
     add_log(job, f"🚀 Initializing scraping session for {job.niche} in {job.region}...")
 
+    driver = None
     try:
         # Validate location using geopy (3rd party API)
         try:
@@ -57,6 +80,7 @@ def run_scraper(job_id):
         
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
+        driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
         
         # Search query
         search_query = f"{job.niche} in {job.region} {job.keywords}"
@@ -95,8 +119,9 @@ def run_scraper(job_id):
             add_log(job, "❌ No organic results found. Session terminating.")
             job.status = 'failed'
             job.save()
-            driver.quit()
             return
+
+        search_results = search_results[:MAX_SITES]
 
         # Process results
         for i, res in enumerate(search_results):
@@ -106,8 +131,11 @@ def run_scraper(job_id):
                 add_log(job, "🛑 Stop requested by user. Terminating...")
                 job.status = 'failed'
                 job.save()
-                driver.quit()
                 return
+
+            if not is_safe_url(res['url']):
+                add_log(job, f"⚠️ Skipping unsafe URL: {res['url']}")
+                continue
 
             add_log(job, f"📡 Visiting: {res['url']}...")
             try:
@@ -149,14 +177,16 @@ def run_scraper(job_id):
         job.save()
         add_log(job, f"🏁 Session completed successfully! Total leads found: {job.leads_found}")
         
-        driver.quit()
-        
     except Exception as e:
         job.status = 'failed'
         job.save()
         add_log(job, f"🚨 FATAL ERROR: {e}")
-        if 'driver' in locals():
-            driver.quit()
+    finally:
+        if driver is not None:
+            try:
+                driver.quit()
+            except Exception:
+                pass
 
 def start_scraping_thread(job_id):
     thread = threading.Thread(target=run_scraper, args=(job_id,))

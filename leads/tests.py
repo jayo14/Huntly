@@ -7,6 +7,7 @@ from django.test import TestCase
 from django.urls import reverse
 from .forms import AppSettingForm
 from .models import Lead, Message, AppSetting, AutomationRule, ScraperJob, RawLead
+from .scraper_service import is_safe_url
 from resumes.models import Payment
 
 
@@ -518,3 +519,25 @@ class SendMessageTests(TestCase):
         storage = get_messages(response.wsgi_request)
         message_texts = [m.message for m in storage]
         self.assertIn("Failed to send email: SMTP connection timed out", message_texts)
+
+
+class SafeUrlTests(TestCase):
+    def test_unsafe_urls(self):
+        unsafe_urls = [
+            'http://127.0.0.1',
+            'http://localhost',
+            'http://169.254.169.254/latest/meta-data',
+            'file:///etc/passwd',
+        ]
+        for url in unsafe_urls:
+            with self.subTest(url=url):
+                self.assertFalse(is_safe_url(url), f"Expected {url} to be unsafe")
+
+    def test_safe_urls(self):
+        safe_urls = [
+            'http://example.com',
+            'https://example.com',
+        ]
+        for url in safe_urls:
+            with self.subTest(url=url):
+                self.assertTrue(is_safe_url(url), f"Expected {url} to be safe")
