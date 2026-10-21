@@ -1,11 +1,13 @@
 import json
-import subprocess
 import os
+import subprocess
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.conf import settings
 from .models import Resume, Payment
+from .docx_generator import generate_docx, DocxGenerationError
 
 @login_required
 def resume_list(request):
@@ -56,7 +58,14 @@ def resume_create(request):
         if resume.passport_photo:
             docx_data['passport_photo_path'] = resume.passport_photo.path
 
-        docx_buffer = generate_docx(docx_data)
+        try:
+            docx_buffer = generate_docx(docx_data)
+        except DocxGenerationError:
+            messages.error(request, "Failed to generate resume document.")
+            if request.content_type == 'application/json':
+                return JsonResponse({'error': 'Failed to generate resume document.'}, status=500)
+            return HttpResponse("Failed to generate resume document.", status=500)
+
         response = HttpResponse(docx_buffer, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         response['Content-Disposition'] = f'attachment; filename="{resume.full_name.replace(" ", "_")}--_by_Huntly.docx"'
         return response
@@ -81,7 +90,14 @@ def resume_update(request, pk):
         if resume.passport_photo:
             docx_data['passport_photo_path'] = resume.passport_photo.path
 
-        docx_buffer = generate_docx(docx_data)
+        try:
+            docx_buffer = generate_docx(docx_data)
+        except DocxGenerationError:
+            messages.error(request, "Failed to generate resume document.")
+            if request.content_type == 'application/json':
+                return JsonResponse({'error': 'Failed to generate resume document.'}, status=500)
+            return HttpResponse("Failed to generate resume document.", status=500)
+
         response = HttpResponse(docx_buffer, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         response['Content-Disposition'] = f'attachment; filename="{resume.full_name.replace(" ", "_")}--_by_Huntly.docx"'
         return response
@@ -143,7 +159,12 @@ def resume_download(request, pk):
     if resume.passport_photo:
         data['passport_photo_path'] = resume.passport_photo.path
 
-    docx_buffer = generate_docx(data)
+    try:
+        docx_buffer = generate_docx(data)
+    except DocxGenerationError:
+        messages.error(request, "Failed to generate resume document.")
+        return redirect('resumes:resume-list')
+
     response = HttpResponse(docx_buffer, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     response['Content-Disposition'] = f'attachment; filename="{resume.full_name.replace(" ", "_")}--_by_Huntly.docx"'
     return response
@@ -165,14 +186,3 @@ def payment_create(request):
         )
     return redirect('resumes:payment-list')
 
-def generate_docx(data):
-    # Call node script
-    process = subprocess.Popen(
-        ['node', 'scripts/resume_generator.js', json.dumps(data)],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
-    stdout, stderr = process.communicate()
-    if stderr:
-        print(f"Error in node script: {stderr.decode()}")
-    return stdout
