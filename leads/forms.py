@@ -19,9 +19,15 @@ class AppSettingForm(forms.ModelForm):
             'auto_send_enabled', 'follow_ups_enabled'
         ]
         widgets = {
-            'email_password': forms.PasswordInput(render_value=True),
+            'email_password': forms.PasswordInput(render_value=False),
             'default_offer': forms.Textarea(attrs={'rows': 3}),
         }
+
+    def clean_email_password(self):
+        password = self.cleaned_data.get('email_password')
+        if not password and self.instance and self.instance.pk:
+            return self.instance.email_password
+        return password
 
 from .models import AutomationRule
 

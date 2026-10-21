@@ -1,7 +1,11 @@
+from unittest import mock
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.messages import get_messages
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
+from .forms import AppSettingForm
 from .models import Lead, Message, AppSetting, AutomationRule, ScraperJob, RawLead
 from resumes.models import Payment
 
@@ -292,3 +296,185 @@ class GenerateMessageTests(TestCase):
         self.assertContains(response, 'id="message-subject"')
         self.assertContains(response, 'id="message-body"')
         self.assertContains(response, 'hx-swap-oob="true"')
+
+
+class AppSettingFormTests(TestCase):
+    def test_password_widget_render_value_is_false(self):
+        form = AppSettingForm()
+        self.assertFalse(form.fields['email_password'].widget.render_value)
+
+    def test_form_html_does_not_contain_stored_password(self):
+        setting = AppSetting.objects.create(
+            smtp_host='smtp.example.com',
+            smtp_port=587,
+            email_address='test@example.com',
+            email_password='supersecretpassword'
+        )
+        form = AppSettingForm(instance=setting)
+        html = form.as_p()
+        self.assertNotIn('supersecretpassword', html)
+
+    def test_form_clean_preserves_existing_password_when_blank(self):
+        setting = AppSetting.objects.create(
+            smtp_host='smtp.example.com',
+            smtp_port=587,
+            email_address='test@example.com',
+            email_password='supersecretpassword'
+        )
+        data = {
+            'smtp_host': 'smtp.updated.com',
+            'smtp_port': 465,
+            'email_address': 'updated@example.com',
+            'email_password': '',  # left blank on update
+            'daily_send_limit': 100,
+            'default_tone': 'casual',
+            'default_offer': 'New offer',
+            'auto_send_enabled': False,
+            'follow_ups_enabled': True,
+        }
+        form = AppSettingForm(data=data, instance=setting)
+        self.assertTrue(form.is_valid(), form.errors)
+        saved_setting = form.save()
+        self.assertEqual(saved_setting.email_password, 'supersecretpassword')
+        self.assertEqual(saved_setting.smtp_host, 'smtp.updated.com')
+
+    def test_form_clean_updates_password_when_provided(self):
+        setting = AppSetting.objects.create(
+            smtp_host='smtp.example.com',
+            smtp_port=587,
+            email_address='test@example.com',
+            email_password='supersecretpassword'
+        )
+        data = {
+            'smtp_host': 'smtp.updated.com',
+            'smtp_port': 465,
+            'email_address': 'updated@example.com',
+            'email_password': 'brandnewpassword',
+            'daily_send_limit': 100,
+            'default_tone': 'casual',
+            'default_offer': 'New offer',
+            'auto_send_enabled': False,
+            'follow_ups_enabled': True,
+        }
+        form = AppSettingForm(data=data, instance=setting)
+        self.assertTrue(form.is_valid(), form.errors)
+        saved_setting = form.save()
+        self.assertEqual(saved_setting.email_password, 'brandnewpassword')
+
+
+class SendMessageTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="smtpuser", password="password123")
+        self.client.force_login(self.user)
+        self.lead = Lead.objects.create(
+            user=self.user,
+            business_name="Target Corp",
+            email="contact@targetcorp.com",
+            status="new",
+            score=90
+        )
+
+    def test_send_message_unauthenticated(self):
+        self.client.logout()
+        url = reverse('leads:send-message', args=[self.lead.pk])
+        response = self.client.post(url, {'subject': 'Subj', 'body': 'Text'})
+        self.assertEqual(response.status_code, 302)
+
+    def test_send_message_invalid_form(self):
+        url = reverse('leads:send-message', args=[self.lead.pk])
+        response = self.client.post(url, {'subject': ''})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content.decode(), "Invalid form")
+
+    def test_send_message_locmem_default_backend_success(self):
+        url = reverse('leads:send-message', args=[self.lead.pk])
+        response = self.client.post(url, {
+            'subject': 'Partnership Opportunity',
+            'body': 'We would love to collaborate with you.'
+        })
+
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.headers.get('HX-Trigger'), 'leadsChanged')
+
+        # Verify email dispatched to mail.outbox
+        self.assertEqual(len(mail.outbox), 1)
+        sent_email = mail.outbox[0]
+        self.assertEqual(sent_email.subject, 'Partnership Opportunity')
+        self.assertEqual(sent_email.body, 'We would love to collaborate with you.')
+        self.assertEqual(sent_email.to, ['contact@targetcorp.com'])
+        self.assertEqual(sent_email.from_email, 'noreply@huntly.local')
+
+        # Verify Lead state changed
+        self.lead.refresh_from_db()
+        self.assertEqual(self.lead.status, 'contacted')
+        self.assertIsNotNone(self.lead.last_contacted)
+
+        # Verify Message record created
+        msg = Message.objects.get(lead=self.lead)
+        self.assertEqual(msg.subject, 'Partnership Opportunity')
+        self.assertEqual(msg.body, 'We would love to collaborate with you.')
+
+        # Verify success notification
+        storage = get_messages(response.wsgi_request)
+        message_texts = [m.message for m in storage]
+        self.assertIn("Email sent to Target Corp!", message_texts)
+
+    def test_send_message_smtp_configured_success(self):
+        setting = AppSetting.objects.create(
+            user=self.user,
+            smtp_host='smtp.mailprovider.com',
+            smtp_port=587,
+            email_address='outreach@huntly.com',
+            email_password='my_smtp_password'
+        )
+
+        url = reverse('leads:send-message', args=[self.lead.pk])
+        with mock.patch('leads.views.get_connection') as mock_get_conn:
+            mock_connection = mock.MagicMock()
+            mock_get_conn.return_value = mock_connection
+
+            with mock.patch('leads.views.EmailMessage.send', return_value=1) as mock_send:
+                response = self.client.post(url, {
+                    'subject': 'Custom SMTP Subject',
+                    'body': 'Body via custom SMTP.'
+                })
+
+                self.assertEqual(response.status_code, 204)
+                mock_get_conn.assert_called_once_with(
+                    backend='django.core.mail.backends.smtp.EmailBackend',
+                    host='smtp.mailprovider.com',
+                    port=587,
+                    username='outreach@huntly.com',
+                    password='my_smtp_password',
+                    use_tls=True
+                )
+                self.assertEqual(mock_send.call_count, 1)
+
+        self.lead.refresh_from_db()
+        self.assertEqual(self.lead.status, 'contacted')
+        self.assertIsNotNone(self.lead.last_contacted)
+        self.assertEqual(Message.objects.filter(lead=self.lead).count(), 1)
+
+    def test_send_message_failure_does_not_advance_status(self):
+        url = reverse('leads:send-message', args=[self.lead.pk])
+        with mock.patch('leads.views.EmailMessage.send', side_effect=Exception("SMTP connection timed out")):
+            response = self.client.post(url, {
+                'subject': 'Failing Email',
+                'body': 'This should fail.'
+            })
+
+            self.assertEqual(response.status_code, 500)
+            self.assertIn("Failed to send email: SMTP connection timed out", response.content.decode())
+
+        # Verify lead status was NOT advanced
+        self.lead.refresh_from_db()
+        self.assertEqual(self.lead.status, 'new')
+        self.assertIsNone(self.lead.last_contacted)
+
+        # Verify no Message object created
+        self.assertEqual(Message.objects.filter(lead=self.lead).count(), 0)
+
+        # Verify error message was added
+        storage = get_messages(response.wsgi_request)
+        message_texts = [m.message for m in storage]
+        self.assertIn("Failed to send email: SMTP connection timed out", message_texts)

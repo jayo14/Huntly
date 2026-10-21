@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.core.mail import EmailMessage, get_connection
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.http import HttpResponse
@@ -237,7 +239,45 @@ def send_message(request, pk):
     subject = request.POST.get('subject')
     body = request.POST.get('body')
 
-    if subject and body:
+    if not (subject and body):
+        return HttpResponse("Invalid form", status=400)
+
+    # Retrieve user's AppSetting (scoped to request.user or first setting)
+    setting = None
+    if hasattr(AppSetting, 'user') and request.user.is_authenticated:
+        setting = AppSetting.objects.filter(user=request.user).first()
+    if not setting:
+        setting = AppSetting.objects.first()
+
+    try:
+        if setting and setting.smtp_host and setting.email_address and setting.email_password:
+            connection = get_connection(
+                backend='django.core.mail.backends.smtp.EmailBackend',
+                host=setting.smtp_host,
+                port=setting.smtp_port,
+                username=setting.email_address,
+                password=setting.email_password,
+                use_tls=True,
+            )
+            email = EmailMessage(
+                subject=subject,
+                body=body,
+                from_email=setting.email_address,
+                to=[lead.email],
+                connection=connection,
+            )
+            email.send()
+        elif getattr(settings, 'EMAIL_BACKEND', None):
+            email = EmailMessage(
+                subject=subject,
+                body=body,
+                from_email='noreply@huntly.local',
+                to=[lead.email],
+            )
+            email.send()
+        else:
+            raise ValueError("No email configuration found.")
+
         Message.objects.create(
             lead=lead,
             subject=subject,
@@ -252,7 +292,9 @@ def send_message(request, pk):
         messages.success(request, f"Email sent to {lead.business_name}!")
         return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
 
-    return HttpResponse("Invalid form", status=400)
+    except Exception as e:
+        messages.error(request, f"Failed to send email: {e}")
+        return HttpResponse(f"Failed to send email: {e}", status=500)
 
 @login_required
 def automation_dashboard(request):
