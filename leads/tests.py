@@ -261,3 +261,34 @@ class ScraperJobTenantIsolationTests(TestCase):
         self.assertEqual(self.client.post(reverse('leads:raw-lead-approve', args=[self.raw_lead_b.pk])).status_code, 404)
         # Delete
         self.assertEqual(self.client.post(reverse('leads:raw-lead-delete', args=[self.raw_lead_b.pk])).status_code, 404)
+
+
+class GenerateMessageTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='xssuser', password='password123')
+        self.client.force_login(self.user)
+
+    def test_generate_message_xss_protection(self):
+        xss_payload = "</script><script>alert('xss')</script>"
+        lead = Lead.objects.create(
+            user=self.user,
+            business_name="Malicious Lead",
+            problem=xss_payload,
+            offer="<img src=x onerror=alert(1)>",
+            score=50,
+        )
+        response = self.client.post(reverse('leads:generate-message', args=[lead.pk]))
+        self.assertEqual(response.status_code, 200)
+
+        # Ensure no unescaped executable script tags exist
+        self.assertNotContains(response, "<script>")
+        self.assertNotContains(response, "</script>")
+
+        # Ensure payload is HTML entity escaped
+        self.assertContains(response, "&lt;/script&gt;&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;")
+        self.assertContains(response, "&lt;img src=x onerror=alert(1)&gt;")
+
+        # Ensure out-of-band swap attributes are present
+        self.assertContains(response, 'id="message-subject"')
+        self.assertContains(response, 'id="message-body"')
+        self.assertContains(response, 'hx-swap-oob="true"')

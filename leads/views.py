@@ -223,11 +223,11 @@ def generate_message(request, pk):
     subject = f"Inquiry regarding {lead.business_name}"
     body = f"Hello {lead.contact_name or 'Team'},\n\nI saw your website ({lead.website}) and noticed you might need help with {lead.problem}.\n\nOur offer: {lead.offer}\n\nLooking forward to hearing from you."
 
-    # Properly escape for JS
-    subject_js = json.dumps(subject)
-    body_js = json.dumps(body)
-
-    return HttpResponse(f'<script>document.getElementsByName("subject")[0].value = {subject_js}; document.getElementsByName("body")[0].value = {body_js};</script>')
+    context = {
+        'subject': subject,
+        'body': body,
+    }
+    return render(request, 'leads/partials/generated_message_fields.html', context)
 
 @login_required
 @require_POST
