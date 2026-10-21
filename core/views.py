@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
+from django.views.decorators.http import require_POST
 
 def landing_page(request):
     if request.user.is_authenticated:
@@ -44,6 +45,7 @@ def login_view(request):
         form = AuthenticationForm()
     return render(request, 'core/login.html', {'form': form})
 
+@require_POST
 def logout_view(request):
     logout(request)
     messages.info(request, "You have successfully logged out.")

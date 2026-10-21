@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.urls import reverse
 
 
@@ -48,9 +48,37 @@ class CoreViewTests(TestCase):
         self.assertRedirects(response, reverse('leads:dashboard'))
         self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
 
-    def test_logout_view_redirects_to_landing(self):
-        user = User.objects.create_user(username='logoutuser', password='ValidPassword123!')
-        self.client.force_login(user)
+
+class LogoutViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='password123')
+        self.client = Client()
+
+    def test_logout_get_returns_405_method_not_allowed(self):
+        self.client.login(username='testuser', password='password123')
         response = self.client.get(reverse('core:logout'))
+        self.assertEqual(response.status_code, 405)
+        self.assertTrue('_auth_user_id' in self.client.session)
+
+    def test_logout_valid_post_logs_out_and_redirects(self):
+        self.client.login(username='testuser', password='password123')
+        response = self.client.post(reverse('core:logout'))
         self.assertRedirects(response, reverse('core:landing'))
-        self.assertNotIn('_auth_user_id', self.client.session)
+        self.assertFalse('_auth_user_id' in self.client.session)
+
+    def test_logout_post_csrf_protection(self):
+        client = Client(enforce_csrf_checks=True)
+        login_res = client.get(reverse('core:login'))
+        csrf_token = login_res.cookies['csrftoken'].value
+
+        client.login(username='testuser', password='password123')
+
+        # POST without CSRF token should be rejected (403 Forbidden)
+        response = client.post(reverse('core:logout'))
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue('_auth_user_id' in client.session)
+
+        # Valid POST with CSRF token should succeed and redirect
+        response = client.post(reverse('core:logout'), {'csrfmiddlewaretoken': csrf_token})
+        self.assertRedirects(response, reverse('core:landing'))
+        self.assertFalse('_auth_user_id' in client.session)
