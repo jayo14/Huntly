@@ -25,14 +25,14 @@ class Lead(models.Model):
     website = models.URLField(blank=True)
     instagram = models.URLField(blank=True)
     problem = models.TextField(blank=True)
-    score = models.IntegerField(default=0)
+    score = models.IntegerField(default=0, db_index=True)
     tone = models.CharField(max_length=20, choices=TONE_CHOICES, default='professional')
     offer = models.TextField(blank=True)
     evidence_note = models.TextField(blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new', db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     last_contacted = models.DateTimeField(null=True, blank=True)
-    next_follow_up = models.DateField(null=True, blank=True)
+    next_follow_up = models.DateField(null=True, blank=True, db_index=True)
 
     def __str__(self):
         return self.business_name
@@ -44,8 +44,8 @@ class Message(models.Model):
     lead = models.ForeignKey(Lead, on_delete=models.CASCADE, related_name='messages')
     subject = models.CharField(max_length=255)
     body = models.TextField()
-    sent_at = models.DateTimeField(auto_now_add=True)
-    is_reply = models.BooleanField(default=False)
+    sent_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    is_reply = models.BooleanField(default=False, db_index=True)
 
     def __str__(self):
         return f"{'Reply' if self.is_reply else 'Sent'} to {self.lead.business_name} at {self.sent_at}"

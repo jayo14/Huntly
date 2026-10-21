@@ -39,6 +39,34 @@ class DashboardTests(TestCase):
         self.assertEqual(response.context['total_earnings'], 0)
         self.assertEqual(response.context['emails_sent_today'], 0)
 
+    def test_dashboard_funnel_counts_and_percentages(self):
+        Lead.objects.create(user=self.user, business_name="Biz 1", status='new', score=10)
+        Lead.objects.create(user=self.user, business_name="Biz 2", status='new', score=20)
+        Lead.objects.create(user=self.user, business_name="Biz 3", status='contacted', score=30)
+        Lead.objects.create(user=self.user, business_name="Biz 4", status='closed', score=40)
+
+        response = self.client.get(reverse('leads:dashboard'))
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(response.context['total_leads'], 4)
+        self.assertEqual(response.context['conversion_rate'], 25.0)
+
+        funnel_dict = {item['label']: (item['count'], item['percentage']) for item in response.context['funnel_stages']}
+        self.assertEqual(funnel_dict['New'], (2, 50.0))
+        self.assertEqual(funnel_dict['Contacted'], (1, 25.0))
+        self.assertEqual(funnel_dict['Replied'], (0, 0))
+        self.assertEqual(funnel_dict['Proposal Sent'], (0, 0))
+        self.assertEqual(funnel_dict['Closed'], (1, 25.0))
+
+    def test_dashboard_query_optimization(self):
+        for i in range(10):
+            status = Lead.STATUS_CHOICES[i % len(Lead.STATUS_CHOICES)][0]
+            Lead.objects.create(user=self.user, business_name=f"Biz {i}", status=status, score=i * 10)
+
+        with self.assertNumQueries(7):
+            response = self.client.get(reverse('leads:dashboard'))
+            self.assertEqual(response.status_code, 200)
+
 class LeadTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='leaduser', password='password123')
@@ -90,6 +118,18 @@ class PipelineTests(TestCase):
         response = self.client.get(reverse('leads:pipeline'))
         expected_url = f"{reverse(settings.LOGIN_URL)}?next={reverse('leads:pipeline')}"
         self.assertRedirects(response, expected_url)
+
+    def test_pipeline_query_optimization(self):
+        for i in range(15):
+            status = Lead.STATUS_CHOICES[i % len(Lead.STATUS_CHOICES)][0]
+            Lead.objects.create(user=self.user, business_name=f"Pipe Biz {i}", status=status, score=i)
+
+        with self.assertNumQueries(3):
+            response = self.client.get(reverse('leads:pipeline'))
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.context['stages']), len(Lead.STATUS_CHOICES))
+            total_leads_in_stages = sum(stage['leads'].count() for stage in response.context['stages'])
+            self.assertEqual(total_leads_in_stages, 16)  # 15 created here + 1 created in setUp
 
 
 class LeadTenantIsolationTests(TestCase):

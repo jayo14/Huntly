@@ -15,39 +15,42 @@ from django.db.models import Sum
 from .forms import LeadForm, AppSettingForm, AutomationRuleForm, ScraperJobForm, RawLeadForm
 import json
 
+class CountableList(list):
+    def count(self, *args):
+        if not args:
+            return len(self)
+        return super().count(*args)
+
 @login_required
 def dashboard(request):
 
     today = timezone.now().date()
     status_filter = request.GET.get('status', '')
 
-    leads_queryset = Lead.objects.filter(user=request.user)
-    if status_filter:
-        leads_queryset = leads_queryset.filter(status=status_filter)
+    user_leads = Lead.objects.filter(user=request.user)
 
-    total_leads = leads_queryset.count()
+    status_counts = dict(
+        user_leads.values('status')
+        .annotate(count=Count('id'))
+        .values_list('status', 'count')
+    )
+    total_leads = sum(status_counts.values())
+    closed_leads = status_counts.get('closed', 0)
+    conversion_rate = (closed_leads / total_leads * 100) if total_leads > 0 else 0
+
     emails_sent_today = Message.objects.filter(lead__user=request.user, sent_at__date=today, is_reply=False).count()
     replies_count = Message.objects.filter(lead__user=request.user, is_reply=True).count()
 
     total_earnings = Payment.objects.filter(user=request.user).aggregate(Sum("amount"))["amount__sum"] or 0
 
-    user_leads = Lead.objects.filter(user=request.user)
-    conversion_rate = 0
-    if user_leads.count() > 0:
-        closed_leads = user_leads.filter(status='closed').count()
-        conversion_rate = (closed_leads / user_leads.count()) * 100
-
-    # Funnel data (user)
-    funnel_stages = []
-    global_total = user_leads.count()
-    for status, label in Lead.STATUS_CHOICES:
-        count = user_leads.filter(status=status).count()
-        percentage = (count / global_total * 100) if global_total > 0 else 0
-        funnel_stages.append({
+    funnel_stages = [
+        {
             'label': label,
-            'count': count,
-            'percentage': round(percentage, 0)
-        })
+            'count': status_counts.get(status, 0),
+            'percentage': round((status_counts.get(status, 0) / total_leads * 100), 0) if total_leads > 0 else 0
+        }
+        for status, label in Lead.STATUS_CHOICES
+    ]
 
     # Needs Attention
     needs_attention = user_leads.filter(
@@ -172,13 +175,24 @@ def lead_list_partial(request):
 @login_required
 def pipeline(request):
 
-    stages = []
-    for status, label in Lead.STATUS_CHOICES:
-        stages.append({
+    if hasattr(Lead, 'user'):
+        all_leads = list(Lead.objects.filter(user=request.user).order_by('-score'))
+    else:
+        all_leads = list(Lead.objects.all().order_by('-score'))
+
+    leads_by_status = {status: CountableList() for status, _ in Lead.STATUS_CHOICES}
+    for lead in all_leads:
+        if lead.status in leads_by_status:
+            leads_by_status[lead.status].append(lead)
+
+    stages = [
+        {
             'status': status,
             'label': label,
-            'leads': Lead.objects.filter(user=request.user, status=status).order_by('-score')
-        })
+            'leads': leads_by_status.get(status, CountableList()),
+        }
+        for status, label in Lead.STATUS_CHOICES
+    ]
 
     context = {'stages': stages}
     return render(request, 'leads/pipeline.html', context)
