@@ -9,10 +9,12 @@ from .models import Resume, Payment
 
 @login_required
 def resume_list(request):
-    resumes = Resume.objects.all().order_by('-created_at')
+    resumes = Resume.objects.filter(user=request.user).order_by('-created_at')
     return render(request, 'resumes/resume_list.html', {'resumes': resumes})
 
-def save_resume_data(resume, data, files):
+def save_resume_data(resume, data, files, user=None):
+    if user is not None:
+        resume.user = user
     resume.full_name = data.get('full_name')
     resume.tagline = data.get('tagline', '')
     resume.location = data.get('location', '')
@@ -46,8 +48,8 @@ def resume_create(request):
             data = json.loads(request.POST.get('data', '{}'))
             files = request.FILES
 
-        resume = Resume()
-        resume = save_resume_data(resume, data, files)
+        resume = Resume(user=request.user)
+        resume = save_resume_data(resume, data, files, user=request.user)
 
         # Generate the docx
         docx_data = data.copy()
@@ -63,7 +65,7 @@ def resume_create(request):
 
 @login_required
 def resume_update(request, pk):
-    resume = get_object_or_404(Resume, pk=pk)
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
     if request.method == 'POST':
         if request.content_type == 'application/json':
             data = json.loads(request.body)
@@ -72,7 +74,7 @@ def resume_update(request, pk):
             data = json.loads(request.POST.get('data', '{}'))
             files = request.FILES
 
-        resume = save_resume_data(resume, data, files)
+        resume = save_resume_data(resume, data, files, user=request.user)
 
         # Generate the docx
         docx_data = data.copy()
@@ -114,12 +116,12 @@ def resume_update(request, pk):
 
 @login_required
 def resume_preview_partial(request, pk):
-    resume = get_object_or_404(Resume, pk=pk)
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
     return render(request, 'resumes/partials/resume_preview.html', {'resume': resume})
 
 @login_required
 def resume_download(request, pk):
-    resume = get_object_or_404(Resume, pk=pk)
+    resume = get_object_or_404(Resume, pk=pk, user=request.user)
     data = {
         'full_name': resume.full_name,
         'tagline': resume.tagline,
@@ -148,13 +150,14 @@ def resume_download(request, pk):
 
 @login_required
 def payment_list(request):
-    payments = Payment.objects.all().order_by('-date')
+    payments = Payment.objects.filter(user=request.user).order_by('-date')
     return render(request, 'resumes/payment_list.html', {'payments': payments})
 
 @login_required
 def payment_create(request):
     if request.method == 'POST':
         Payment.objects.create(
+            user=request.user,
             customer_name=request.POST.get('customer_name'),
             amount=request.POST.get('amount'),
             method=request.POST.get('method'),

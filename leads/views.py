@@ -19,26 +19,27 @@ def dashboard(request):
     today = timezone.now().date()
     status_filter = request.GET.get('status', '')
 
-    leads_queryset = Lead.objects.all()
+    leads_queryset = Lead.objects.filter(user=request.user)
     if status_filter:
         leads_queryset = leads_queryset.filter(status=status_filter)
 
     total_leads = leads_queryset.count()
-    emails_sent_today = Message.objects.filter(sent_at__date=today, is_reply=False).count()
-    replies_count = Message.objects.filter(is_reply=True).count()
+    emails_sent_today = Message.objects.filter(lead__user=request.user, sent_at__date=today, is_reply=False).count()
+    replies_count = Message.objects.filter(lead__user=request.user, is_reply=True).count()
 
-    total_earnings = Payment.objects.aggregate(Sum("amount"))["amount__sum"] or 0
+    total_earnings = Payment.objects.filter(user=request.user).aggregate(Sum("amount"))["amount__sum"] or 0
 
+    user_leads = Lead.objects.filter(user=request.user)
     conversion_rate = 0
-    if Lead.objects.count() > 0:
-        closed_leads = Lead.objects.filter(status='closed').count()
-        conversion_rate = (closed_leads / Lead.objects.count()) * 100
+    if user_leads.count() > 0:
+        closed_leads = user_leads.filter(status='closed').count()
+        conversion_rate = (closed_leads / user_leads.count()) * 100
 
-    # Funnel data (global)
+    # Funnel data (user)
     funnel_stages = []
-    global_total = Lead.objects.count()
+    global_total = user_leads.count()
     for status, label in Lead.STATUS_CHOICES:
-        count = Lead.objects.filter(status=status).count()
+        count = user_leads.filter(status=status).count()
         percentage = (count / global_total * 100) if global_total > 0 else 0
         funnel_stages.append({
             'label': label,
@@ -47,7 +48,7 @@ def dashboard(request):
         })
 
     # Needs Attention
-    needs_attention = Lead.objects.filter(
+    needs_attention = user_leads.filter(
         Q(status='new') | Q(next_follow_up=today)
     ).order_by('-score')[:5]
 
@@ -75,7 +76,7 @@ def lead_list(request):
     status = request.GET.get('status', '')
     needs_action = request.GET.get('needs_action', '')
 
-    leads = Lead.objects.all()
+    leads = Lead.objects.filter(user=request.user)
 
     if search:
         leads = leads.filter(
@@ -110,7 +111,9 @@ def lead_create(request):
     if request.method == 'POST':
         form = LeadForm(request.POST)
         if form.is_valid():
-            lead = form.save()
+            lead = form.save(commit=False)
+            lead.user = request.user
+            lead.save()
             if request.headers.get('HX-Request'):
                 return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
             return redirect('leads:lead-list')
@@ -122,7 +125,7 @@ def lead_create(request):
 @login_required
 def lead_update(request, pk):
 
-    lead = get_object_or_404(Lead, pk=pk)
+    lead = get_object_or_404(Lead, pk=pk, user=request.user)
     if request.method == 'POST':
         form = LeadForm(request.POST, instance=lead)
         if form.is_valid():
@@ -139,7 +142,7 @@ def lead_update(request, pk):
 @require_POST
 def lead_delete(request, pk):
 
-    lead = get_object_or_404(Lead, pk=pk)
+    lead = get_object_or_404(Lead, pk=pk, user=request.user)
     lead.delete()
     if request.headers.get('HX-Request'):
         return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
@@ -149,7 +152,7 @@ def lead_delete(request, pk):
 @require_POST
 def update_status(request, pk):
 
-    lead = get_object_or_404(Lead, pk=pk)
+    lead = get_object_or_404(Lead, pk=pk, user=request.user)
     status = request.POST.get('status')
     if status in dict(Lead.STATUS_CHOICES):
         lead.status = status
@@ -172,7 +175,7 @@ def pipeline(request):
         stages.append({
             'status': status,
             'label': label,
-            'leads': Lead.objects.filter(status=status).order_by('-score')
+            'leads': Lead.objects.filter(user=request.user, status=status).order_by('-score')
         })
 
     context = {'stages': stages}
@@ -181,14 +184,16 @@ def pipeline(request):
 @login_required
 def settings_view(request):
 
-    setting = AppSetting.objects.first()
+    setting = AppSetting.objects.filter(user=request.user).first()
     if not setting:
-        setting = AppSetting.objects.create()
+        setting = AppSetting.objects.create(user=request.user)
 
     if request.method == 'POST':
         form = AppSettingForm(request.POST, instance=setting)
         if form.is_valid():
-            form.save()
+            s = form.save(commit=False)
+            s.user = request.user
+            s.save()
             messages.success(request, "Settings updated successfully!")
             if request.headers.get('HX-Request'):
                 return HttpResponse(status=204, headers={'HX-Trigger': 'settingsUpdated'})
@@ -201,7 +206,7 @@ def settings_view(request):
 @login_required
 def lead_detail(request, pk):
 
-    lead = get_object_or_404(Lead, pk=pk)
+    lead = get_object_or_404(Lead, pk=pk, user=request.user)
     messages_list = lead.messages.all().order_by('-sent_at')
 
     context = {
@@ -214,7 +219,7 @@ def lead_detail(request, pk):
 @require_POST
 def generate_message(request, pk):
 
-    lead = get_object_or_404(Lead, pk=pk)
+    lead = get_object_or_404(Lead, pk=pk, user=request.user)
     subject = f"Inquiry regarding {lead.business_name}"
     body = f"Hello {lead.contact_name or 'Team'},\n\nI saw your website ({lead.website}) and noticed you might need help with {lead.problem}.\n\nOur offer: {lead.offer}\n\nLooking forward to hearing from you."
 
@@ -228,7 +233,7 @@ def generate_message(request, pk):
 @require_POST
 def send_message(request, pk):
 
-    lead = get_object_or_404(Lead, pk=pk)
+    lead = get_object_or_404(Lead, pk=pk, user=request.user)
     subject = request.POST.get('subject')
     body = request.POST.get('body')
 
@@ -251,10 +256,10 @@ def send_message(request, pk):
 
 @login_required
 def automation_dashboard(request):
-    rules = AutomationRule.objects.all()
-    settings = AppSetting.objects.first()
+    rules = AutomationRule.objects.filter(user=request.user)
+    settings = AppSetting.objects.filter(user=request.user).first()
     if not settings:
-        settings = AppSetting.objects.create()
+        settings = AppSetting.objects.create(user=request.user)
     
     context = {
         'rules': rules,
@@ -267,7 +272,9 @@ def rule_create(request):
     if request.method == 'POST':
         form = AutomationRuleForm(request.POST)
         if form.is_valid():
-            form.save()
+            rule = form.save(commit=False)
+            rule.user = request.user
+            rule.save()
             if request.headers.get('HX-Request'):
                 return HttpResponse(status=204, headers={'HX-Trigger': 'rulesChanged'})
             return redirect('leads:automation-dashboard')
@@ -277,7 +284,7 @@ def rule_create(request):
 
 @login_required
 def rule_update(request, pk):
-    rule = get_object_or_404(AutomationRule, pk=pk)
+    rule = get_object_or_404(AutomationRule, pk=pk, user=request.user)
     if request.method == 'POST':
         form = AutomationRuleForm(request.POST, instance=rule)
         if form.is_valid():
@@ -292,7 +299,7 @@ def rule_update(request, pk):
 @login_required
 @require_POST
 def rule_delete(request, pk):
-    rule = get_object_or_404(AutomationRule, pk=pk)
+    rule = get_object_or_404(AutomationRule, pk=pk, user=request.user)
     rule.delete()
     if request.headers.get('HX-Request'):
         return HttpResponse(status=204, headers={'HX-Trigger': 'rulesChanged'})
@@ -301,7 +308,7 @@ def rule_delete(request, pk):
 @login_required
 @require_POST
 def toggle_rule(request, pk):
-    rule = get_object_or_404(AutomationRule, pk=pk)
+    rule = get_object_or_404(AutomationRule, pk=pk, user=request.user)
     rule.is_active = not rule.is_active
     rule.save()
     if request.headers.get('HX-Request'):
@@ -310,15 +317,15 @@ def toggle_rule(request, pk):
 
 @login_required
 def rule_list_partial(request):
-    rules = AutomationRule.objects.all()
+    rules = AutomationRule.objects.filter(user=request.user)
     return render(request, 'leads/partials/rule_list.html', {'rules': rules})
 
 @login_required
 @require_POST
 def toggle_setting(request):
-    setting = AppSetting.objects.first()
+    setting = AppSetting.objects.filter(user=request.user).first()
     if not setting:
-        setting = AppSetting.objects.create()
+        setting = AppSetting.objects.create(user=request.user)
     
     field = request.POST.get('field')
     if field in ['auto_send_enabled', 'follow_ups_enabled']:
@@ -330,7 +337,7 @@ def toggle_setting(request):
 
 @login_required
 def scraper_dashboard(request):
-    jobs = ScraperJob.objects.all().order_by('-created_at')
+    jobs = ScraperJob.objects.filter(user=request.user).order_by('-created_at')
     
     context = {
         'jobs': jobs,
@@ -339,7 +346,7 @@ def scraper_dashboard(request):
 
 @login_required
 def scraper_session_detail(request, pk):
-    job = get_object_or_404(ScraperJob, pk=pk)
+    job = get_object_or_404(ScraperJob, pk=pk, user=request.user)
     raw_leads = job.raw_leads.filter(is_approved=False).order_by('-created_at')
     
     context = {
@@ -350,7 +357,7 @@ def scraper_session_detail(request, pk):
 
 @login_required
 def scraper_job_update_name(request, pk):
-    job = get_object_or_404(ScraperJob, pk=pk)
+    job = get_object_or_404(ScraperJob, pk=pk, user=request.user)
     if request.method == 'POST':
         name = request.POST.get('name')
         if name:
@@ -373,7 +380,9 @@ def scraper_create(request):
     if request.method == 'POST':
         form = ScraperJobForm(request.POST)
         if form.is_valid():
-            job = form.save()
+            job = form.save(commit=False)
+            job.user = request.user
+            job.save()
             start_scraping_thread(job.id)
             
             if request.headers.get('HX-Request'):
@@ -385,13 +394,13 @@ def scraper_create(request):
 
 @login_required
 def scraper_monitor_partial(request):
-    jobs = ScraperJob.objects.exclude(status='completed').exclude(status='failed')
+    jobs = ScraperJob.objects.filter(user=request.user).exclude(status='completed').exclude(status='failed')
     return render(request, 'leads/partials/scraper_monitor.html', {'jobs': jobs})
 
 @login_required
 @require_POST
 def scraper_terminate(request, pk):
-    job = get_object_or_404(ScraperJob, pk=pk)
+    job = get_object_or_404(ScraperJob, pk=pk, user=request.user)
     job.stop_requested = True
     job.status = 'failed'
     job.save()
@@ -402,7 +411,7 @@ def scraper_terminate(request, pk):
 @login_required
 def raw_lead_list_partial(request):
     job_id = request.GET.get('job_id')
-    raw_leads = RawLead.objects.filter(is_approved=False).order_by('-created_at')
+    raw_leads = RawLead.objects.filter(job__user=request.user, is_approved=False).order_by('-created_at')
     
     if job_id:
         raw_leads = raw_leads.filter(job_id=job_id)
@@ -411,7 +420,7 @@ def raw_lead_list_partial(request):
 
 @login_required
 def raw_lead_review(request, pk):
-    raw_lead = get_object_or_404(RawLead, pk=pk)
+    raw_lead = get_object_or_404(RawLead, pk=pk, job__user=request.user)
     if request.method == 'POST':
         form = RawLeadForm(request.POST, instance=raw_lead)
         if form.is_valid():
@@ -426,10 +435,11 @@ def raw_lead_review(request, pk):
 @login_required
 @require_POST
 def raw_lead_approve(request, pk):
-    raw_lead = get_object_or_404(RawLead, pk=pk)
+    raw_lead = get_object_or_404(RawLead, pk=pk, job__user=request.user)
     
     # Move to Lead model
     Lead.objects.create(
+        user=request.user,
         business_name=raw_lead.business_name,
         contact_name=raw_lead.contact_name,
         email=raw_lead.email,
@@ -448,7 +458,7 @@ def raw_lead_approve(request, pk):
 @login_required
 @require_POST
 def raw_lead_delete(request, pk):
-    raw_lead = get_object_or_404(RawLead, pk=pk)
+    raw_lead = get_object_or_404(RawLead, pk=pk, job__user=request.user)
     raw_lead.delete()
     if request.headers.get('HX-Request'):
         return HttpResponse(status=204, headers={'HX-Trigger': 'rawLeadsChanged'})
@@ -456,7 +466,7 @@ def raw_lead_delete(request, pk):
 
 @login_required
 def scraper_logs_partial(request, pk):
-    job = get_object_or_404(ScraperJob, pk=pk)
+    job = get_object_or_404(ScraperJob, pk=pk, user=request.user)
     return render(request, 'leads/partials/scraper_logs.html', {'job': job})
 
 

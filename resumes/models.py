@@ -1,6 +1,8 @@
+from django.conf import settings
 from django.db import models
 
 class Resume(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='resumes', null=True, blank=True)
     full_name = models.CharField(max_length=255)
     tagline = models.CharField(max_length=255, blank=True)
     location = models.CharField(max_length=255, blank=True)
@@ -35,6 +37,7 @@ class Resume(models.Model):
         return self.full_name
 
 class Payment(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='payments', null=True, blank=True)
     PAYMENT_METHOD_CHOICES = [
         ('transfer', 'Transfer'),
         ('cash', 'Cash'),

@@ -1,6 +1,8 @@
+from django.conf import settings
 from django.db import models
 
 class Lead(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='leads', null=True, blank=True)
     TONE_CHOICES = [
         ('professional', 'Professional'),
         ('casual', 'Casual'),
@@ -49,6 +51,7 @@ class Message(models.Model):
         return f"{'Reply' if self.is_reply else 'Sent'} to {self.lead.business_name} at {self.sent_at}"
 
 class AppSetting(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='app_settings', null=True, blank=True)
     smtp_host = models.CharField(max_length=255, default='smtp.gmail.com')
     smtp_port = models.IntegerField(default=587)
     email_address = models.EmailField(blank=True)
@@ -67,6 +70,7 @@ class AppSetting(models.Model):
         verbose_name_plural = "Application Settings"
 
 class AutomationRule(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='automation_rules', null=True, blank=True)
     TRIGGER_CHOICES = [
         ('on_new', 'When Lead is Added'),
         ('on_status_change', 'When Status Changes'),
@@ -85,6 +89,7 @@ class AutomationRule(models.Model):
         return self.name
 
 class ScraperJob(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='scraper_jobs', null=True, blank=True)
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('running', 'Running'),
