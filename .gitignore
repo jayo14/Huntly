@@ -5,6 +5,8 @@
 __pycache__/
 local_settings.py
 db.sqlite3
+*.sqlite3
+*.db3
 media/
 staticfiles/
 
@@ -15,6 +17,9 @@ yarn-error.log
 
 # Environment
 .env
+.env.*
+!.env.example
 
 # Other
 .DS_Store
+
