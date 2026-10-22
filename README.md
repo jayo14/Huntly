@@ -1,14 +1,19 @@
-# Huntly
+# Huntly — The Outbound Career Agent
 
-A Django-based lead management CRM for tracking prospects, sending outreach emails, and managing your sales pipeline.
+> Double your interview callbacks with role-tailored resumes in 30 seconds.
 
-## Features
+Huntly is an AI-powered outbound career platform for modern job seekers. Paste any target job description to instantly generate an ATS-optimized Word DOCX resume, a customized 3-paragraph cover letter, and a direct 4-sentence email pitch to the hiring manager.
 
-- Dashboard with funnel stats and conversion tracking
-- Lead list with search and status filtering
-- Kanban-style pipeline view
-- Outreach message generation and sending
-- App settings (SMTP, tone, offers)
+---
+
+## Key Features
+
+- **Master Career Profile**: Enter your career achievements, skills, and metrics once.
+- **Instant ATS Keyword Alignment**: Extracts target skills and reorders experience bullets to maximize keyword density for ATS screens (Workday, Taleo, Greenhouse).
+- **Targeted Cover Letters**: Generated in seconds with real metrics instead of generic fluff.
+- **Direct Hiring Manager Outreach**: Draft and send concise cold pitches to skip the 500-applicant queue.
+- **Clean ATS DOCX Export**: Outputs formatted single-column Microsoft Word documents.
+- **Job Hunt Kanban Pipeline**: Visual board across **Saved &rarr; Applied &rarr; Interviewing &rarr; Offer &rarr; Rejected**.
 
 ---
 
@@ -16,67 +21,105 @@ A Django-based lead management CRM for tracking prospects, sending outreach emai
 
 ### Prerequisites
 
-- Python 3.10+
-- A PostgreSQL database (or use SQLite by omitting `DATABASE_URL` in dev)
+- Python 3.10+ (tested through 3.14)
+- Node.js 18+ and npm (required for ATS DOCX resume compilation)
+- PostgreSQL (or SQLite for local zero-config testing)
 
 ### Setup
 
 ```bash
-# 1. Clone the repository
-git clone <your-repo-url>
+# 1. Clone repository
+git clone https://github.com/jayo14/Huntly.git
 cd Huntly
 
-# 2. Create and activate a virtual environment
-python -m venv .venv
+# 2. Install Node dependencies (for DOCX generation)
+npm install
+
+# 3. Create and activate Python virtual environment
+python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# 3. Install dependencies
+# 4. Install Python dependencies
 pip install -r requirements.txt
 
-# 4. Copy the example env file and fill in your values
+# 5. Environment configuration
 cp .env.example .env
 
-# 5. Run migrations
-python manage.py migrate
+# 6. Apply database migrations
+python3 manage.py migrate
 
-# 6. Start the development server
-python manage.py runserver
+# 7. Start local server
+python3 manage.py runserver
 ```
 
-By default the dev settings (`huntly.settings.dev`) use PostgreSQL via `DATABASE_URL`.  
-You can point `DATABASE_URL` at a local Postgres instance or a hosted one (see `.env.example`).
+Open [http://localhost:8000](http://localhost:8000) in your browser.
+
+---
+
+## Production Deployment
+
+### Option 1: Render (Recommended Blueprint)
+
+Huntly includes a [`render.yaml`](render.yaml) Blueprint configured with a web service and a managed PostgreSQL database.
+
+1. Connect your GitHub repository to [Render](https://render.com).
+2. Create a new **Blueprint Instance** pointing at `render.yaml`.
+3. Render automatically provisions:
+   - A Python web service running `./build.sh` and `gunicorn huntly.wsgi:application`.
+   - A managed PostgreSQL instance connected via `DATABASE_URL`.
+   - Automatic static file compression via WhiteNoise.
+4. Add your `GEMINI_API_KEY` (or `OPENAI_API_KEY`) under **Environment Variables**.
+
+### Option 2: Docker / Container Platforms (Fly.io, Railway, AWS, DigitalOcean)
+
+A multi-stage, production-ready [`Dockerfile`](Dockerfile) is provided:
+
+```bash
+# Build Docker image
+docker build -t huntly:latest .
+
+# Run with Docker Compose (web + postgres)
+docker compose up -d
+```
+
+### Option 3: Standard PaaS (Procfile & build.sh)
+
+For platforms using buildpacks (Heroku, Railway, Dokku):
+- [`Procfile`](Procfile): Runs `gunicorn huntly.wsgi:application --bind 0.0.0.0:$PORT`
+- [`build.sh`](build.sh): Handles Node.js dependencies, Python packages, `collectstatic`, and database migrations.
 
 ---
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and set the following variables:
-
-| Variable | Required | Description |
-|---|---|---|
-| `SECRET_KEY` | Yes | Django secret key (generate with `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`) |
-| `DEBUG` | No | `True` for local dev, `False` in production (default: `False`) |
-| `ALLOWED_HOSTS` | Yes (prod) | Comma-separated list of allowed hostnames, e.g. `yourdomain.com,.vercel.app` |
-| `DATABASE_URL` | Yes | PostgreSQL connection string — `postgres://USER:PASSWORD@HOST:PORT/DBNAME` |
-| `DJANGO_SETTINGS_MODULE` | Yes (prod) | `huntly.settings.prod` for production, `huntly.settings.dev` for local |
+| Variable | Required in Prod | Description |
+|---|:---:|---|
+| `SECRET_KEY` | **Yes** | 50+ character random string for cryptographic signing. |
+| `ALLOWED_HOSTS` | **Yes** | Comma-separated domains (e.g. `huntly.app,.onrender.com`). |
+| `CSRF_TRUSTED_ORIGINS` | **Yes** | Trusted HTTPS origins (e.g. `https://huntly.app`). |
+| `DATABASE_URL` | **Yes** | PostgreSQL connection string (`postgres://user:pass@host:5432/db`). |
+| `DJANGO_SETTINGS_MODULE` | **Yes** | Set to `huntly.settings.prod`. |
+| `SECURE_SSL_REDIRECT` | Optional | Defaults to `True` in production. |
+| `GEMINI_API_KEY` | Optional | Google Gemini API key for live LLM tailoring (uses deterministic fallback if omitted). |
+| `OPENAI_API_KEY` | Optional | Alternative OpenAI API key. |
 
 ---
 
-## Deployment on Vercel
+## Health Check & Verification
 
-1. Push the repository to GitHub and import it in [Vercel](https://vercel.com).
-2. In your Vercel project **Settings → Environment Variables**, add:
-   - `SECRET_KEY` — a strong random secret key
-   - `ALLOWED_HOSTS` — your Vercel domain, e.g. `huntly-ai-alpha.vercel.app`
-   - `DATABASE_URL` — a hosted PostgreSQL connection string (e.g. [Neon](https://neon.tech), [Supabase](https://supabase.com), [Railway](https://railway.app))
-   - `DJANGO_SETTINGS_MODULE` — `huntly.settings.prod`
-3. Run database migrations from your local machine (or a CI step) targeting the production database:
-   ```bash
-   DATABASE_URL=<your-prod-db-url> DJANGO_SETTINGS_MODULE=huntly.settings.prod python manage.py migrate
-   ```
-4. Deploy — Vercel will use `vercel.json` to route requests through the Django WSGI app.
+Huntly provides an automated health endpoint for uptime monitors:
 
-> **Why the "Connection refused" error?**  
-> The production settings require `DATABASE_URL` to be set to a reachable PostgreSQL server.  
-> Without it (or with the wrong settings module), Django falls back to trying `localhost:5432`,  
-> which does not exist in Vercel's serverless environment.
+```bash
+curl http://localhost:8000/health/
+# {"status": "ok", "app": "huntly"}
+```
+
+Run tests and production security check before pushing:
+
+```bash
+# Run test suite
+python3 manage.py test core leads resumes
+
+# Run Django production security verification
+SECRET_KEY="<your-secret-key>" ALLOWED_HOSTS="localhost" python3 manage.py check --deploy --settings=huntly.settings.prod
+```

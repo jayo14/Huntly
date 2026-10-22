@@ -1,8 +1,13 @@
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
 from django.views.decorators.http import require_POST
+
+
+def health_check(request):
+    return JsonResponse({'status': 'ok', 'app': 'huntly'})
 
 def landing_page(request):
     if request.user.is_authenticated:

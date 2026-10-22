@@ -4,6 +4,11 @@ from django.urls import reverse
 
 
 class CoreViewTests(TestCase):
+    def test_health_check_endpoint(self):
+        response = self.client.get(reverse('core:health-check'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok', 'app': 'huntly'})
+
     def test_landing_page_anonymous_user(self):
         response = self.client.get(reverse('core:landing'))
         self.assertEqual(response.status_code, 200)
