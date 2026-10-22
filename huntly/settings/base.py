@@ -109,6 +109,28 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Storage
+# Default file storage: Neon Object Storage (S3-compatible, branches with the
+# DB branch) whenever `neon env pull` has supplied AWS_* credentials. Falls
+# back to local disk so `manage.py` still runs without them.
+# Static files always stay on disk (served by WhiteNoise).
+S3_BUCKET = env("S3_BUCKET", default="assets")
+USE_NEON_OBJECT_STORAGE = bool(
+    env("AWS_ENDPOINT_URL_S3", default=None)
+    and env("AWS_ACCESS_KEY_ID", default=None)
+    and env("AWS_SECRET_ACCESS_KEY", default=None)
+)
+STORAGES = {
+    "default": {
+        "BACKEND": "huntly.storage.NeonS3Storage"
+        if USE_NEON_OBJECT_STORAGE
+        else "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.0/ref/settings/#default-auto-field
 

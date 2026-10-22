@@ -36,11 +36,11 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# WhiteNoise production static file compression and caching
+# WhiteNoise production static file compression and caching.
+# The default (media) storage is inherited from base.py: Neon Object Storage
+# when AWS_* env vars are present, local disk otherwise.
 STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
+    **STORAGES,
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },

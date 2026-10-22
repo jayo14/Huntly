@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.conf import settings
 from .models import Resume
 from .docx_generator import generate_docx, DocxGenerationError
+from huntly.storage import local_file
 
 
 @login_required
@@ -56,13 +57,14 @@ def resume_create(request):
         resume = Resume(user=request.user)
         resume = save_resume_data(resume, data, files, user=request.user)
 
-        # Generate the docx
+        # Generate the docx. The photo may live in remote object storage, so
+        # stage it on local disk for the Node generator that reads a real path.
         docx_data = data.copy()
-        if resume.passport_photo:
-            docx_data['passport_photo_path'] = resume.passport_photo.path
-
         try:
-            generate_docx(docx_data)
+            with local_file(resume.passport_photo) as photo_path:
+                if photo_path:
+                    docx_data['passport_photo_path'] = photo_path
+                generate_docx(docx_data)
         except DocxGenerationError as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
@@ -90,13 +92,13 @@ def resume_update(request, pk):
 
         resume = save_resume_data(resume, data, files, user=request.user)
 
-        # Generate the docx to verify
+        # Generate the docx to verify (photo staged locally if remote)
         docx_data = data.copy()
-        if resume.passport_photo:
-            docx_data['passport_photo_path'] = resume.passport_photo.path
-
         try:
-            generate_docx(docx_data)
+            with local_file(resume.passport_photo) as photo_path:
+                if photo_path:
+                    docx_data['passport_photo_path'] = photo_path
+                generate_docx(docx_data)
         except DocxGenerationError as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
@@ -172,11 +174,11 @@ def resume_download(request, pk):
             # Append tailored summary / focus
             data['summary'] = f"{resume.summary}\n\n[Target Role: {job.role_title} at {job.company_name}]\n{job.tailored_resume_text}"
 
-    if resume.passport_photo:
-        data['passport_photo_path'] = resume.passport_photo.path
-
     try:
-        docx_buffer = generate_docx(data)
+        with local_file(resume.passport_photo) as photo_path:
+            if photo_path:
+                data['passport_photo_path'] = photo_path
+            docx_buffer = generate_docx(data)
     except DocxGenerationError:
         messages.error(request, "Failed to generate resume document.")
         return redirect('resumes:resume-list')

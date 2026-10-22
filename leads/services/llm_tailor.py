@@ -21,22 +21,8 @@ def extract_keywords(job_description):
     return found
 
 
-def tailor_application(resume, company_name, role_title, job_description):
-    """
-    Generate role-tailored resume bullets, cover letter, and recruiter pitch.
-    Uses LLM (Gemini or OpenAI) if an API key is available, else uses deterministic matching engine.
-    """
-    matched_keywords = extract_keywords(job_description)
-
-    # Check for live API keys
-    gemini_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
-    openai_key = os.environ.get('OPENAI_API_KEY')
-
-    if gemini_key:
-        try:
-            from google import genai
-            client = genai.Client(api_key=gemini_key)
-            prompt = f"""
+def _build_prompt(resume, company_name, role_title, job_description):
+    return f"""
 You are an expert ATS resume strategist and executive career coach.
 Tailor this candidate's application for the role of {role_title} at {company_name}.
 
@@ -56,24 +42,83 @@ Respond with strict JSON with the following keys:
 3. "cover_letter": a 3-paragraph compelling cover letter.
 4. "recruiter_pitch": a 4-sentence cold outreach email for the hiring manager.
 """
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt,
-            )
-            text = response.text.strip()
-            if text.startswith('```json'):
-                text = text[7:]
-            if text.endswith('```'):
-                text = text[:-3]
-            parsed = json.loads(text.strip())
-            return {
-                'matched_keywords': parsed.get('matched_keywords', matched_keywords),
-                'tailored_bullets': parsed.get('tailored_bullets', []),
-                'cover_letter': parsed.get('cover_letter', ''),
-                'recruiter_pitch': parsed.get('recruiter_pitch', ''),
-            }
-        except Exception:
-            pass
+
+
+def _parse_json_block(text):
+    """Pull a JSON object out of a model reply, tolerating ```json fences."""
+    text = text.strip()
+    if text.startswith('```json'):
+        text = text[7:]
+    if text.startswith('```'):
+        text = text[3:]
+    if text.endswith('```'):
+        text = text[:-3]
+    try:
+        return json.loads(text.strip())
+    except (ValueError, TypeError):
+        return None
+
+
+def _result_from_parsed(parsed, matched_keywords):
+    return {
+        'matched_keywords': parsed.get('matched_keywords', matched_keywords),
+        'tailored_bullets': parsed.get('tailored_bullets', []),
+        'cover_letter': parsed.get('cover_letter', ''),
+        'recruiter_pitch': parsed.get('recruiter_pitch', ''),
+    }
+
+
+def _tailor_with_gateway(prompt, matched_keywords):
+    """Neon AI Gateway first. Returns None on any failure (incl. Free plan)."""
+    try:
+        from .ai_gateway import AIGatewayUnavailable, generate_text
+    except ImportError:
+        return None
+    try:
+        parsed = _parse_json_block(generate_text(prompt))
+    except AIGatewayUnavailable:
+        return None
+    except Exception:
+        return None
+    if not parsed:
+        return None
+    return _result_from_parsed(parsed, matched_keywords)
+
+
+def _tailor_with_gemini(prompt, matched_keywords):
+    """Gemini via google-genai. Returns None when unkeyed or on any failure."""
+    gemini_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY')
+    if not gemini_key:
+        return None
+    try:
+        from google import genai
+        client = genai.Client(api_key=gemini_key)
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+        )
+        parsed = _parse_json_block(response.text or '')
+    except Exception:
+        return None
+    if not parsed:
+        return None
+    return _result_from_parsed(parsed, matched_keywords)
+
+
+def tailor_application(resume, company_name, role_title, job_description):
+    """
+    Generate role-tailored resume bullets, cover letter, and recruiter pitch.
+
+    Provider order: Neon AI Gateway -> Gemini -> deterministic matcher. Each
+    provider returns None on failure so the next one gets a turn.
+    """
+    matched_keywords = extract_keywords(job_description)
+    prompt = _build_prompt(resume, company_name, role_title, job_description)
+
+    for provider in (_tailor_with_gateway, _tailor_with_gemini):
+        result = provider(prompt, matched_keywords)
+        if result is not None:
+            return result
 
     # Deterministic high-quality fallback generator
     candidate_name = getattr(resume, 'full_name', 'Applicant') or 'Applicant'

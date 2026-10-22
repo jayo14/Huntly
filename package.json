@@ -4,6 +4,8 @@
   "description": "A Django-based lead management CRM for tracking prospects, sending outreach emails, and managing your sales pipeline.",
   "main": "index.js",
   "scripts": {
+    "build": "bash ./build.sh",
+    "migrate": "python3 manage.py migrate --noinput",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,6 +21,8 @@
   },
   "homepage": "https://github.com/jayo14/Huntly#readme",
   "dependencies": {
+    "@neon/config": "^1.9.3",
+    "@neon/env": "^1.6.4",
     "docx": "^9.6.1"
   }
 }
