@@ -6,13 +6,15 @@ from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
-from .models import Resume, Payment
+from .models import Resume
 from .docx_generator import generate_docx, DocxGenerationError
+
 
 @login_required
 def resume_list(request):
     resumes = Resume.objects.filter(user=request.user).order_by('-created_at')
     return render(request, 'resumes/resume_list.html', {'resumes': resumes})
+
 
 def save_resume_data(resume, data, files, user=None):
     if user is not None:
@@ -40,6 +42,7 @@ def save_resume_data(resume, data, files, user=None):
     resume.save()
     return resume
 
+
 @login_required
 def resume_create(request):
     if request.method == 'POST':
@@ -59,22 +62,24 @@ def resume_create(request):
             docx_data['passport_photo_path'] = resume.passport_photo.path
 
         try:
-            docx_buffer = generate_docx(docx_data)
-        except DocxGenerationError:
-            messages.error(request, "Failed to generate resume document.")
-            if request.content_type == 'application/json':
-                return JsonResponse({'error': 'Failed to generate resume document.'}, status=500)
-            return HttpResponse("Failed to generate resume document.", status=500)
+            generate_docx(docx_data)
+        except DocxGenerationError as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-        response = HttpResponse(docx_buffer, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        response['Content-Disposition'] = f'attachment; filename="{resume.full_name.replace(" ", "_")}--_by_Huntly.docx"'
-        return response
+        if request.headers.get('HX-Request'):
+            return HttpResponse(status=204, headers={'HX-Trigger': 'resumeCreated'})
 
-    return render(request, 'resumes/resume_form.html')
+        if request.content_type == 'application/json':
+            return JsonResponse({'status': 'success', 'resume_id': resume.id})
+        return redirect('resumes:resume-list')
+
+    return render(request, 'resumes/resume_form.html', {'resume_data_json': '{}'})
+
 
 @login_required
 def resume_update(request, pk):
     resume = get_object_or_404(Resume, pk=pk, user=request.user)
+
     if request.method == 'POST':
         if request.content_type == 'application/json':
             data = json.loads(request.body)
@@ -85,25 +90,25 @@ def resume_update(request, pk):
 
         resume = save_resume_data(resume, data, files, user=request.user)
 
-        # Generate the docx
+        # Generate the docx to verify
         docx_data = data.copy()
         if resume.passport_photo:
             docx_data['passport_photo_path'] = resume.passport_photo.path
 
         try:
-            docx_buffer = generate_docx(docx_data)
-        except DocxGenerationError:
-            messages.error(request, "Failed to generate resume document.")
-            if request.content_type == 'application/json':
-                return JsonResponse({'error': 'Failed to generate resume document.'}, status=500)
-            return HttpResponse("Failed to generate resume document.", status=500)
+            generate_docx(docx_data)
+        except DocxGenerationError as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-        response = HttpResponse(docx_buffer, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        response['Content-Disposition'] = f'attachment; filename="{resume.full_name.replace(" ", "_")}--_by_Huntly.docx"'
-        return response
+        if request.headers.get('HX-Request'):
+            return HttpResponse(status=204, headers={'HX-Trigger': 'resumeUpdated'})
 
-    # Convert model to JSON for Alpine.js
+        if request.content_type == 'application/json':
+            return JsonResponse({'status': 'success', 'resume_id': resume.id})
+        return redirect('resumes:resume-list')
+
     resume_data = {
+        'id': resume.id,
         'full_name': resume.full_name,
         'tagline': resume.tagline,
         'location': resume.location,
@@ -122,7 +127,6 @@ def resume_update(request, pk):
         'accent_color': resume.accent_color,
         'passport_photo_url': resume.passport_photo.url if resume.passport_photo else None,
     }
-    # Add bulletsText to experiences and projects for the UI
     for exp in resume_data['experiences']:
         exp['bulletsText'] = '\n'.join(exp.get('bullets', []))
     for proj in resume_data['projects']:
@@ -130,10 +134,12 @@ def resume_update(request, pk):
 
     return render(request, 'resumes/resume_form.html', {'resume_data_json': json.dumps(resume_data)})
 
+
 @login_required
 def resume_preview_partial(request, pk):
     resume = get_object_or_404(Resume, pk=pk, user=request.user)
     return render(request, 'resumes/partials/resume_preview.html', {'resume': resume})
+
 
 @login_required
 def resume_download(request, pk):
@@ -156,6 +162,16 @@ def resume_download(request, pk):
         'include_branding': resume.include_branding,
         'accent_color': resume.accent_color,
     }
+
+    # If downloaded for a specific tailored job application
+    job_id = request.GET.get('job_id')
+    if job_id:
+        from leads.models import JobApplication
+        job = JobApplication.objects.filter(pk=job_id, user=request.user).first()
+        if job and job.tailored_resume_text:
+            # Append tailored summary / focus
+            data['summary'] = f"{resume.summary}\n\n[Target Role: {job.role_title} at {job.company_name}]\n{job.tailored_resume_text}"
+
     if resume.passport_photo:
         data['passport_photo_path'] = resume.passport_photo.path
 
@@ -168,21 +184,3 @@ def resume_download(request, pk):
     response = HttpResponse(docx_buffer, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     response['Content-Disposition'] = f'attachment; filename="{resume.full_name.replace(" ", "_")}--_by_Huntly.docx"'
     return response
-
-@login_required
-def payment_list(request):
-    payments = Payment.objects.filter(user=request.user).order_by('-date')
-    return render(request, 'resumes/payment_list.html', {'payments': payments})
-
-@login_required
-def payment_create(request):
-    if request.method == 'POST':
-        Payment.objects.create(
-            user=request.user,
-            customer_name=request.POST.get('customer_name'),
-            amount=request.POST.get('amount'),
-            method=request.POST.get('method'),
-            notes=request.POST.get('notes', '')
-        )
-    return redirect('resumes:payment-list')
-

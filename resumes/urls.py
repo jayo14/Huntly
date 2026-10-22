@@ -8,6 +8,5 @@ urlpatterns = [
     path('create/', views.resume_create, name='resume-create'),
     path('<int:pk>/update/', views.resume_update, name='resume-update'),
     path('<int:pk>/download/', views.resume_download, name='resume-download'),
-    path('payments/', views.payment_list, name='payment-list'),
-    path('payments/create/', views.payment_create, name='payment-create'),
+    path('<int:pk>/preview/', views.resume_preview_partial, name='resume-preview'),
 ]

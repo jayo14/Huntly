@@ -1,47 +1,59 @@
 {% extends "base.html" %}
 
-{% block title %}Leads | Huntly{% endblock %}
-{% block header_title %}Leads Management{% endblock %}
+{% block title %}Applications | Huntly{% endblock %}
+{% block header_title %}Job Applications{% endblock %}
 
 {% block content %}
 <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div class="flex flex-1 items-center gap-4">
         <div class="relative flex-1 max-w-md">
             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400"></i>
-            <input type="text" name="search" placeholder="Search leads..."
+            <input type="text" name="search" placeholder="Search by role, company, or skills..."
                    class="w-full bg-surface-100 border border-surface-200 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-surface-950 placeholder:text-surface-400"
                    hx-get="{% url 'leads:lead-list' %}"
-                   hx-trigger="keyup changed delay:500ms"
+                   hx-trigger="keyup changed delay:400ms"
                    hx-target="#leads-table-container"
-                   hx-include="[name='status'], [name='needs_action']">
+                   hx-include="[name='status']">
         </div>
 
         <select name="status"
                 class="bg-surface-100 border border-surface-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-surface-950"
                 hx-get="{% url 'leads:lead-list' %}"
                 hx-target="#leads-table-container"
-                hx-include="[name='search'], [name='needs_action']">
+                hx-include="[name='search']">
             <option value="">All Statuses</option>
             {% for value, label in status_choices %}
             <option value="{{ value }}">{{ label }}</option>
             {% endfor %}
         </select>
-
-        <label class="flex items-center gap-2 cursor-pointer group">
-            <input type="checkbox" name="needs_action" value="true"
-                   class="w-4 h-4 rounded border-surface-300 bg-surface-100 text-primary-600 focus:ring-0 focus:ring-offset-0">
-            <span class="text-sm text-surface-500 group-hover:text-surface-950 transition-colors">Needs Action</span>
-        </label>
     </div>
 
     <button hx-get="{% url 'leads:lead-create' %}" hx-target="#modal-content"
             class="bg-primary-600 text-white hover:bg-primary-500 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center transition-all shadow-lg shadow-primary-600/20">
         <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
-        New Lead
+        Track New Job
     </button>
 </div>
 
 <div id="leads-table-container" hx-trigger="leadsChanged from:body" hx-get="{% url 'leads:lead-list' %}" hx-target="this">
     {% include "leads/partials/lead_list_table.html" %}
+</div>
+
+<!-- Modal Container -->
+<div id="modal-container" x-data="{ open: false }" 
+     x-show="open" 
+     @htmx:after-swap.window="if ($event.detail.target.id === 'modal-content') open = true"
+     @keydown.escape.window="open = false" 
+     x-cloak 
+     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div class="bg-surface-50 border border-surface-200 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative"
+         @click.outside="open = false">
+        <button @click="open = false" class="absolute top-4 right-4 text-surface-400 hover:text-surface-900 p-2 rounded-lg bg-surface-100 hover:bg-surface-200 transition-colors z-10">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <div id="modal-content">
+            <!-- HTMX loaded content -->
+        </div>
+    </div>
 </div>
 {% endblock %}

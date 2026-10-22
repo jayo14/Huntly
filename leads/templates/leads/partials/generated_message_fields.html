@@ -1,2 +1,27 @@
-<input type="text" name="subject" value="{{ subject }}" id="message-subject" hx-swap-oob="true" class="w-full bg-neutral-800 border border-neutral-700 rounded-md text-sm py-2 px-3 focus:outline-none focus:border-neutral-500">
-<textarea name="body" id="message-body" hx-swap-oob="true" rows="10" class="w-full bg-neutral-800 border border-neutral-700 rounded-md text-sm py-2 px-3 focus:outline-none focus:border-neutral-500 resize-none">{{ body }}</textarea>
+<span id="ats-score-badge" hx-swap-oob="outerHTML" class="px-2.5 py-1 rounded-full text-xs font-bold {% if score >= 80 %}bg-emerald-500/10 text-emerald-600 border border-emerald-500/20{% elif score >= 50 %}bg-amber-500/10 text-amber-600 border border-amber-500/20{% else %}bg-surface-200 text-surface-500{% endif %}">
+    ATS Match: {{ score }}%
+</span>
+
+<div id="matched-keywords-container" hx-swap-oob="outerHTML" class="flex flex-wrap gap-1.5">
+    {% for kw in matched_keywords %}
+    <span class="text-xs font-medium bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 px-2.5 py-1 rounded-lg border border-primary-200/40">{{ kw }}</span>
+    {% empty %}
+    <span class="text-xs text-surface-400 italic">No specific tech keywords identified.</span>
+    {% endfor %}
+</div>
+
+<textarea id="tailored-bullets-text" hx-swap-oob="outerHTML" rows="11" readonly
+          class="w-full bg-surface-100 border border-surface-200 rounded-xl p-4 text-xs font-mono text-surface-900 leading-relaxed resize-none focus:outline-none">{{ tailored_resume_text }}</textarea>
+
+<textarea id="cover-letter-text" hx-swap-oob="outerHTML" rows="12" readonly
+          class="w-full bg-surface-100 border border-surface-200 rounded-xl p-4 text-xs font-sans text-surface-900 leading-relaxed resize-none focus:outline-none">{{ cover_letter }}</textarea>
+
+<input type="text" name="subject" value="{{ subject }}" id="message-subject" hx-swap-oob="outerHTML"
+       class="w-full bg-surface-100 border border-surface-200 rounded-xl text-xs py-2 px-3 text-surface-900 focus:outline-none focus:ring-1 focus:ring-primary-500">
+
+<textarea name="body" id="message-body" hx-swap-oob="outerHTML" rows="7"
+          class="w-full bg-surface-100 border border-surface-200 rounded-xl text-xs py-2.5 px-3 text-surface-900 focus:outline-none focus:ring-1 focus:ring-primary-500 resize-none font-sans leading-relaxed">{{ body }}</textarea>
+
+<script>
+    if (window.lucide) { lucide.createIcons(); }
+</script>

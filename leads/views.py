@@ -1,3 +1,4 @@
+import json
 from django.conf import settings
 from django.core.mail import EmailMessage, get_connection
 from django.shortcuts import render, get_object_or_404, redirect
@@ -6,14 +7,14 @@ from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-
 from django.utils import timezone
 from django.db.models import Count, Q
-from .models import Lead, Message, AppSetting, AutomationRule, ScraperJob, RawLead
-from resumes.models import Payment
-from django.db.models import Sum
-from .forms import LeadForm, AppSettingForm, AutomationRuleForm, ScraperJobForm, RawLeadForm
-import json
+
+from .models import JobApplication, Lead, Message, AppSetting
+from resumes.models import Resume
+from .forms import JobApplicationForm, LeadForm, AppSettingForm
+from .services.llm_tailor import tailor_application
+
 
 class CountableList(list):
     def count(self, *args):
@@ -21,52 +22,54 @@ class CountableList(list):
             return len(self)
         return super().count(*args)
 
+
 @login_required
 def dashboard(request):
-
-    today = timezone.now().date()
-    status_filter = request.GET.get('status', '')
-
-    user_leads = Lead.objects.filter(user=request.user)
+    user_jobs = JobApplication.objects.filter(user=request.user)
 
     status_counts = dict(
-        user_leads.values('status')
+        user_jobs.values('status')
         .annotate(count=Count('id'))
         .values_list('status', 'count')
     )
-    total_leads = sum(status_counts.values())
-    closed_leads = status_counts.get('closed', 0)
-    conversion_rate = (closed_leads / total_leads * 100) if total_leads > 0 else 0
+    total_jobs = sum(status_counts.values())
 
-    emails_sent_today = Message.objects.filter(lead__user=request.user, sent_at__date=today, is_reply=False).count()
-    replies_count = Message.objects.filter(lead__user=request.user, is_reply=True).count()
+    saved_count = status_counts.get('saved', 0)
+    applied_count = status_counts.get('applied', 0)
+    interviewing_count = status_counts.get('interviewing', 0)
+    offer_count = status_counts.get('offer', 0)
+    rejected_count = status_counts.get('rejected', 0)
 
-    total_earnings = Payment.objects.filter(user=request.user).aggregate(Sum("amount"))["amount__sum"] or 0
+    active_applications = applied_count + interviewing_count + offer_count
+    callback_rate = round(
+        ((interviewing_count + offer_count) / active_applications * 100), 1
+    ) if active_applications > 0 else 0.0
 
     funnel_stages = [
         {
             'label': label,
+            'status': status,
             'count': status_counts.get(status, 0),
-            'percentage': round((status_counts.get(status, 0) / total_leads * 100), 0) if total_leads > 0 else 0
+            'percentage': round((status_counts.get(status, 0) / total_jobs * 100), 0) if total_jobs > 0 else 0
         }
-        for status, label in Lead.STATUS_CHOICES
+        for status, label in JobApplication.STATUS_CHOICES
     ]
 
-    # Needs Attention
-    needs_attention = user_leads.filter(
-        Q(status='new') | Q(next_follow_up=today)
-    ).order_by('-score')[:5]
+    recent_jobs = user_jobs.order_by('-updated_at')[:6]
 
     context = {
-        'total_leads': total_leads,
-        'emails_sent_today': emails_sent_today,
-        'replies_count': replies_count,
-        'conversion_rate': round(conversion_rate, 1),
-        'total_earnings': total_earnings,
+        'total_jobs': total_jobs,
+        'total_leads': total_jobs,  # For backward-compatible templates
+        'saved_count': saved_count,
+        'applied_count': applied_count,
+        'interviewing_count': interviewing_count,
+        'offer_count': offer_count,
+        'rejected_count': rejected_count,
+        'callback_rate': callback_rate,
         'funnel_stages': funnel_stages,
-        'needs_attention': needs_attention,
-        'status_choices': Lead.STATUS_CHOICES,
-        'selected_status': status_filter,
+        'recent_jobs': recent_jobs,
+        'needs_attention': recent_jobs,
+        'status_choices': JobApplication.STATUS_CHOICES,
     }
 
     if request.headers.get('HX-Request'):
@@ -74,132 +77,125 @@ def dashboard(request):
 
     return render(request, 'leads/dashboard.html', context)
 
+
 @login_required
 def lead_list(request):
-
     search = request.GET.get('search', '')
     status = request.GET.get('status', '')
-    needs_action = request.GET.get('needs_action', '')
 
-    leads = Lead.objects.filter(user=request.user)
+    jobs = JobApplication.objects.filter(user=request.user)
 
     if search:
-        leads = leads.filter(
-            Q(business_name__icontains=search) |
-            Q(problem__icontains=search)
+        jobs = jobs.filter(
+            Q(company_name__icontains=search) |
+            Q(role_title__icontains=search) |
+            Q(job_description__icontains=search)
         )
 
     if status:
-        leads = leads.filter(status=status)
-
-    if needs_action == 'true':
-        today = timezone.now().date()
-        leads = leads.filter(
-            Q(status='new') | Q(next_follow_up=today)
-        )
+        jobs = jobs.filter(status=status)
 
     context = {
-        'leads': leads,
-        'status_choices': Lead.STATUS_CHOICES,
+        'jobs': jobs,
+        'leads': jobs,  # Template alias
+        'status_choices': JobApplication.STATUS_CHOICES,
         'search': search,
         'selected_status': status,
-        'needs_action': needs_action == 'true',
     }
 
     if request.headers.get('HX-Request'):
         return render(request, 'leads/partials/lead_list_table.html', context)
     return render(request, 'leads/leads_list.html', context)
 
+
+@login_required
+def lead_list_partial(request):
+    return lead_list(request)
+
+
 @login_required
 def lead_create(request):
-
     if request.method == 'POST':
-        form = LeadForm(request.POST)
+        form = JobApplicationForm(request.POST)
         if form.is_valid():
-            lead = form.save(commit=False)
-            lead.user = request.user
-            lead.save()
+            job = form.save(commit=False)
+            job.user = request.user
+            job.save()
+            messages.success(request, f"Added {job.role_title} at {job.company_name}!")
             if request.headers.get('HX-Request'):
                 return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
             return redirect('leads:lead-list')
     else:
-        form = LeadForm()
+        form = JobApplicationForm()
 
     return render(request, 'leads/lead_form.html', {'form': form})
 
+
 @login_required
 def lead_update(request, pk):
-
-    lead = get_object_or_404(Lead, pk=pk, user=request.user)
+    job = get_object_or_404(JobApplication, pk=pk, user=request.user)
     if request.method == 'POST':
-        form = LeadForm(request.POST, instance=lead)
+        form = JobApplicationForm(request.POST, instance=job)
         if form.is_valid():
             form.save()
+            messages.success(request, "Job application updated.")
             if request.headers.get('HX-Request'):
                 return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
             return redirect('leads:lead-list')
     else:
-        form = LeadForm(instance=lead)
+        form = JobApplicationForm(instance=job)
 
-    return render(request, 'leads/lead_form.html', {'form': form, 'lead': lead})
+    return render(request, 'leads/lead_form.html', {'form': form, 'lead': job})
+
 
 @login_required
 @require_POST
 def lead_delete(request, pk):
-
-    lead = get_object_or_404(Lead, pk=pk, user=request.user)
-    lead.delete()
+    job = get_object_or_404(JobApplication, pk=pk, user=request.user)
+    job.delete()
     if request.headers.get('HX-Request'):
         return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
     return redirect('leads:lead-list')
 
+
 @login_required
 @require_POST
 def update_status(request, pk):
-
-    lead = get_object_or_404(Lead, pk=pk, user=request.user)
+    job = get_object_or_404(JobApplication, pk=pk, user=request.user)
     status = request.POST.get('status')
-    if status in dict(Lead.STATUS_CHOICES):
-        lead.status = status
-        lead.save()
+    if status in dict(JobApplication.STATUS_CHOICES):
+        job.status = status
+        job.save()
 
     if request.headers.get('HX-Request'):
-        return render(request, 'leads/partials/lead_row.html', {'lead': lead})
+        return render(request, 'leads/partials/lead_row.html', {'lead': job})
     return redirect('leads:lead-list')
 
-@login_required
-def lead_list_partial(request):
-
-    return lead_list(request)
 
 @login_required
 def pipeline(request):
+    all_jobs = list(JobApplication.objects.filter(user=request.user).order_by('-score', '-updated_at'))
 
-    if hasattr(Lead, 'user'):
-        all_leads = list(Lead.objects.filter(user=request.user).order_by('-score'))
-    else:
-        all_leads = list(Lead.objects.all().order_by('-score'))
-
-    leads_by_status = {status: CountableList() for status, _ in Lead.STATUS_CHOICES}
-    for lead in all_leads:
-        if lead.status in leads_by_status:
-            leads_by_status[lead.status].append(lead)
+    jobs_by_status = {status: CountableList() for status, _ in JobApplication.STATUS_CHOICES}
+    for job in all_jobs:
+        if job.status in jobs_by_status:
+            jobs_by_status[job.status].append(job)
 
     stages = [
         {
             'status': status,
             'label': label,
-            'leads': leads_by_status.get(status, CountableList()),
+            'leads': jobs_by_status.get(status, CountableList()),
         }
-        for status, label in Lead.STATUS_CHOICES
+        for status, label in JobApplication.STATUS_CHOICES
     ]
 
     context = {'stages': stages}
     return render(request, 'leads/pipeline.html', context)
 
+
 @login_required
 def settings_view(request):
-
     setting = AppSetting.objects.filter(user=request.user).first()
     if not setting:
         setting = AppSetting.objects.create(user=request.user)
@@ -219,49 +215,85 @@ def settings_view(request):
 
     return render(request, 'leads/settings.html', {'form': form})
 
+
 @login_required
 def lead_detail(request, pk):
-
-    lead = get_object_or_404(Lead, pk=pk, user=request.user)
-    messages_list = lead.messages.all().order_by('-sent_at')
+    job = get_object_or_404(JobApplication, pk=pk, user=request.user)
+    messages_list = job.messages.all().order_by('-sent_at')
+    resume = Resume.objects.filter(user=request.user).first()
 
     context = {
-        'lead': lead,
+        'lead': job,
+        'job': job,
         'messages': messages_list,
+        'resume': resume,
     }
     return render(request, 'leads/lead_detail_modal.html', context)
+
 
 @login_required
 @require_POST
 def generate_message(request, pk):
+    job = get_object_or_404(JobApplication, pk=pk, user=request.user)
+    resume = Resume.objects.filter(user=request.user).first()
 
-    lead = get_object_or_404(Lead, pk=pk, user=request.user)
-    subject = f"Inquiry regarding {lead.business_name}"
-    body = f"Hello {lead.contact_name or 'Team'},\n\nI saw your website ({lead.website}) and noticed you might need help with {lead.problem}.\n\nOur offer: {lead.offer}\n\nLooking forward to hearing from you."
+    tailored = tailor_application(
+        resume=resume,
+        company_name=job.company_name,
+        role_title=job.role_title,
+        job_description=job.job_description or f"{job.role_title} at {job.company_name}",
+    )
+
+    bullets = tailored.get('tailored_bullets', [])
+    if isinstance(bullets, list):
+        job.tailored_resume_text = "\n\n".join(f"• {b}" for b in bullets)
+    else:
+        job.tailored_resume_text = str(bullets)
+
+    job.cover_letter = tailored.get('cover_letter', '')
+    job.recruiter_pitch = tailored.get('recruiter_pitch', '')
+    job.matched_keywords = tailored.get('matched_keywords', [])
+
+    keyword_bonus = min(50, len(job.matched_keywords) * 10)
+    job.score = 50 + keyword_bonus
+    job.save()
+
+    candidate_name = (
+        getattr(resume, 'full_name', '') or
+        request.user.get_full_name() or
+        request.user.username
+    )
+    subject = f"Application: {job.role_title} - {candidate_name}"
+    body = job.recruiter_pitch
 
     context = {
         'subject': subject,
         'body': body,
+        'lead': job,
+        'job': job,
+        'cover_letter': job.cover_letter,
+        'tailored_resume_text': job.tailored_resume_text,
+        'matched_keywords': job.matched_keywords,
+        'score': job.score,
     }
     return render(request, 'leads/partials/generated_message_fields.html', context)
+
 
 @login_required
 @require_POST
 def send_message(request, pk):
-
-    lead = get_object_or_404(Lead, pk=pk, user=request.user)
+    job = get_object_or_404(JobApplication, pk=pk, user=request.user)
     subject = request.POST.get('subject')
     body = request.POST.get('body')
 
     if not (subject and body):
-        return HttpResponse("Invalid form", status=400)
+        return HttpResponse("Invalid form: subject and body are required", status=400)
 
-    # Retrieve user's AppSetting (scoped to request.user or first setting)
-    setting = None
-    if hasattr(AppSetting, 'user') and request.user.is_authenticated:
-        setting = AppSetting.objects.filter(user=request.user).first()
-    if not setting:
-        setting = AppSetting.objects.first()
+    recipient = job.contact_email
+    if not recipient:
+        return HttpResponse("No contact email specified for this job application", status=400)
+
+    setting = AppSetting.objects.filter(user=request.user).first()
 
     try:
         if setting and setting.smtp_host and setting.email_address and setting.email_password:
@@ -277,7 +309,7 @@ def send_message(request, pk):
                 subject=subject,
                 body=body,
                 from_email=setting.email_address,
-                to=[lead.email],
+                to=[recipient],
                 connection=connection,
             )
             email.send()
@@ -286,243 +318,32 @@ def send_message(request, pk):
                 subject=subject,
                 body=body,
                 from_email='noreply@huntly.local',
-                to=[lead.email],
+                to=[recipient],
             )
             email.send()
         else:
             raise ValueError("No email configuration found.")
 
         Message.objects.create(
-            lead=lead,
+            job_application=job,
             subject=subject,
             body=body
         )
 
-        if lead.status == 'new':
-            lead.status = 'contacted'
-        lead.last_contacted = timezone.now()
-        lead.save()
+        if job.status == 'saved':
+            job.status = 'applied'
+        job.last_contacted = timezone.now()
+        job.save()
 
-        messages.success(request, f"Email sent to {lead.business_name}!")
+        messages.success(request, f"Pitch email sent to {job.company_name}!")
         return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
 
     except Exception as e:
         messages.error(request, f"Failed to send email: {e}")
         return HttpResponse(f"Failed to send email: {e}", status=500)
 
-@login_required
-def automation_dashboard(request):
-    rules = AutomationRule.objects.filter(user=request.user)
-    settings = AppSetting.objects.filter(user=request.user).first()
-    if not settings:
-        settings = AppSetting.objects.create(user=request.user)
-    
-    context = {
-        'rules': rules,
-        'settings': settings,
-    }
-    return render(request, 'leads/automation.html', context)
-
-@login_required
-def rule_create(request):
-    if request.method == 'POST':
-        form = AutomationRuleForm(request.POST)
-        if form.is_valid():
-            rule = form.save(commit=False)
-            rule.user = request.user
-            rule.save()
-            if request.headers.get('HX-Request'):
-                return HttpResponse(status=204, headers={'HX-Trigger': 'rulesChanged'})
-            return redirect('leads:automation-dashboard')
-    else:
-        form = AutomationRuleForm()
-    return render(request, 'leads/rule_form.html', {'form': form})
-
-@login_required
-def rule_update(request, pk):
-    rule = get_object_or_404(AutomationRule, pk=pk, user=request.user)
-    if request.method == 'POST':
-        form = AutomationRuleForm(request.POST, instance=rule)
-        if form.is_valid():
-            form.save()
-            if request.headers.get('HX-Request'):
-                return HttpResponse(status=204, headers={'HX-Trigger': 'rulesChanged'})
-            return redirect('leads:automation-dashboard')
-    else:
-        form = AutomationRuleForm(instance=rule)
-    return render(request, 'leads/rule_form.html', {'form': form, 'rule': rule})
-
-@login_required
-@require_POST
-def rule_delete(request, pk):
-    rule = get_object_or_404(AutomationRule, pk=pk, user=request.user)
-    rule.delete()
-    if request.headers.get('HX-Request'):
-        return HttpResponse(status=204, headers={'HX-Trigger': 'rulesChanged'})
-    return redirect('leads:automation-dashboard')
-
-@login_required
-@require_POST
-def toggle_rule(request, pk):
-    rule = get_object_or_404(AutomationRule, pk=pk, user=request.user)
-    rule.is_active = not rule.is_active
-    rule.save()
-    if request.headers.get('HX-Request'):
-        return render(request, 'leads/partials/rule_row.html', {'rule': rule})
-    return redirect('leads:automation-dashboard')
-
-@login_required
-def rule_list_partial(request):
-    rules = AutomationRule.objects.filter(user=request.user)
-    return render(request, 'leads/partials/rule_list.html', {'rules': rules})
-
-@login_required
-@require_POST
-def toggle_setting(request):
-    setting = AppSetting.objects.filter(user=request.user).first()
-    if not setting:
-        setting = AppSetting.objects.create(user=request.user)
-    
-    field = request.POST.get('field')
-    if field in ['auto_send_enabled', 'follow_ups_enabled']:
-        current_val = getattr(setting, field)
-        setattr(setting, field, not current_val)
-        setting.save()
-    
-    return HttpResponse(status=204)
-
-@login_required
-def scraper_dashboard(request):
-    jobs = ScraperJob.objects.filter(user=request.user).order_by('-created_at')
-    
-    context = {
-        'jobs': jobs,
-    }
-    return render(request, 'leads/scraper.html', context)
-
-@login_required
-def scraper_session_detail(request, pk):
-    job = get_object_or_404(ScraperJob, pk=pk, user=request.user)
-    raw_leads = job.raw_leads.filter(is_approved=False).order_by('-created_at')
-    
-    context = {
-        'job': job,
-        'raw_leads': raw_leads,
-    }
-    return render(request, 'leads/scraper_session_detail.html', context)
-
-@login_required
-def scraper_job_update_name(request, pk):
-    job = get_object_or_404(ScraperJob, pk=pk, user=request.user)
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        if name:
-            job.name = name
-            job.save()
-            if request.headers.get('HX-Request'):
-                return HttpResponse(status=200, headers={'HX-Redirect': reverse('leads:scraper-dashboard')})
-            return redirect('leads:scraper-dashboard')
-    
-    return render(request, 'leads/partials/scraper_job_name_form.html', {'job': job})
 
 @login_required
 def profile_view(request):
-    return render(request, 'leads/profile.html')
-
-from .scraper_service import start_scraping_thread
-
-@login_required
-def scraper_create(request):
-    if request.method == 'POST':
-        form = ScraperJobForm(request.POST)
-        if form.is_valid():
-            job = form.save(commit=False)
-            job.user = request.user
-            job.save()
-            start_scraping_thread(job.id)
-            
-            if request.headers.get('HX-Request'):
-                return HttpResponse(status=200, headers={'HX-Redirect': reverse('leads:scraper-dashboard')})
-            return redirect('leads:scraper-dashboard')
-    else:
-        form = ScraperJobForm()
-    return render(request, 'leads/scraper_job_form.html', {'form': form})
-
-@login_required
-def scraper_monitor_partial(request):
-    jobs = ScraperJob.objects.filter(user=request.user).exclude(status='completed').exclude(status='failed')
-    return render(request, 'leads/partials/scraper_monitor.html', {'jobs': jobs})
-
-@login_required
-@require_POST
-def scraper_terminate(request, pk):
-    job = get_object_or_404(ScraperJob, pk=pk, user=request.user)
-    job.stop_requested = True
-    job.status = 'failed'
-    job.save()
-    if request.headers.get('HX-Request'):
-        return HttpResponse(status=204, headers={'HX-Trigger': 'jobsChanged'})
-    return redirect('leads:scraper-dashboard')
-
-@login_required
-def raw_lead_list_partial(request):
-    job_id = request.GET.get('job_id')
-    raw_leads = RawLead.objects.filter(job__user=request.user, is_approved=False).order_by('-created_at')
-    
-    if job_id:
-        raw_leads = raw_leads.filter(job_id=job_id)
-        
-    return render(request, 'leads/partials/raw_lead_list.html', {'raw_leads': raw_leads})
-
-@login_required
-def raw_lead_review(request, pk):
-    raw_lead = get_object_or_404(RawLead, pk=pk, job__user=request.user)
-    if request.method == 'POST':
-        form = RawLeadForm(request.POST, instance=raw_lead)
-        if form.is_valid():
-            form.save()
-            if request.headers.get('HX-Request'):
-                return HttpResponse(status=204, headers={'HX-Trigger': 'rawLeadsChanged'})
-            return redirect('leads:scraper-dashboard')
-    else:
-        form = RawLeadForm(instance=raw_lead)
-    return render(request, 'leads/raw_lead_review_form.html', {'form': form, 'raw_lead': raw_lead})
-
-@login_required
-@require_POST
-def raw_lead_approve(request, pk):
-    raw_lead = get_object_or_404(RawLead, pk=pk, job__user=request.user)
-    
-    # Move to Lead model
-    Lead.objects.create(
-        user=request.user,
-        business_name=raw_lead.business_name,
-        contact_name=raw_lead.contact_name,
-        email=raw_lead.email,
-        phone=raw_lead.phone,
-        website=raw_lead.website,
-        status='new'
-    )
-    
-    raw_lead.is_approved = True
-    raw_lead.save()
-    
-    if request.headers.get('HX-Request'):
-        return HttpResponse(status=204, headers={'HX-Trigger': 'rawLeadsChanged'})
-    return redirect('leads:scraper-dashboard')
-
-@login_required
-@require_POST
-def raw_lead_delete(request, pk):
-    raw_lead = get_object_or_404(RawLead, pk=pk, job__user=request.user)
-    raw_lead.delete()
-    if request.headers.get('HX-Request'):
-        return HttpResponse(status=204, headers={'HX-Trigger': 'rawLeadsChanged'})
-    return redirect('leads:scraper-dashboard')
-
-@login_required
-def scraper_logs_partial(request, pk):
-    job = get_object_or_404(ScraperJob, pk=pk, user=request.user)
-    return render(request, 'leads/partials/scraper_logs.html', {'job': job})
-
-
+    resume = Resume.objects.filter(user=request.user).first()
+    return render(request, 'leads/profile.html', {'resume': resume})

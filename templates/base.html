@@ -128,33 +128,21 @@
                     <i data-lucide="layout-dashboard" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
                     <span x-show="!sidebarCollapsed" x-transition>Dashboard</span>
                 </a>
-                <a href="{% url 'leads:scraper-dashboard' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if request.resolver_match.url_name == 'scraper-dashboard' %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-surface-500 hover:text-surface-950 hover:bg-surface-200{% endif %}" :title="sidebarCollapsed ? 'Scraper' : ''">
-                    <i data-lucide="search" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
-                    <span x-show="!sidebarCollapsed" x-transition>Scraper</span>
-                </a>
-                <a href="{% url 'leads:lead-list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if request.resolver_match.url_name == 'lead-list' %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-surface-500 hover:text-surface-950 hover:bg-surface-200{% endif %}" :title="sidebarCollapsed ? 'Leads' : ''">
-                    <i data-lucide="users" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
-                    <span x-show="!sidebarCollapsed" x-transition>Leads</span>
+                <a href="{% url 'leads:lead-list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if request.resolver_match.url_name == 'lead-list' %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-surface-500 hover:text-surface-950 hover:bg-surface-200{% endif %}" :title="sidebarCollapsed ? 'Applications' : ''">
+                    <i data-lucide="briefcase" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
+                    <span x-show="!sidebarCollapsed" x-transition>Applications</span>
                 </a>
                 <a href="{% url 'leads:pipeline' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if request.resolver_match.url_name == 'pipeline' %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-surface-500 hover:text-surface-950 hover:bg-surface-200{% endif %}" :title="sidebarCollapsed ? 'Pipeline' : ''">
-                    <i data-lucide="git-branch" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
+                    <i data-lucide="kanban" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
                     <span x-show="!sidebarCollapsed" x-transition>Pipeline</span>
                 </a>
-                <a href="{% url 'leads:automation-dashboard' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if request.resolver_match.url_name == 'automation-dashboard' %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-surface-500 hover:text-surface-950 hover:bg-surface-200{% endif %}" :title="sidebarCollapsed ? 'Automation' : ''">
-                    <i data-lucide="zap" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
-                    <span x-show="!sidebarCollapsed" x-transition>Automation</span>
+                <a href="{% url 'resumes:resume-list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if 'resumes' in request.path %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-surface-500 hover:text-surface-950 hover:bg-surface-200{% endif %}" :title="sidebarCollapsed ? 'Master Profile' : ''">
+                    <i data-lucide="file-text" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
+                    <span x-show="!sidebarCollapsed" x-transition>Master Profile</span>
                 </a>
                 <a href="{% url 'leads:settings' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if request.resolver_match.url_name == 'settings' %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-surface-500 hover:text-surface-950 hover:bg-surface-200{% endif %}" :title="sidebarCollapsed ? 'Settings' : ''">
                     <i data-lucide="settings" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
                     <span x-show="!sidebarCollapsed" x-transition>Settings</span>
-                </a>
-                <a href="{% url 'resumes:resume-list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if 'resumes' in request.path %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-surface-500 hover:text-surface-950 hover:bg-surface-200{% endif %}" :title="sidebarCollapsed ? 'Resumes' : ''>
-                    <i data-lucide="file-text" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
-                    <span x-show="!sidebarCollapsed" x-transition>Resumes</span>
-                </a>
-                <a href="{% url 'resumes:payment-list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all group {% if 'payments' in request.path %}bg-primary-600 text-white shadow-lg shadow-primary-600/20{% else %}text-surface-500 hover:text-surface-950 hover:bg-surface-200{% endif %}" :title="sidebarCollapsed ? 'Payments' : ''>
-                    <i data-lucide="credit-card" class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mr-0' : 'mr-3'"></i>
-                    <span x-show="!sidebarCollapsed" x-transition>Payments</span>
                 </a>
             </nav>
 

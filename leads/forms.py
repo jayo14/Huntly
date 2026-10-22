@@ -1,26 +1,41 @@
 from django import forms
-from .models import Lead, AppSetting
+from .models import JobApplication, AppSetting
 
-class LeadForm(forms.ModelForm):
+
+class JobApplicationForm(forms.ModelForm):
+    score = forms.IntegerField(required=False, initial=0)
     class Meta:
-        model = Lead
+        model = JobApplication
         fields = [
-            'business_name', 'contact_name', 'email', 'phone',
-            'website', 'instagram', 'problem', 'score',
-            'tone', 'offer', 'evidence_note', 'status'
+            'company_name', 'role_title', 'job_url', 'job_description',
+            'contact_name', 'contact_email', 'status', 'score',
+            'tailored_resume_text', 'cover_letter', 'recruiter_pitch'
         ]
+        widgets = {
+            'company_name': forms.TextInput(attrs={'class': 'w-full px-4 py-3 rounded-xl border border-surface-200 dark:border-white/10 bg-surface-50 dark:bg-neutral-800 text-surface-900 dark:text-white', 'placeholder': 'e.g. Stripe'}),
+            'role_title': forms.TextInput(attrs={'class': 'w-full px-4 py-3 rounded-xl border border-surface-200 dark:border-white/10 bg-surface-50 dark:bg-neutral-800 text-surface-900 dark:text-white', 'placeholder': 'e.g. Senior Software Engineer'}),
+            'job_url': forms.URLInput(attrs={'class': 'w-full px-4 py-3 rounded-xl border border-surface-200 dark:border-white/10 bg-surface-50 dark:bg-neutral-800 text-surface-900 dark:text-white', 'placeholder': 'https://...'}),
+            'job_description': forms.Textarea(attrs={'class': 'w-full px-4 py-3 rounded-xl border border-surface-200 dark:border-white/10 bg-surface-50 dark:bg-neutral-800 text-surface-900 dark:text-white', 'rows': 6, 'placeholder': 'Paste full job description requirements and responsibilities here...'}),
+            'status': forms.Select(attrs={'class': 'w-full px-4 py-3 rounded-xl border border-surface-200 dark:border-white/10 bg-surface-50 dark:bg-neutral-800 text-surface-900 dark:text-white'}),
+            'tailored_resume_text': forms.Textarea(attrs={'class': 'w-full px-4 py-3 rounded-xl border border-surface-200 dark:border-white/10 bg-surface-50 dark:bg-neutral-800 text-surface-900 dark:text-white font-mono text-sm', 'rows': 6}),
+            'cover_letter': forms.Textarea(attrs={'class': 'w-full px-4 py-3 rounded-xl border border-surface-200 dark:border-white/10 bg-surface-50 dark:bg-neutral-800 text-surface-900 dark:text-white', 'rows': 6}),
+            'recruiter_pitch': forms.Textarea(attrs={'class': 'w-full px-4 py-3 rounded-xl border border-surface-200 dark:border-white/10 bg-surface-50 dark:bg-neutral-800 text-surface-900 dark:text-white', 'rows': 3}),
+        }
+
+
+# Alias for backward compatibility
+LeadForm = JobApplicationForm
+
 
 class AppSettingForm(forms.ModelForm):
     class Meta:
         model = AppSetting
         fields = [
             'smtp_host', 'smtp_port', 'email_address', 'email_password',
-            'daily_send_limit', 'default_tone', 'default_offer',
-            'auto_send_enabled', 'follow_ups_enabled'
+            'daily_send_limit'
         ]
         widgets = {
             'email_password': forms.PasswordInput(render_value=False),
-            'default_offer': forms.Textarea(attrs={'rows': 3}),
         }
 
     def clean_email_password(self):
@@ -28,31 +43,3 @@ class AppSettingForm(forms.ModelForm):
         if not password and self.instance and self.instance.pk:
             return self.instance.email_password
         return password
-
-from .models import AutomationRule
-
-class AutomationRuleForm(forms.ModelForm):
-    class Meta:
-        model = AutomationRule
-        fields = ['name', 'trigger_type', 'target_status', 'delay_hours', 'ai_prompt_override', 'is_active']
-        widgets = {
-            'ai_prompt_override': forms.Textarea(attrs={'rows': 4, 'placeholder': 'e.g. Focus on their specific pain point mentioned in the problem field...'}),
-        }
-
-from .models import ScraperJob, RawLead
-
-class ScraperJobForm(forms.ModelForm):
-    class Meta:
-        model = ScraperJob
-        fields = ['name', 'niche', 'keywords', 'region']
-        widgets = {
-            'name': forms.TextInput(attrs={'placeholder': 'e.g. Miami Real Estate Search'}),
-            'keywords': forms.TextInput(attrs={'placeholder': 'e.g. restaurant, cafe, bistro'}),
-            'niche': forms.TextInput(attrs={'placeholder': 'e.g. Hospitality'}),
-            'region': forms.TextInput(attrs={'placeholder': 'e.g. London, UK'}),
-        }
-
-class RawLeadForm(forms.ModelForm):
-    class Meta:
-        model = RawLead
-        fields = ['business_name', 'contact_name', 'email', 'phone', 'website']
