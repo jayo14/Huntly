@@ -1,456 +1,183 @@
-{% extends 'landing_base.html' %}
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Huntly – Paste a job. Get the interview.</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3ea;--ink:#102a1f;--mut:#51655a;--card:#fbfdf9;--pink:#ff3d8b;--lime:#d6f24a;--lil:#c8b6ff;--sun:#ffb938;--line:#cfdcc9;
+--d:'Syne','Trebuchet MS',sans-serif;--b:'DM Sans','Segoe UI',sans-serif;color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-behavior:smooth;scroll-padding-top:90px}*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 18px/1.6 var(--b);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:80}
+h1,h2,h3{font-family:var(--d);font-weight:700;margin:0;letter-spacing:-.035em;line-height:1.04}
+h2{font-size:clamp(34px,5vw,64px)}h3{font-size:clamp(22px,2.2vw,28px);line-height:1.15}p{margin:0}a{color:inherit;text-decoration:none}
+.w{max-width:1240px;margin:0 auto;padding:0 24px}section{padding:100px 0}
+:focus-visible{outline:3px solid var(--pink);outline-offset:3px}
+.btn{display:inline-flex;align-items:center;gap:12px;font:700 17px var(--b);padding:17px 28px;border-radius:99px;background:var(--ink);color:#fff;border:0;cursor:pointer;transition:transform .3s cubic-bezier(.3,1.6,.5,1),background .3s}
+.btn:hover{transform:translateY(-2px);background:var(--pink)}.btn.o{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}.btn.o:hover{background:var(--lime)}
+.btn i{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--lime);color:var(--ink);font-style:normal;font-size:18px}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:70;padding:14px 0}
+nav .w{display:flex;justify-content:space-between;align-items:center}
+.pill{display:flex;align-items:center;gap:28px;background:var(--card);border-radius:99px;padding:8px 8px 8px 22px;box-shadow:0 8px 30px -12px #10392a55,inset 0 0 0 1px var(--line);width:100%;max-width:760px;margin:0 auto;justify-content:space-between}
+.lg{display:flex;align-items:center;gap:9px;font:800 24px var(--d);letter-spacing:-.05em}
+.lg b{width:30px;height:30px;border-radius:50%;background:var(--pink);box-shadow:inset 0 0 0 6px var(--pink),inset 0 0 0 10px var(--card),inset 0 0 0 30px var(--ink)}
+.lk{display:flex;gap:24px;font-weight:500;font-size:15px}.lk a:hover{color:var(--pink)}
+@media(max-width:720px){.lk{display:none}}
+.pill .btn{padding:11px 20px;font-size:15px}
+/* hero */
+.hero{padding:70px 0 40px;position:relative}
+.hero h1{font-size:clamp(44px,7.4vw,104px)}
+.hero h1 em{font-style:normal;background:var(--lime);padding:0 .12em;border-radius:.16em;display:inline-block}
+.hero h1 span{display:inline-block;color:var(--pink)}
+.hr{display:grid;grid-template-columns:1fr 1.15fr;gap:48px;align-items:center;margin-top:48px}
+@media(max-width:960px){.hr{grid-template-columns:1fr}}
+.lead{font-size:21px;color:var(--mut);max-width:25em}.cs{display:flex;gap:14px;flex-wrap:wrap;margin:30px 0 16px}.fine{font-size:14px;color:var(--mut)}
+.stage{position:relative;height:560px;perspective:1200px}
+.cd{position:absolute;background:var(--card);border-radius:26px;padding:24px;box-shadow:0 30px 60px -28px #10392aa0,inset 0 0 0 1.5px var(--ink);transition:transform .25s ease-out;will-change:transform}
+.c1{left:0;top:30px;width:56%;background:var(--lil);font-size:14px}.c2{right:0;top:0;width:60%;height:390px}.c3{left:14%;bottom:0;width:62%;background:var(--lime);font-size:14px}
+.cd h4{margin:0 0 8px;font:800 20px var(--d);letter-spacing:-.03em}
+.kw{padding:1px 5px;border-radius:5px;transition:.5s}.kw.on{background:var(--ink);color:var(--lime)}
+.bl{display:flex;gap:8px;font-size:13.5px;line-height:1.4;margin:11px 0;opacity:.2;transition:opacity .6s}.bl.on{opacity:1}.bl::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--pink);margin-top:5px}
+.ln{height:9px;border-radius:5px;background:var(--line);margin:10px 0}
+.stk{position:absolute;z-index:5;font:700 14px var(--b);padding:8px 14px;border-radius:99px;background:var(--sun);box-shadow:inset 0 0 0 1.5px var(--ink)}
+@keyframes bob{50%{translate:0 -8px}}
+.s1{right:2%;top:-8px;rotate:6deg}.s2{left:-1%;bottom:150px;rotate:-8deg;background:var(--pink);color:#fff;animation-delay:-1.5s}.s3{right:6%;bottom:60px;rotate:4deg;background:#fff;animation-delay:-3s}
+.stk b{font-size:26px}
+@media(max-width:560px){.stage{height:620px}.c1{width:80%}.c2{width:84%;top:130px}.c3{width:84%;left:0}}
+/* marquee */
+.mq{background:var(--ink);color:var(--lime);overflow:hidden;white-space:nowrap;padding:22px 0;margin:60px 0 0}
+.mq div{display:inline-block;font:700 22px var(--d);letter-spacing:-.04em;animation:mq 30s linear infinite}.mq span{margin:0 26px;color:var(--pink)}
+@keyframes mq{to{transform:translateX(-50%)}}
+/* problem */
+.pb{padding-top:150px}.fn{margin-top:70px;display:grid;gap:18px}
+.fr{display:grid;grid-template-columns:170px 1fr;gap:26px;align-items:center}
+.fr strong{font:700 clamp(32px,4vw,48px) var(--d);letter-spacing:-.05em;line-height:1}
+.br{height:64px;border-radius:99px;width:0;transition:width 1.6s cubic-bezier(.2,.8,.2,1);display:flex;align-items:center;padding:0 28px;font-weight:700;white-space:nowrap;overflow:hidden;min-width:0}
+.go .br{width:var(--w)}.fr:nth-child(1) .br{background:var(--lil)}.fr:nth-child(2) .br{background:var(--sun)}.fr:nth-child(3) .br{background:var(--pink);color:#fff;padding:0;justify-content:center}
+@media(max-width:700px){.fr{grid-template-columns:1fr;gap:8px}.br{height:64px}}
+.tr{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:70px}
+@media(max-width:860px){.tr{grid-template-columns:1fr}}
+.tr div{border-top:3px solid var(--ink);padding-top:20px}.tr h3{margin-bottom:12px}.tr p{color:var(--mut);font-size:16px}
+/* stacked solution */
+.sl{display:grid;gap:26px;margin-top:70px}
+.pn{position:sticky;top:calc(96px + var(--i)*22px);border-radius:40px;padding:48px;min-height:420px;display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center;box-shadow:inset 0 0 0 2px var(--ink),0 -20px 40px -30px #10392a88}
+@media(max-width:860px){.pn{grid-template-columns:1fr;padding:28px;position:relative;top:0}}
+.pn p{margin-top:16px;max-width:24em}.pn small{font:700 15px var(--b);display:inline-block;margin-bottom:18px;padding:6px 14px;border-radius:99px;box-shadow:inset 0 0 0 2px var(--ink)}
+.mk{background:var(--card);border-radius:24px;padding:24px;box-shadow:inset 0 0 0 1.5px var(--ink),4px 5px 0 var(--ink);font-size:15px}
+.ch{display:inline-block;margin:0 6px 8px 0;padding:6px 13px;border-radius:99px;background:var(--lime);font-weight:700;font-size:14px;box-shadow:inset 0 0 0 1.5px var(--ink)}.ch.n{background:var(--sun)}
+.q{margin:10px 0 0;padding-left:14px;border-left:4px solid var(--pink);color:var(--mut)}
+/* steps */
+.sp{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:70px}
+@media(max-width:900px){.sp{grid-template-columns:1fr 1fr}}@media(max-width:520px){.sp{grid-template-columns:1fr}}
+.st{background:var(--card);border-radius:30px;padding:28px;box-shadow:inset 0 0 0 1.5px var(--line);transition:transform .35s cubic-bezier(.3,1.5,.5,1),background .3s}.st:hover{transform:translateY(-6px);background:color-mix(in srgb,var(--lime) 60%,#fff)}
+.st i{display:block;font:700 72px/.9 var(--d);font-style:normal;color:transparent;-webkit-text-stroke:2px var(--ink);letter-spacing:-.06em;margin-bottom:24px}
+.st p{color:var(--mut);margin-top:10px;font-size:16px}
+/* table */
+.tw{overflow-x:auto;margin-top:60px;padding-top:14px}table{width:100%;min-width:760px;border-collapse:separate;border-spacing:0;font-size:16px}
+th,td{padding:18px 22px;text-align:left;border-bottom:1.5px solid var(--line)}th{font:700 15px var(--b);color:var(--mut)}
+.hu{background:var(--pink);color:#fff;font-weight:700}th.hu{border-radius:22px 22px 0 0;font:700 20px var(--d);letter-spacing:-.03em}tr:last-child .hu{border-radius:0 0 22px 22px;border:0}
+.y{font-weight:700;color:#1b8a4b}.nn{color:#a15a5a}
+/* pricing */
+.pr{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:70px;align-items:stretch}
+@media(max-width:960px){.pr{grid-template-columns:1fr}}
+.pc{border-radius:36px;padding:38px;display:flex;flex-direction:column;box-shadow:inset 0 0 0 2px var(--ink);background:var(--card);position:relative}
+.pc.h{background:color-mix(in srgb,var(--lime) 65%,#fff);translate:0 -12px;box-shadow:inset 0 0 0 2px var(--ink),4px 5px 0 var(--ink)}
+.pp{font:700 clamp(48px,5vw,64px)/1 var(--d);letter-spacing:-.06em;margin:24px 0}.pp span{font:500 18px var(--b);letter-spacing:0}
+.pc ul{list-style:none;margin:0 0 32px;padding:0;display:grid;gap:12px;flex:1;font-size:16px}.pc li::before{content:"check_circle";font-family:'Material Symbols Rounded';font-size:20px;vertical-align:-4px;margin-right:10px;color:var(--pink);font-variation-settings:'FILL' 1}
+.pc .btn{justify-content:center}.bd{position:absolute;top:-16px;right:26px;background:var(--pink);color:#fff;font:700 14px var(--b);padding:8px 16px;border-radius:99px;box-shadow:inset 0 0 0 2px var(--ink)}
+/* faq */
+.fq{max-width:900px;margin:60px auto 0}details{border-bottom:2px solid var(--ink)}
+summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:26px 0;font:700 clamp(19px,2.2vw,24px) var(--d);letter-spacing:-.02em}
+summary::-webkit-details-marker{display:none}summary::after{content:"add";font-family:'Material Symbols Rounded';display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;background:color-mix(in srgb,var(--lime) 60%,#fff);font-size:22px;transition:transform .3s,background .3s}
+details[open] summary::after{transform:rotate(45deg);background:var(--ink);color:#fff}details p{color:var(--mut);padding:0 60px 26px 0}
+/* cta + footer */
+.ct{background:var(--pink);color:#fff;border-radius:40px;margin:0 16px;text-align:center;padding:120px 24px;position:relative;overflow:hidden}
+.ct h2{font-size:clamp(36px,5.6vw,80px);max-width:11em;margin:0 auto}.ct p{margin:28px 0 36px;font-size:21px}.ct .btn{background:var(--ink)}.ct .btn:hover{background:var(--lime);color:var(--ink)}
+.ct .stk{font-size:18px}.ct .a{left:6%;top:14%;rotate:-10deg;background:var(--lime);color:var(--ink)}.ct .b{right:7%;bottom:16%;rotate:8deg;background:var(--lil);color:var(--ink)}
+@media(max-width:760px){.ct .stk{display:none}}
+footer{padding:80px 0 calc(34px + env(safe-area-inset-bottom,0px));overflow:hidden}
+footer .big{font:700 clamp(80px,20vw,280px)/.8 var(--d);letter-spacing:-.05em;text-align:center;color:var(--line);margin-top:50px}
+.fl{display:flex;justify-content:space-between;flex-wrap:wrap;gap:18px;font-size:15px;color:var(--mut)}.fl div{display:flex;gap:26px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto}}
+.ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;font-size:20px;line-height:1;display:inline-block;letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr;font-variation-settings:'FILL' 1,'wght' 500;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}.ch .ms{font-size:16px;vertical-align:-3px;margin-left:2px}
+</style></head><body>
+<nav><div class="w"><div class="pill"><a class="lg" href="#"><b></b>Huntly</a><div class="lk"><a href="#solution">Features</a><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div><a class="btn" href="#pricing">Get started</a></div></div></nav>
 
-{% block title %}Huntly: AI Resume Tailoring & Cover Letter Generator{% endblock %}
+<header class="hero"><div class="w">
+<h1>Paste a job.<br>Get the <em>interview.</em></h1>
+<div class="hr"><div><p class="lead">Double your interview callbacks with role-tailored resumes in 30 seconds. Drop in any job description and Huntly writes your ATS-optimized resume, cover letter and a direct pitch to the hiring manager.</p>
+<div class="cs"><a class="btn" href="#pricing">Build your first tailored application free <i class="ms">arrow_outward</i></a><a class="btn o" href="#how">See how it works</a></div><p class="fine">3 free tailored applications. No credit card required.</p></div>
+<div class="stage" id="stage" aria-label="A job post becomes a tailored resume, cover letter and pitch">
+<div class="cd c1" data-z="14"><h4>Product Designer</h4>We need someone to own <span class="kw">design systems</span>, work with <span class="kw">engineering</span>, run <span class="kw">user research</span> and improve <span class="kw">conversion</span>.</div>
+<div class="cd c2" data-z="26"><h4>Ada Okafor</h4><small>Product Designer · Lagos</small><div class="ln" style="width:70%"></div>
+<div class="bl">Built a <b>design system</b> used by 6 product teams</div><div class="bl">Ran <b>user research</b>, 40+ interviews each quarter</div><div class="bl">Shipped with <b>engineering</b> in 2-week cycles</div><div class="bl">Lifted checkout <b>conversion</b> by 18%</div><div class="ln" style="width:50%"></div></div>
+<div class="cd c3" data-z="38"><h4>Hi Tunde,</h4>I saw your design systems role. I rebuilt one used by 6 teams. Can I send a 2-minute walkthrough?</div>
+<div class="stk s1"><b id="sc">38</b>% ATS match</div></div></div></div></header>
 
-{% block content %}
-<!-- Hero Section -->
-<section class="relative overflow-hidden pt-28 pb-20 lg:pt-40 lg:pb-28 bg-surface-50 dark:bg-neutral-950 transition-colors duration-500">
-    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full hero-gradient pointer-events-none opacity-60 dark:opacity-100"></div>
-    
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <div class="text-center max-w-4xl mx-auto">
-            <div class="inline-flex items-center px-4 py-1.5 mb-8 rounded-full border border-primary-500/30 bg-primary-500/10 text-primary-600 dark:text-primary-400 text-xs font-bold uppercase tracking-widest">
-                <span class="relative flex h-2 w-2 mr-2.5">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-primary-500"></span>
-                </span>
-                The Outbound Career Agent
-            </div>
-            
-            <h1 class="text-4xl sm:text-6xl lg:text-7xl font-display font-extrabold tracking-tight mb-8 leading-[1.08] text-surface-950 dark:text-white">
-                Double your interview callbacks with <span class="gradient-text">role-tailored resumes</span> in 30 seconds
-            </h1>
-            
-            <p class="text-lg sm:text-xl text-surface-600 dark:text-neutral-400 mb-10 max-w-3xl mx-auto leading-relaxed font-normal">
-                Paste any job description to instantly generate an ATS-optimized resume, custom cover letter, and a direct email pitch to the hiring manager.
-            </p>
-            
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-                <a href="{% url 'core:signup' %}" class="w-full sm:w-auto bg-primary-600 text-white px-8 py-4 rounded-2xl text-base font-bold hover:bg-primary-500 hover:shadow-xl hover:shadow-primary-600/30 transition-all flex items-center justify-center group">
-                    Build your first tailored application free
-                    <i data-lucide="arrow-right" class="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
-                </a>
-                <a href="#how-it-works" class="w-full sm:w-auto bg-surface-200/70 dark:bg-white/5 border border-surface-300 dark:border-white/10 text-surface-950 dark:text-white px-8 py-4 rounded-2xl text-base font-bold hover:bg-surface-300 dark:hover:bg-white/10 transition-all flex items-center justify-center">
-                    See How It Works
-                </a>
-            </div>
+<div class="mq" aria-hidden="true"><div id="mq"></div></div>
 
-            <p class="text-xs text-surface-500 font-medium">
-                Join job seekers skipping the ATS queue. No credit card required.
-            </p>
+<section class="pb"><div class="w"><h2 style="max-width:9em">Most resumes never meet a human.</h2>
+<div class="fn" id="fn"><div class="fr"><strong>500</strong><div class="br" style="--w:100%">applicants on one posting</div></div>
+<div class="fr"><strong>120</strong><div class="br" style="--w:42%">survive the keyword scan</div></div>
+<div class="fr"><strong>10</strong><div class="br" style="--w:12%">get read</div></div></div>
+<div class="tr"><div><h3>The 2% black hole</h3><p>Generic applications get about a 2% callback rate because scanners reject resumes without exact keyword matches.</p></div>
+<div><h3>Application burnout</h3><p>Rewriting bullets takes 45 minutes per role, so you send two applications a day and run out of energy.</p></div>
+<div><h3>The 500-applicant crowd</h3><p>On Easy Apply, your resume sits at the bottom of the recruiter’s pile.</p></div></div></div></section>
 
-            <!-- Live Proof Metrics -->
-            <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-                <div class="bg-surface-100/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-surface-200 dark:border-white/5 p-6 rounded-2xl">
-                    <div class="text-3xl font-extrabold text-primary-600 dark:text-primary-400 mb-1">2.4x</div>
-                    <div class="text-xs font-bold uppercase tracking-wider text-surface-500 mb-1">Higher Callback Rate</div>
-                    <p class="text-xs text-surface-600 dark:text-neutral-400">Exact ATS keyword match lifts your resume to top applicant cohorts.</p>
-                </div>
-                <div class="bg-surface-100/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-surface-200 dark:border-white/5 p-6 rounded-2xl">
-                    <div class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mb-1">30 Sec</div>
-                    <div class="text-xs font-bold uppercase tracking-wider text-surface-500 mb-1">Per Tailored Application</div>
-                    <p class="text-xs text-surface-600 dark:text-neutral-400">Save 45 minutes per role. Stop manually rewriting work history bullets.</p>
-                </div>
-                <div class="bg-surface-100/70 dark:bg-neutral-900/60 backdrop-blur-xl border border-surface-200 dark:border-white/5 p-6 rounded-2xl">
-                    <div class="text-3xl font-extrabold text-sky-600 dark:text-sky-400 mb-1">100%</div>
-                    <div class="text-xs font-bold uppercase tracking-wider text-surface-500 mb-1">ATS-Compliant DOCX</div>
-                    <p class="text-xs text-surface-600 dark:text-neutral-400">Single-column Word format passes Workday, Taleo, and Greenhouse cleanly.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+<section id="solution" style="padding-top:20px"><div class="w"><h2 style="max-width:9.5em">One job description. One complete application packet.</h2>
+<div class="sl">
+<div class="pn" style="--i:0;background:color-mix(in srgb,var(--lime) 55%,#fff)"><div><small>Resume</small><h3>Instant ATS keyword alignment</h3><p>Huntly extracts the top technical keywords from the posting, then reorders and adapts your master career achievements to match. You pass screens without rewriting.</p></div>
+<div class="mk"><b>Keywords matched</b><br><br><span class="ch">design systems<i class="ms">check</i></span><span class="ch">user research<i class="ms">check</i></span><span class="ch">prototyping<i class="ms">check</i></span><span class="ch n">A/B testing<i class="ms">add</i></span></div></div>
+<div class="pn" style="--i:1;background:color-mix(in srgb,var(--lil) 55%,#fff)"><div><small>Cover letter</small><h3>Custom cover letters in 5 seconds</h3><p>Three paragraphs tied to the company’s mission, with real metrics from your profile. No blank page.</p></div>
+<div class="mk"><b>Dear hiring team,</b><div class="q">Four years of building design systems taught me to help engineers ship faster.</div><div class="q">Last year I lifted checkout conversion by 18%.</div></div></div>
+<div class="pn" style="--i:2;background:color-mix(in srgb,var(--sun) 50%,#fff)"><div><small>Outreach</small><h3>Direct hiring manager outreach</h3><p>While you wait for an ATS confirmation, Huntly drafts a short pitch for the engineering manager or team lead. A direct second channel into interviews.</p></div>
+<div class="mk"><b>To: hiring manager</b><div class="q">Hi Tunde, I rebuilt a design system used by 6 teams. Could I share a 2-minute walkthrough?</div></div></div></div></div></section>
 
-<!-- Problem Section -->
-<section class="py-24 bg-surface-100/50 dark:bg-neutral-900/40 border-y border-surface-200 dark:border-white/5">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <span class="text-xs font-bold uppercase tracking-[0.25em] text-rose-500 mb-3 block">The Problem</span>
-            <h2 class="text-3xl sm:text-4xl font-display font-bold text-surface-950 dark:text-white leading-tight">
-                The modern job search is broken, and generic resumes do not work
-            </h2>
-        </div>
+<section id="how" style="padding-top:60px"><div class="w"><h2 style="max-width:9em">Four steps to interview ready.</h2>
+<div class="sp"><div class="st"><i>1</i><h3>Save your master profile</h3><p>Add your history, skills and achievements once, in under 3 minutes.</p></div>
+<div class="st"><i>2</i><h3>Paste the target job</h3><p>Drop in the requirements from any job board.</p></div>
+<div class="st"><i>3</i><h3>Review your packet</h3><p>Check the tailored bullets, cover letter and hiring manager pitch.</p></div>
+<div class="st"><i>4</i><h3>Download and track</h3><p>Export a clean DOCX and follow every role on your Kanban board.</p></div></div></div></section>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="bg-surface-50 dark:bg-neutral-900 border border-surface-200 dark:border-white/5 p-8 rounded-3xl space-y-4">
-                <div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-bold text-xl">
-                    <i data-lucide="filter-x" class="w-6 h-6"></i>
-                </div>
-                <h3 class="text-lg font-bold text-surface-950 dark:text-white">The 2% ATS Black Hole</h3>
-                <p class="text-sm text-surface-600 dark:text-neutral-400 leading-relaxed">
-                    Sending 200 generic applications gets a 2% callback rate because automated scanners filter out resumes that lack exact keyword matches.
-                </p>
-            </div>
+<section style="padding-top:40px"><div class="w"><h2 style="max-width:9em">Why people switch to Huntly.</h2>
+<div class="tw"><table><tr><th>Feature</th><th class="hu">Huntly</th><th>Simplify Jobs</th><th>Teal</th><th>JobScan</th></tr>
+<tr><td>Tailored resume generation</td><td class="hu">Included</td><td>Paid ($39.99/mo)</td><td>Paid ($29/mo)</td><td>Score only</td></tr>
+<tr><td>Custom cover letters</td><td class="hu">Included</td><td>Paid ($39.99/mo)</td><td>Paid ($29/mo)</td><td>Paid ($49.95/mo)</td></tr>
+<tr><td>Clean ATS DOCX export</td><td class="hu">Yes</td><td class="nn">No (PDF only)</td><td class="y">Yes</td><td class="y">Yes</td></tr>
+<tr><td>Visual Kanban tracker</td><td class="hu">Yes</td><td class="y">Yes</td><td class="y">Yes</td><td>Limited</td></tr>
+<tr><td>Direct hiring manager pitch</td><td class="hu">Yes</td><td class="nn">No</td><td class="nn">No</td><td class="nn">No</td></tr>
+<tr><td>Weekly pricing</td><td class="hu">$9 / week</td><td>$19.99 / week</td><td>$13 / week</td><td>None</td></tr>
+<tr><td>Monthly full access</td><td class="hu">$19 / month</td><td>$39.99 / month</td><td>$29 / month</td><td>$49.95 / month</td></tr></table></div></div></section>
 
-            <div class="bg-surface-50 dark:bg-neutral-900 border border-surface-200 dark:border-white/5 p-8 rounded-3xl space-y-4">
-                <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold text-xl">
-                    <i data-lucide="clock" class="w-6 h-6"></i>
-                </div>
-                <h3 class="text-lg font-bold text-surface-950 dark:text-white">Application Burnout</h3>
-                <p class="text-sm text-surface-600 dark:text-neutral-400 leading-relaxed">
-                    Spending 45 minutes manually tweaking bullet points per application leaves you exhausted after submitting only two jobs a day.
-                </p>
-            </div>
+<section id="pricing" style="padding-top:60px"><div class="w"><h2 style="max-width:8em">Simple, fair plans.</h2><p class="lead" style="margin-top:22px">Cancel anytime. One interview offer pays for this 100 times over.</p>
+<div class="pr"><div class="pc"><h3>Free</h3><p class="fine">Test your callback rate lift.</p><div class="pp">$0</div><ul><li>1 master profile</li><li>3 tailored resumes</li><li>3 custom cover letters</li><li>Kanban board, up to 25 jobs</li><li>Clean DOCX export</li></ul><a class="btn o" href="#">Start free</a></div>
+<div class="pc h"><span class="bd">Most popular</span><h3>Job Sprint</h3><p class="fine" style="color:var(--ink)">For candidates applying actively this week.</p><div class="pp">$9<span> / week</span></div><ul><li>Unlimited tailored resumes</li><li>Unlimited cover letters</li><li>Unlimited DOCX downloads</li><li>Full Kanban tracker</li><li>10 recruiter outreach pitches</li></ul><a class="btn" href="#">Start Sprint <i class="ms">arrow_outward</i></a></div>
+<div class="pc"><h3>Pro Hunter</h3><p class="fine" style="color:var(--ink)">Full career hunt across multiple offers.</p><div class="pp">$19<span> / month</span></div><ul><li>Everything in Job Sprint</li><li>50 outreach pitches a month</li><li>Hiring manager email drafting</li><li>ATS keyword gap audits</li><li>Priority support</li></ul><a class="btn o" href="#">Upgrade to Pro</a></div></div></div></section>
 
-            <div class="bg-surface-50 dark:bg-neutral-900 border border-surface-200 dark:border-white/5 p-8 rounded-3xl space-y-4">
-                <div class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center font-bold text-xl">
-                    <i data-lucide="users" class="w-6 h-6"></i>
-                </div>
-                <h3 class="text-lg font-bold text-surface-950 dark:text-white">The 500-Applicant Crowd</h3>
-                <p class="text-sm text-surface-600 dark:text-neutral-400 leading-relaxed">
-                    Competing against 500 applicants on LinkedIn Easy Apply guarantees your resume sits unread at the bottom of a recruiter pile.
-                </p>
-            </div>
-        </div>
-    </div>
-</section>
+<section id="faq" style="padding-top:40px"><div class="w"><h2 style="text-align:center">Good questions.</h2><div class="fq">
+<details><summary>Will the AI invent experience on my resume?</summary><p>No. Huntly reorders and rephrases only what you saved in your master profile. It never adds employers, titles or numbers you did not enter.</p></details>
+<details><summary>Why export to DOCX instead of only PDF?</summary><p>Many applicant tracking systems read Word files more reliably than PDFs, and you can still edit before you send.</p></details>
+<details><summary>How is Huntly different from Simplify Jobs?</summary><p>Huntly writes the full packet for each role, including a pitch to the hiring manager, at a lower weekly and monthly price.</p></details>
+<details><summary>Can I cancel after I get hired?</summary><p>Yes, anytime from your account. Your master profile stays on the free plan.</p></details>
+<details><summary>How is my personal career data protected?</summary><p>Your profile is private to your account and is used only to generate your applications.</p></details></div></div></section>
 
-<!-- Solution Section -->
-<section id="features" class="py-24 bg-surface-50 dark:bg-neutral-950">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <span class="text-xs font-bold uppercase tracking-[0.25em] text-primary-600 mb-3 block">The Solution</span>
-            <h2 class="text-3xl sm:text-4xl font-display font-bold text-surface-950 dark:text-white leading-tight">
-                Turn any job description into an interview-ready application packet
-            </h2>
-        </div>
+<div class="ct">
+<h2>Stop sending generic resumes into the black hole.</h2><p>Start your next application with an ATS-aligned resume and cover letter in 30 seconds.</p>
+<a class="btn" href="#pricing">Build your first tailored application free <i class="ms">arrow_outward</i></a><p class="fine" style="color:#fff;font-size:15px;margin:22px 0 0">3 free tailored applications included. No credit card required.</p></div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="bg-surface-100/60 dark:bg-neutral-900/60 border border-surface-200 dark:border-white/5 p-8 rounded-3xl flex flex-col justify-between">
-                <div>
-                    <div class="w-12 h-12 rounded-2xl bg-primary-500/10 text-primary-600 flex items-center justify-center mb-6">
-                        <i data-lucide="target" class="w-6 h-6"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-surface-950 dark:text-white mb-3">Instant ATS Keyword Alignment</h3>
-                    <p class="text-sm text-surface-600 dark:text-neutral-400 leading-relaxed">
-                        Huntly extracts top technical keywords and competencies from the job posting, then reorders and adapts your master career achievements to match. Pass screens without rewriting history.
-                    </p>
-                </div>
-                <div class="mt-6 pt-4 border-t border-surface-200 dark:border-white/5 text-xs font-semibold text-primary-600">
-                    High-scoring keyword matching &rarr;
-                </div>
-            </div>
+<footer><div class="w"><div class="fl"><span>© 2026 Huntly. All rights reserved.</span><div><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a></div></div><div class="big" aria-hidden="true">huntly</div></div></footer>
 
-            <div class="bg-surface-100/60 dark:bg-neutral-900/60 border border-surface-200 dark:border-white/5 p-8 rounded-3xl flex flex-col justify-between">
-                <div>
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-6">
-                        <i data-lucide="file-text" class="w-6 h-6"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-surface-950 dark:text-white mb-3">Custom Cover Letters in 5s</h3>
-                    <p class="text-sm text-surface-600 dark:text-neutral-400 leading-relaxed">
-                        Get a 3-paragraph, role-specific cover letter that connects your past wins to the company mission in under 5 seconds. Every letter includes real metrics from your profile.
-                    </p>
-                </div>
-                <div class="mt-6 pt-4 border-t border-surface-200 dark:border-white/5 text-xs font-semibold text-emerald-600">
-                    Zero writer's block &rarr;
-                </div>
-            </div>
-
-            <div class="bg-surface-100/60 dark:bg-neutral-900/60 border border-surface-200 dark:border-white/5 p-8 rounded-3xl flex flex-col justify-between">
-                <div>
-                    <div class="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-600 flex items-center justify-center mb-6">
-                        <i data-lucide="send" class="w-6 h-6"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-surface-950 dark:text-white mb-3">Direct Hiring Manager Outreach</h3>
-                    <p class="text-sm text-surface-600 dark:text-neutral-400 leading-relaxed">
-                        Stop waiting for an ATS confirmation email. Huntly drafts a concise, 4-sentence pitch designed for the engineering manager or team lead, giving you a direct second channel into interviews.
-                    </p>
-                </div>
-                <div class="mt-6 pt-4 border-t border-surface-200 dark:border-white/5 text-xs font-semibold text-sky-600">
-                    Skip the generic queue &rarr;
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- How It Works Section -->
-<section id="how-it-works" class="py-24 bg-surface-100/50 dark:bg-neutral-900/40 border-y border-surface-200 dark:border-white/5">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <span class="text-xs font-bold uppercase tracking-[0.25em] text-primary-600 mb-3 block">Simple 4-Step Flow</span>
-            <h2 class="text-3xl sm:text-4xl font-display font-bold text-surface-950 dark:text-white leading-tight">
-                How Huntly Gets You Interview Ready
-            </h2>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="bg-surface-50 dark:bg-neutral-900 border border-surface-200 dark:border-white/5 p-6 rounded-2xl relative">
-                <div class="w-10 h-10 rounded-xl bg-primary-600 text-white font-bold flex items-center justify-center mb-4 text-sm">
-                    1
-                </div>
-                <h4 class="font-bold text-base text-surface-950 dark:text-white mb-2">Save Master Profile</h4>
-                <p class="text-xs text-surface-600 dark:text-neutral-400 leading-relaxed">
-                    Enter your career history, technical skills, and achievements once in under 3 minutes.
-                </p>
-            </div>
-
-            <div class="bg-surface-50 dark:bg-neutral-900 border border-surface-200 dark:border-white/5 p-6 rounded-2xl relative">
-                <div class="w-10 h-10 rounded-xl bg-primary-600 text-white font-bold flex items-center justify-center mb-4 text-sm">
-                    2
-                </div>
-                <h4 class="font-bold text-base text-surface-950 dark:text-white mb-2">Paste Target Job</h4>
-                <p class="text-xs text-surface-600 dark:text-neutral-400 leading-relaxed">
-                    Drop in the role requirements and company details directly from any job board.
-                </p>
-            </div>
-
-            <div class="bg-surface-50 dark:bg-neutral-900 border border-surface-200 dark:border-white/5 p-6 rounded-2xl relative">
-                <div class="w-10 h-10 rounded-xl bg-primary-600 text-white font-bold flex items-center justify-center mb-4 text-sm">
-                    3
-                </div>
-                <h4 class="font-bold text-base text-surface-950 dark:text-white mb-2">Review Tailored Packet</h4>
-                <p class="text-xs text-surface-600 dark:text-neutral-400 leading-relaxed">
-                    Huntly aligns keywords and generates tailored bullets, custom cover letter, and hiring pitch.
-                </p>
-            </div>
-
-            <div class="bg-surface-50 dark:bg-neutral-900 border border-surface-200 dark:border-white/5 p-6 rounded-2xl relative">
-                <div class="w-10 h-10 rounded-xl bg-primary-600 text-white font-bold flex items-center justify-center mb-4 text-sm">
-                    4
-                </div>
-                <h4 class="font-bold text-base text-surface-950 dark:text-white mb-2">Download DOCX & Track</h4>
-                <p class="text-xs text-surface-600 dark:text-neutral-400 leading-relaxed">
-                    Export an ATS-compliant Word document, send your pitch, and track on your Kanban pipeline.
-                </p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Competitor Comparison Table -->
-<section class="py-24 bg-surface-50 dark:bg-neutral-950">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <span class="text-xs font-bold uppercase tracking-[0.25em] text-primary-600 mb-3 block">Market Comparison</span>
-            <h2 class="text-3xl sm:text-4xl font-display font-bold text-surface-950 dark:text-white leading-tight">
-                Why Job Seekers Choose Huntly
-            </h2>
-            <p class="text-sm text-surface-500 mt-3">Sourced benchmarks against legacy resume tools and form fillers.</p>
-        </div>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse bg-surface-100/70 dark:bg-neutral-900/60 rounded-3xl overflow-hidden border border-surface-200 dark:border-white/5">
-                <thead>
-                    <tr class="border-b border-surface-200 dark:border-white/10 text-xs font-bold text-surface-400 uppercase tracking-wider">
-                        <th class="py-5 px-6">Feature</th>
-                        <th class="py-5 px-6 text-primary-600 dark:text-primary-400 bg-primary-500/10 text-center font-extrabold text-sm">Huntly</th>
-                        <th class="py-5 px-6 text-center">Simplify Jobs</th>
-                        <th class="py-5 px-6 text-center">Teal</th>
-                        <th class="py-5 px-6 text-center">Jobscan</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-surface-200 dark:divide-white/5 text-sm">
-                    <tr>
-                        <td class="py-4 px-6 font-semibold text-surface-900 dark:text-white">Tailored resume generation</td>
-                        <td class="py-4 px-6 text-center font-bold text-primary-600 bg-primary-500/5">Included</td>
-                        <td class="py-4 px-6 text-center text-surface-500">Paid ($39.99/mo)</td>
-                        <td class="py-4 px-6 text-center text-surface-500">Paid ($29/mo)</td>
-                        <td class="py-4 px-6 text-center text-surface-500">Score only</td>
-                    </tr>
-                    <tr>
-                        <td class="py-4 px-6 font-semibold text-surface-900 dark:text-white">Custom cover letter generator</td>
-                        <td class="py-4 px-6 text-center font-bold text-primary-600 bg-primary-500/5">Included</td>
-                        <td class="py-4 px-6 text-center text-surface-500">Paid ($39.99/mo)</td>
-                        <td class="py-4 px-6 text-center text-surface-500">Paid ($29/mo)</td>
-                        <td class="py-4 px-6 text-center text-surface-500">Paid ($49.95/mo)</td>
-                    </tr>
-                    <tr>
-                        <td class="py-4 px-6 font-semibold text-surface-900 dark:text-white">Clean ATS DOCX export</td>
-                        <td class="py-4 px-6 text-center font-bold text-emerald-600 bg-primary-500/5">Yes</td>
-                        <td class="py-4 px-6 text-center text-surface-500">No (PDF only)</td>
-                        <td class="py-4 px-6 text-center text-surface-500">Yes</td>
-                        <td class="py-4 px-6 text-center text-surface-500">Yes</td>
-                    </tr>
-                    <tr>
-                        <td class="py-4 px-6 font-semibold text-surface-900 dark:text-white">Visual Kanban job tracker</td>
-                        <td class="py-4 px-6 text-center font-bold text-emerald-600 bg-primary-500/5">Yes</td>
-                        <td class="py-4 px-6 text-center text-surface-500">Yes</td>
-                        <td class="py-4 px-6 text-center text-surface-500">Yes</td>
-                        <td class="py-4 px-6 text-center text-surface-500">Limited</td>
-                    </tr>
-                    <tr>
-                        <td class="py-4 px-6 font-semibold text-surface-900 dark:text-white">Direct hiring manager pitch</td>
-                        <td class="py-4 px-6 text-center font-bold text-emerald-600 bg-primary-500/5">Yes</td>
-                        <td class="py-4 px-6 text-center text-surface-500">No</td>
-                        <td class="py-4 px-6 text-center text-surface-500">No</td>
-                        <td class="py-4 px-6 text-center text-surface-500">No</td>
-                    </tr>
-                    <tr>
-                        <td class="py-4 px-6 font-semibold text-surface-900 dark:text-white">Weekly sprint pricing</td>
-                        <td class="py-4 px-6 text-center font-extrabold text-primary-600 bg-primary-500/5">$9 / week</td>
-                        <td class="py-4 px-6 text-center text-surface-500">$19.99 / week</td>
-                        <td class="py-4 px-6 text-center text-surface-500">$13 / week</td>
-                        <td class="py-4 px-6 text-center text-surface-500">None</td>
-                    </tr>
-                    <tr>
-                        <td class="py-4 px-6 font-semibold text-surface-900 dark:text-white">Monthly full access price</td>
-                        <td class="py-4 px-6 text-center font-extrabold text-primary-600 bg-primary-500/5">$19 / month</td>
-                        <td class="py-4 px-6 text-center text-surface-500">$39.99 / month</td>
-                        <td class="py-4 px-6 text-center text-surface-500">$29 / month</td>
-                        <td class="py-4 px-6 text-center text-surface-500">$49.95 / month</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</section>
-
-<!-- Pricing Section -->
-<section id="pricing" class="py-24 bg-surface-100/50 dark:bg-neutral-900/40 border-y border-surface-200 dark:border-white/5">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <span class="text-xs font-bold uppercase tracking-[0.25em] text-primary-600 mb-3 block">Pricing Plans</span>
-            <h2 class="text-3xl sm:text-4xl font-display font-bold text-surface-950 dark:text-white leading-tight">
-                Simple, Fair Plans for Active Job Seekers
-            </h2>
-            <p class="text-sm text-surface-500 mt-3">Cancel anytime. One interview offer pays for this 100 times over.</p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <!-- Free Test Drive -->
-            <div class="bg-surface-50 dark:bg-neutral-900 border border-surface-200 dark:border-white/5 p-8 rounded-3xl flex flex-col justify-between">
-                <div>
-                    <h3 class="text-lg font-bold text-surface-950 dark:text-white mb-1">Free (Test Drive)</h3>
-                    <p class="text-xs text-surface-500 mb-6">Test your callback rate lift.</p>
-                    <div class="text-4xl font-extrabold text-surface-950 dark:text-white mb-6">$0</div>
-                    <ul class="space-y-3 text-xs text-surface-600 dark:text-neutral-400">
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500"></i> 1 Master Profile</li>
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500"></i> 3 Tailored resumes lifetime</li>
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500"></i> 3 Custom cover letters</li>
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500"></i> Kanban board (up to 25 jobs)</li>
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500"></i> Clean DOCX export</li>
-                    </ul>
-                </div>
-                <a href="{% url 'core:signup' %}" class="mt-8 block text-center py-3 px-4 rounded-xl border border-surface-300 dark:border-white/10 font-bold text-xs hover:bg-surface-100 transition-all">
-                    Start Free
-                </a>
-            </div>
-
-            <!-- Job Sprint -->
-            <div class="bg-surface-50 dark:bg-neutral-900 border-2 border-primary-600 p-8 rounded-3xl flex flex-col justify-between relative shadow-xl shadow-primary-600/10">
-                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-600 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
-                    Most Popular
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-surface-950 dark:text-white mb-1">Job Sprint</h3>
-                    <p class="text-xs text-surface-500 mb-6">For candidates actively applying this week.</p>
-                    <div class="text-4xl font-extrabold text-primary-600 mb-6">$9 <span class="text-sm font-normal text-surface-500">/ week</span></div>
-                    <ul class="space-y-3 text-xs text-surface-600 dark:text-neutral-400">
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-primary-600"></i> <strong>Unlimited</strong> tailored resumes</li>
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-primary-600"></i> <strong>Unlimited</strong> cover letters</li>
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-primary-600"></i> <strong>Unlimited</strong> DOCX downloads</li>
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-primary-600"></i> Full Kanban tracker</li>
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-primary-600"></i> 10 Recruiter outreach pitches/wk</li>
-                    </ul>
-                </div>
-                <a href="{% url 'core:signup' %}" class="mt-8 block text-center py-3 px-4 rounded-xl bg-primary-600 text-white font-bold text-xs hover:bg-primary-500 transition-all shadow-md">
-                    Start Sprint
-                </a>
-            </div>
-
-            <!-- Pro Hunter -->
-            <div class="bg-surface-50 dark:bg-neutral-900 border border-surface-200 dark:border-white/5 p-8 rounded-3xl flex flex-col justify-between">
-                <div>
-                    <h3 class="text-lg font-bold text-surface-950 dark:text-white mb-1">Pro Hunter</h3>
-                    <p class="text-xs text-surface-500 mb-6">Full career hunt across multiple offers.</p>
-                    <div class="text-4xl font-extrabold text-surface-950 dark:text-white mb-6">$19 <span class="text-sm font-normal text-surface-500">/ month</span></div>
-                    <ul class="space-y-3 text-xs text-surface-600 dark:text-neutral-400">
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500"></i> <strong>Everything in Job Sprint</strong></li>
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500"></i> 50 Recruiter outreach pitches/mo</li>
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500"></i> Hiring manager email drafting</li>
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500"></i> ATS keyword gap audits</li>
-                        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500"></i> Priority feature support</li>
-                    </ul>
-                </div>
-                <a href="{% url 'core:signup' %}" class="mt-8 block text-center py-3 px-4 rounded-xl border border-surface-300 dark:border-white/10 font-bold text-xs hover:bg-surface-100 transition-all">
-                    Upgrade to Pro
-                </a>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- FAQ Section -->
-<section class="py-24 bg-surface-50 dark:bg-neutral-950">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-            <span class="text-xs font-bold uppercase tracking-[0.25em] text-primary-600 mb-3 block">FAQ</span>
-            <h2 class="text-3xl sm:text-4xl font-display font-bold text-surface-950 dark:text-white leading-tight">
-                Frequently Asked Questions
-            </h2>
-        </div>
-
-        <div class="space-y-4" x-data="{ openFaq: null }">
-            <div class="bg-surface-100/60 dark:bg-neutral-900/60 border border-surface-200 dark:border-white/5 rounded-2xl overflow-hidden">
-                <button @click="openFaq = openFaq === 1 ? null : 1" class="w-full text-left p-6 flex justify-between items-center text-surface-950 dark:text-white font-bold text-sm">
-                    <span>Will the AI invent fake experience on my resume?</span>
-                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform text-surface-400" :class="openFaq === 1 ? 'rotate-180' : ''"></i>
-                </button>
-                <div x-show="openFaq === 1" x-cloak class="px-6 pb-6 text-xs text-surface-600 dark:text-neutral-400 leading-relaxed">
-                    No. Huntly only uses the achievements, metrics, and skills listed in your Master Profile. It reframes and re-prioritizes your real work history to match the target job description without hallucinating titles or dates.
-                </div>
-            </div>
-
-            <div class="bg-surface-100/60 dark:bg-neutral-900/60 border border-surface-200 dark:border-white/5 rounded-2xl overflow-hidden">
-                <button @click="openFaq = openFaq === 2 ? null : 2" class="w-full text-left p-6 flex justify-between items-center text-surface-950 dark:text-white font-bold text-sm">
-                    <span>Why do you export to DOCX instead of only PDF?</span>
-                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform text-surface-400" :class="openFaq === 2 ? 'rotate-180' : ''"></i>
-                </button>
-                <div x-show="openFaq === 2" x-cloak class="px-6 pb-6 text-xs text-surface-600 dark:text-neutral-400 leading-relaxed">
-                    Applicant Tracking Systems like Workday and Taleo parse single-column DOCX files with higher fidelity than complex PDFs. You can open the file in Word or Google Docs, make last-minute edits, and export to PDF whenever requested.
-                </div>
-            </div>
-
-            <div class="bg-surface-100/60 dark:bg-neutral-900/60 border border-surface-200 dark:border-white/5 rounded-2xl overflow-hidden">
-                <button @click="openFaq = openFaq === 3 ? null : 3" class="w-full text-left p-6 flex justify-between items-center text-surface-950 dark:text-white font-bold text-sm">
-                    <span>How is Huntly different from Simplify Jobs?</span>
-                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform text-surface-400" :class="openFaq === 3 ? 'rotate-180' : ''"></i>
-                </button>
-                <div x-show="openFaq === 3" x-cloak class="px-6 pb-6 text-xs text-surface-600 dark:text-neutral-400 leading-relaxed">
-                    Simplify focuses primarily on browser form autofill and charges $39.99/month for AI tools. Huntly focuses on interview conversion: delivering tailored bullet points, custom cover letters, and hiring manager outreach for half the price.
-                </div>
-            </div>
-
-            <div class="bg-surface-100/60 dark:bg-neutral-900/60 border border-surface-200 dark:border-white/5 rounded-2xl overflow-hidden">
-                <button @click="openFaq = openFaq === 4 ? null : 4" class="w-full text-left p-6 flex justify-between items-center text-surface-950 dark:text-white font-bold text-sm">
-                    <span>Can I cancel my subscription after I get hired?</span>
-                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform text-surface-400" :class="openFaq === 4 ? 'rotate-180' : ''"></i>
-                </button>
-                <div x-show="openFaq === 4" x-cloak class="px-6 pb-6 text-xs text-surface-600 dark:text-neutral-400 leading-relaxed">
-                    Yes. You can cancel with one click directly inside your settings at any time. There are no contracts, no cancellation fees, and no annual traps.
-                </div>
-            </div>
-
-            <div class="bg-surface-100/60 dark:bg-neutral-900/60 border border-surface-200 dark:border-white/5 rounded-2xl overflow-hidden">
-                <button @click="openFaq = openFaq === 5 ? null : 5" class="w-full text-left p-6 flex justify-between items-center text-surface-950 dark:text-white font-bold text-sm">
-                    <span>How is my personal career data protected?</span>
-                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform text-surface-400" :class="openFaq === 5 ? 'rotate-180' : ''"></i>
-                </button>
-                <div x-show="openFaq === 5" x-cloak class="px-6 pb-6 text-xs text-surface-600 dark:text-neutral-400 leading-relaxed">
-                    Your resume data and contact details are isolated to your authenticated account. We do not sell your personal data or work history to third-party recruitment agencies or ad networks.
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Final Call to Action -->
-<section class="py-24 bg-surface-100/70 dark:bg-neutral-900/80 border-t border-surface-200 dark:border-white/5 text-center">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-3xl sm:text-5xl font-display font-bold text-surface-950 dark:text-white mb-6">
-            Stop sending generic resumes into the black hole
-        </h2>
-        <p class="text-base text-surface-600 dark:text-neutral-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Start your next application with an ATS-aligned resume and custom cover letter ready in 30 seconds.
-        </p>
-        <a href="{% url 'core:signup' %}" class="inline-flex items-center bg-primary-600 text-white px-10 py-4 rounded-2xl text-base font-bold hover:bg-primary-500 hover:shadow-xl hover:shadow-primary-600/30 transition-all">
-            Build your first tailored application free
-            <i data-lucide="arrow-right" class="ml-2 w-5 h-5"></i>
-        </a>
-        <p class="text-xs text-surface-500 mt-4">
-            3 free tailored applications included. No credit card required.
-        </p>
-    </div>
-</section>
-{% endblock %}
+<script>
+(function(){var k=[].slice.call(document.querySelectorAll('.kw')),b=document.querySelectorAll('.bl'),s=document.getElementById('sc'),i=0,v=38;
+(function st(){if(i<k.length){k[i].classList.add('on');b[i].classList.add('on');v+=14;s.textContent=Math.min(v,96);i++;setTimeout(st,700)}})();
+var m=document.getElementById('mq'),t='';['Resume','Cover letter','Hiring manager pitch','ATS keywords','Kanban tracker','DOCX export'].forEach(function(x){t+=x+'<span class="ms">star</span>'});m.innerHTML=t+t+t+t;
+var g=document.getElementById('stage');
+g.addEventListener('pointermove',function(e){var r=g.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
+g.querySelectorAll('.cd').forEach(function(c){var z=+c.dataset.z;c.style.transform='rotateY('+x*z*.6+'deg) rotateX('+-y*z*.6+'deg) translate('+x*z+'px,'+y*z+'px)'})});
+g.addEventListener('pointerleave',function(){g.querySelectorAll('.cd').forEach(function(c){c.style.transform=''})});
+var f=document.getElementById('fn');if('IntersectionObserver' in window){new IntersectionObserver(function(e,o){if(e[0].isIntersecting){f.classList.add('go');o.disconnect()}},{threshold:.3}).observe(f)}else f.classList.add('go');
+})();
+</script></body></html>
