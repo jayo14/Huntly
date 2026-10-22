@@ -87,3 +87,24 @@ class LogoutViewTests(TestCase):
         response = client.post(reverse('core:logout'), {'csrfmiddlewaretoken': csrf_token})
         self.assertRedirects(response, reverse('core:landing'))
         self.assertFalse('_auth_user_id' in client.session)
+
+
+class PostgreSQLConfigurationTests(TestCase):
+    def test_postgres_url_scheme_parsing(self):
+        import environ
+        env = environ.Env()
+        db_config = env.db_url_config('postgresql://huntly_user:secret_pass@ep-test.neon.tech:5432/huntly?sslmode=require')
+        self.assertEqual(db_config['ENGINE'], 'django.db.backends.postgresql')
+        self.assertEqual(db_config['NAME'], 'huntly')
+        self.assertEqual(db_config['USER'], 'huntly_user')
+        self.assertEqual(db_config['PASSWORD'], 'secret_pass')
+        self.assertEqual(db_config['HOST'], 'ep-test.neon.tech')
+        self.assertEqual(db_config['PORT'], 5432)
+        self.assertEqual(db_config['OPTIONS'], {'sslmode': 'require'})
+
+    def test_legacy_postgres_url_scheme_parsing(self):
+        import environ
+        env = environ.Env()
+        db_config = env.db_url_config('postgres://huntly_user:secret_pass@localhost:5432/huntly_db')
+        self.assertEqual(db_config['ENGINE'], 'django.db.backends.postgresql')
+        self.assertEqual(db_config['NAME'], 'huntly_db')
