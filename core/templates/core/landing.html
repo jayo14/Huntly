@@ -103,13 +103,16 @@ footer .big{font:700 clamp(80px,20vw,280px)/.8 var(--d);letter-spacing:-.05em;te
 .fl{display:flex;justify-content:space-between;flex-wrap:wrap;gap:18px;font-size:15px;color:var(--mut)}.fl div{display:flex;gap:26px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto}}
 .ms{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;font-size:20px;line-height:1;display:inline-block;letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr;font-variation-settings:'FILL' 1,'wght' 500;-webkit-font-feature-settings:'liga';font-feature-settings:'liga'}.ch .ms{font-size:16px;vertical-align:-3px;margin-left:2px}
+.skip-link{position:fixed;top:-100px;left:16px;z-index:999;background:var(--pink);color:#fff;padding:10px 20px;border-radius:99px;font-weight:700;font-size:14px;box-shadow:inset 0 0 0 2px var(--ink),0 10px 20px rgba(0,0,0,.2);transition:top .2s}
+.skip-link:focus{top:16px}
 </style></head><body>
-<nav><div class="w"><div class="pill"><a class="lg" href="#"><b></b>Huntly</a><div class="lk"><a href="#solution">Features</a><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div><a class="btn" href="#pricing">Get started</a></div></div></nav>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<nav aria-label="Main navigation"><div class="w"><div class="pill"><a class="lg" href="{% url 'core:landing' %}"><b></b>Huntly</a><div class="lk"><a href="#solution">Features</a><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a>{% if is_authenticated %}<a href="{% url 'leads:dashboard' %}" style="font-weight:700;color:var(--pink)">Dashboard</a>{% else %}<a href="{% url 'core:login' %}">Log in</a>{% endif %}</div>{% if is_authenticated %}<a class="btn" href="{% url 'leads:dashboard' %}">Dashboard <i class="ms">arrow_outward</i></a>{% else %}<a class="btn" href="{% url 'core:signup' %}">Get started</a>{% endif %}</div></div></nav>
 
-<header class="hero"><div class="w">
+<header class="hero" id="main-content"><div class="w">
 <h1>Paste a job.<br>Get the <em>interview.</em></h1>
 <div class="hr"><div><p class="lead">Double your interview callbacks with role-tailored resumes in 30 seconds. Drop in any job description and Huntly writes your ATS-optimized resume, cover letter and a direct pitch to the hiring manager.</p>
-<div class="cs"><a class="btn" href="#pricing">Build your first tailored application free <i class="ms">arrow_outward</i></a><a class="btn o" href="#how">See how it works</a></div><p class="fine">3 free tailored applications. No credit card required.</p></div>
+<div class="cs"><a class="btn" href="{% if is_authenticated %}{% url 'leads:dashboard' %}{% else %}{% url 'core:signup' %}{% endif %}">Build your first tailored application free <i class="ms">arrow_outward</i></a><a class="btn o" href="#how">See how it works</a></div><p class="fine">3 free tailored applications. No credit card required.</p></div>
 <div class="stage" id="stage" aria-label="A job post becomes a tailored resume, cover letter and pitch">
 <div class="cd c1" data-z="14"><h4>Product Designer</h4>We need someone to own <span class="kw">design systems</span>, work with <span class="kw">engineering</span>, run <span class="kw">user research</span> and improve <span class="kw">conversion</span>.</div>
 <div class="cd c2" data-z="26"><h4>Ada Okafor</h4><small>Product Designer · Lagos</small><div class="ln" style="width:70%"></div>
@@ -153,9 +156,9 @@ footer .big{font:700 clamp(80px,20vw,280px)/.8 var(--d);letter-spacing:-.05em;te
 <tr><td>Monthly full access</td><td class="hu">$19 / month</td><td>$39.99 / month</td><td>$29 / month</td><td>$49.95 / month</td></tr></table></div></div></section>
 
 <section id="pricing" style="padding-top:60px"><div class="w"><h2 style="max-width:8em">Simple, fair plans.</h2><p class="lead" style="margin-top:22px">Cancel anytime. One interview offer pays for this 100 times over.</p>
-<div class="pr"><div class="pc"><h3>Free</h3><p class="fine">Test your callback rate lift.</p><div class="pp">$0</div><ul><li>1 master profile</li><li>3 tailored resumes</li><li>3 custom cover letters</li><li>Kanban board, up to 25 jobs</li><li>Clean DOCX export</li></ul><a class="btn o" href="#">Start free</a></div>
-<div class="pc h"><span class="bd">Most popular</span><h3>Job Sprint</h3><p class="fine" style="color:var(--ink)">For candidates applying actively this week.</p><div class="pp">$9<span> / week</span></div><ul><li>Unlimited tailored resumes</li><li>Unlimited cover letters</li><li>Unlimited DOCX downloads</li><li>Full Kanban tracker</li><li>10 recruiter outreach pitches</li></ul><a class="btn" href="#">Start Sprint <i class="ms">arrow_outward</i></a></div>
-<div class="pc"><h3>Pro Hunter</h3><p class="fine" style="color:var(--ink)">Full career hunt across multiple offers.</p><div class="pp">$19<span> / month</span></div><ul><li>Everything in Job Sprint</li><li>50 outreach pitches a month</li><li>Hiring manager email drafting</li><li>ATS keyword gap audits</li><li>Priority support</li></ul><a class="btn o" href="#">Upgrade to Pro</a></div></div></div></section>
+<div class="pr"><div class="pc"><h3>Free</h3><p class="fine">Test your callback rate lift.</p><div class="pp">$0</div><ul><li>1 master profile</li><li>3 tailored resumes</li><li>3 custom cover letters</li><li>Kanban board, up to 25 jobs</li><li>Clean DOCX export</li></ul><a class="btn o" href="{% if is_authenticated %}{% url 'leads:dashboard' %}{% else %}{% url 'core:signup' %}{% endif %}">Start free</a></div>
+<div class="pc h"><span class="bd">Most popular</span><h3>Job Sprint</h3><p class="fine" style="color:var(--ink)">For candidates applying actively this week.</p><div class="pp">$9<span> / week</span></div><ul><li>Unlimited tailored resumes</li><li>Unlimited cover letters</li><li>Unlimited DOCX downloads</li><li>Full Kanban tracker</li><li>10 recruiter outreach pitches</li></ul><a class="btn" href="{% if is_authenticated %}{% url 'leads:dashboard' %}{% else %}{% url 'core:signup' %}{% endif %}">Start Sprint <i class="ms">arrow_outward</i></a></div>
+<div class="pc"><h3>Pro Hunter</h3><p class="fine" style="color:var(--ink)">Full career hunt across multiple offers.</p><div class="pp">$19<span> / month</span></div><ul><li>Everything in Job Sprint</li><li>50 outreach pitches a month</li><li>Hiring manager email drafting</li><li>ATS keyword gap audits</li><li>Priority support</li></ul><a class="btn o" href="{% if is_authenticated %}{% url 'leads:dashboard' %}{% else %}{% url 'core:signup' %}{% endif %}">Upgrade to Pro</a></div></div></div></section>
 
 <section id="faq" style="padding-top:40px"><div class="w"><h2 style="text-align:center">Good questions.</h2><div class="fq">
 <details><summary>Will the AI invent experience on my resume?</summary><p>No. Huntly reorders and rephrases only what you saved in your master profile. It never adds employers, titles or numbers you did not enter.</p></details>
@@ -166,9 +169,9 @@ footer .big{font:700 clamp(80px,20vw,280px)/.8 var(--d);letter-spacing:-.05em;te
 
 <div class="ct">
 <h2>Stop sending generic resumes into the black hole.</h2><p>Start your next application with an ATS-aligned resume and cover letter in 30 seconds.</p>
-<a class="btn" href="#pricing">Build your first tailored application free <i class="ms">arrow_outward</i></a><p class="fine" style="color:#fff;font-size:15px;margin:22px 0 0">3 free tailored applications included. No credit card required.</p></div>
+<a class="btn" href="{% if is_authenticated %}{% url 'leads:dashboard' %}{% else %}{% url 'core:signup' %}{% endif %}">Build your first tailored application free <i class="ms">arrow_outward</i></a><p class="fine" style="color:#fff;font-size:15px;margin:22px 0 0">3 free tailored applications included. No credit card required.</p></div>
 
-<footer><div class="w"><div class="fl"><span>© 2026 Huntly. All rights reserved.</span><div><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a></div></div><div class="big" aria-hidden="true">huntly</div></div></footer>
+<footer><div class="w"><div class="fl"><span>© 2026 Huntly. All rights reserved.</span><div>{% if is_authenticated %}<a href="{% url 'leads:dashboard' %}">Dashboard</a><a href="{% url 'resumes:resume-list' %}">Resumes</a><a href="{% url 'leads:pipeline' %}">Pipeline</a>{% else %}<a href="{% url 'core:login' %}">Log in</a><a href="{% url 'core:signup' %}">Sign up</a>{% endif %}<a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div></div><div class="big" aria-hidden="true">huntly</div></div></footer>
 
 <script>
 (function(){var k=[].slice.call(document.querySelectorAll('.kw')),b=document.querySelectorAll('.bl'),s=document.getElementById('sc'),i=0,v=38;
