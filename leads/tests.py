@@ -206,3 +206,30 @@ class MultiTenantIsolationTests(TestCase):
         response = self.client.post(reverse('leads:lead-delete', args=[self.job_b.pk]))
         self.assertEqual(response.status_code, 404)
         self.assertTrue(JobApplication.objects.filter(pk=self.job_b.pk).exists())
+
+
+class SettingsTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='settingsuser', password='password123')
+
+    def test_settings_view_get(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('leads:settings'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'leads/settings.html')
+        self.assertIn('form', response.context)
+
+    def test_settings_view_post_valid(self):
+        self.client.force_login(self.user)
+        data = {
+            'smtp_host': 'smtp.custom.com',
+            'smtp_port': 465,
+            'email_address': 'me@example.com',
+            'email_password': 'secretpassword',
+            'daily_send_limit': 100,
+        }
+        response = self.client.post(reverse('leads:settings'), data)
+        self.assertRedirects(response, reverse('leads:settings'))
+        setting = AppSetting.objects.get(user=self.user)
+        self.assertEqual(setting.smtp_host, 'smtp.custom.com')
+        self.assertEqual(setting.daily_send_limit, 100)
