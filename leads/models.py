@@ -1,9 +1,10 @@
 from django.conf import settings
 from django.db import models
+from huntly.security import encrypt_credential, decrypt_credential
 
 
 class JobApplication(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='job_applications', null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='job_applications')
     STATUS_CHOICES = [
         ('saved', 'Saved'),
         ('applied', 'Applied'),
@@ -34,6 +35,11 @@ class JobApplication(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['user', '-updated_at']),
+            models.Index(fields=['user', '-created_at']),
+        ]
 
 
 # Backward compatibility alias
@@ -56,15 +62,26 @@ class Message(models.Model):
 
 
 class AppSetting(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='app_settings', null=True, blank=True)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='app_settings')
     smtp_host = models.CharField(max_length=255, default='smtp.gmail.com')
     smtp_port = models.IntegerField(default=587)
     email_address = models.EmailField(blank=True)
-    email_password = models.CharField(max_length=255, blank=True)
+    email_password = models.CharField(max_length=512, blank=True)
     daily_send_limit = models.IntegerField(default=50)
 
+    def set_email_password(self, raw_password: str):
+        self.email_password = encrypt_credential(raw_password)
+
+    def get_decrypted_email_password(self) -> str:
+        return decrypt_credential(self.email_password)
+
+    def save(self, *args, **kwargs):
+        if self.email_password and not self.email_password.startswith('gAAAAA'):
+            self.email_password = encrypt_credential(self.email_password)
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return "Application Settings"
+        return f"Application Settings ({self.user.username if self.user else 'System'})"
 
     class Meta:
         verbose_name = "Application Setting"
