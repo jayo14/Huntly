@@ -17,4 +17,5 @@ urlpatterns = [
     path('leads/<int:pk>/generate-message/', views.generate_message, name='generate-message'),
     path('leads/<int:pk>/send-message/', views.send_message, name='send-message'),
     path('profile/', views.profile_view, name='profile'),
+    path('profile/edit/', views.profile_edit, name='profile-edit'),
 ]

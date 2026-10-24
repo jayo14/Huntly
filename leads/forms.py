@@ -43,3 +43,15 @@ class AppSettingForm(forms.ModelForm):
         if not password and self.instance and self.instance.pk:
             return self.instance.email_password
         return password
+
+
+class UserProfileForm(forms.Form):
+    first_name = forms.CharField(max_length=150, required=False, label="First Name")
+    last_name = forms.CharField(max_length=150, required=False, label="Last Name")
+    email = forms.EmailField(required=True, label="Email Address")
+    phone = forms.CharField(max_length=30, required=False, label="Phone Number")
+    location = forms.CharField(max_length=255, required=False, label="Location (City, Country)")
+    tagline = forms.CharField(max_length=255, required=False, label="Professional Headline / Tagline")
+    passport_photo = forms.ImageField(required=False, label="Profile Avatar Photo")
+    remove_photo = forms.BooleanField(required=False, widget=forms.HiddenInput())
+

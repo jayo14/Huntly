@@ -12,7 +12,7 @@ from django.db.models import Count, Q
 
 from .models import JobApplication, Lead, Message, AppSetting
 from resumes.models import Resume
-from .forms import JobApplicationForm, LeadForm, AppSettingForm
+from .forms import JobApplicationForm, LeadForm, AppSettingForm, UserProfileForm
 from .services.llm_tailor import tailor_application
 
 
@@ -347,3 +347,59 @@ def send_message(request, pk):
 def profile_view(request):
     resume = Resume.objects.filter(user=request.user).first()
     return render(request, 'leads/profile.html', {'resume': resume})
+
+
+@login_required
+def profile_edit(request):
+    resume = Resume.objects.filter(user=request.user).first()
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, request.FILES)
+        if form.is_valid():
+            user = request.user
+            user.first_name = form.cleaned_data['first_name']
+            user.last_name = form.cleaned_data['last_name']
+            user.email = form.cleaned_data['email']
+            user.save()
+
+            if not resume:
+                resume = Resume.objects.create(
+                    user=user,
+                    full_name=user.get_full_name() or user.username,
+                    email=user.email,
+                )
+            resume.email = user.email
+            resume.full_name = user.get_full_name() or resume.full_name or user.username
+            resume.phone = form.cleaned_data['phone']
+            resume.location = form.cleaned_data['location']
+            resume.tagline = form.cleaned_data['tagline']
+
+            if form.cleaned_data.get('remove_photo'):
+                if resume.passport_photo:
+                    resume.passport_photo.delete(save=False)
+                    resume.passport_photo = None
+            elif 'passport_photo' in request.FILES:
+                resume.passport_photo = request.FILES['passport_photo']
+
+            resume.save()
+            messages.success(request, "Profile updated successfully!")
+
+            if request.headers.get('HX-Request'):
+                response = HttpResponse(status=204)
+                response['HX-Redirect'] = reverse('leads:profile')
+                return response
+            return redirect('leads:profile')
+    else:
+        initial_data = {
+            'first_name': request.user.first_name,
+            'last_name': request.user.last_name,
+            'email': request.user.email or (resume.email if resume else ''),
+            'phone': resume.phone if resume else '',
+            'location': resume.location if resume else '',
+            'tagline': resume.tagline if resume else '',
+        }
+        form = UserProfileForm(initial=initial_data)
+
+    return render(request, 'leads/profile_edit_modal.html', {
+        'form': form,
+        'resume': resume,
+    })
