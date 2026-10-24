@@ -233,3 +233,95 @@ class SettingsTests(TestCase):
         setting = AppSetting.objects.get(user=self.user)
         self.assertEqual(setting.smtp_host, 'smtp.custom.com')
         self.assertEqual(setting.daily_send_limit, 100)
+
+
+class SecurityRemediationTests(TestCase):
+    def setUp(self):
+        self.user_a = User.objects.create_user(username='victim', password='password123')
+        self.user_b = User.objects.create_user(username='attacker', password='password123')
+        self.job_a = JobApplication.objects.create(
+            user=self.user_a,
+            company_name='Victim Corp',
+            role_title='Lead Architect',
+            contact_email='recruiter@victim.com',
+            status='saved'
+        )
+
+    def test_smtp_password_encryption_at_rest(self):
+        setting = AppSetting.objects.create(
+            user=self.user_a,
+            smtp_host='smtp.mailgun.org',
+            email_address='outreach@victim.com',
+            email_password='super-secret-smtp-password-1234'
+        )
+        raw_db_password = AppSetting.objects.filter(pk=setting.pk).values_list('email_password', flat=True).first()
+        self.assertNotEqual(raw_db_password, 'super-secret-smtp-password-1234')
+        self.assertTrue(raw_db_password.startswith('gAAAAA'), "Stored password must be Fernet ciphertext")
+        self.assertEqual(setting.get_decrypted_email_password(), 'super-secret-smtp-password-1234')
+
+    def test_cross_user_generate_message_forbidden(self):
+        self.client.force_login(self.user_b)
+        response = self.client.post(reverse('leads:generate-message', args=[self.job_a.pk]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_cross_user_send_message_forbidden(self):
+        self.client.force_login(self.user_b)
+        response = self.client.post(reverse('leads:send-message', args=[self.job_a.pk]), {
+            'subject': 'Spam Subject',
+            'body': 'Spam Body',
+        })
+        self.assertEqual(response.status_code, 404)
+
+    def test_rate_limiting_login_endpoint(self):
+        from django.core.cache import cache
+        cache.clear()
+
+        for _ in range(15):
+            res = self.client.get(reverse('core:login'))
+            self.assertEqual(res.status_code, 200)
+
+        rate_limited_res = self.client.get(reverse('core:login'))
+        self.assertEqual(rate_limited_res.status_code, 429)
+
+    def test_data_export_endpoint(self):
+        self.client.force_login(self.user_a)
+        Resume.objects.create(
+            user=self.user_a,
+            full_name='Victim Candidate',
+            email='victim@candidate.com'
+        )
+        response = self.client.get(reverse('leads:profile-export'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        data = response.json()
+        self.assertIn('user', data)
+        self.assertEqual(data['user']['username'], 'victim')
+        self.assertIn('job_applications', data)
+        self.assertEqual(len(data['job_applications']), 1)
+        self.assertEqual(data['job_applications'][0]['company_name'], 'Victim Corp')
+
+    def test_delete_account_invalid_password(self):
+        self.client.force_login(self.user_a)
+        response = self.client.post(reverse('leads:profile-delete-account'), {'password': 'wrongpassword'})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(User.objects.filter(pk=self.user_a.pk).exists())
+
+    def test_delete_account_valid_password_cascades(self):
+        self.client.force_login(self.user_a)
+        response = self.client.post(reverse('leads:profile-delete-account'), {'password': 'password123'})
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(User.objects.filter(pk=self.user_a.pk).exists())
+        self.assertFalse(JobApplication.objects.filter(pk=self.job_a.pk).exists())
+
+    def test_resume_form_uses_json_script_for_xss_protection(self):
+        self.client.force_login(self.user_a)
+        Resume.objects.create(
+            user=self.user_a,
+            full_name='XSS </script><script>alert(1)</script>',
+            email='xss@test.com'
+        )
+        response = self.client.get(reverse('resumes:resume-create'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="resume-initial-data"')
+        self.assertNotContains(response, '</script><script>alert(1)</script>')
+

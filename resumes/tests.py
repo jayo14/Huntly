@@ -166,3 +166,8 @@ class ResumeTenantIsolationTests(TestCase):
         self.assertEqual(post_res.status_code, 404)
         self.resume_b.refresh_from_db()
         self.assertEqual(self.resume_b.full_name, "Bob User B")
+
+    def test_user_a_cannot_download_user_b_resume(self):
+        self.client.force_login(self.user_a)
+        res = self.client.get(reverse('resumes:resume-download', args=[self.resume_b.pk]))
+        self.assertEqual(res.status_code, 404)
