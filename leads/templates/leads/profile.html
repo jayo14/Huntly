@@ -5,77 +5,138 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-8">
-    <div class="bg-surface-100 border border-surface-200 p-8 rounded-[2.5rem] shadow-sm overflow-hidden relative">
-        <!-- Background Pattern -->
-        <div class="absolute top-0 right-0 p-8 opacity-5">
-            <i data-lucide="user" class="w-64 h-64"></i>
-        </div>
-
-        <div class="relative z-10 flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
-            <div class="w-32 h-32 rounded-3xl bg-primary-600 flex items-center justify-center text-white text-4xl font-bold shadow-2xl shadow-primary-600/20">
-                {{ user.username.0|upper }}
-            </div>
-            <div class="flex-1 text-center md:text-left">
-                <h1 class="text-4xl font-bold text-surface-950 mb-2">{{ user.username }}</h1>
-                <p class="text-surface-500 font-medium mb-6">{{ user.email|default:"No email set" }}</p>
-                <div class="flex flex-wrap justify-center md:justify-start gap-3">
-                    <span class="px-4 py-1.5 rounded-full bg-surface-200 text-surface-700 text-sm font-bold border border-surface-300">Free Tier</span>
-                    <span class="px-4 py-1.5 rounded-full bg-green-500/10 text-green-600 text-sm font-bold border border-green-500/20">Active</span>
+    <!-- User Hero Card -->
+    <div class="bg-card border-2 border-ink p-8 rounded-[32px] shadow-[4px_6px_0_#102a1f] relative overflow-hidden">
+        <div class="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8">
+            <!-- Concentric Avatar Badge / Photo -->
+            <div class="relative shrink-0">
+                <div class="w-28 h-28 rounded-full border-2 border-ink shadow-[3px_4px_0_#102a1f] overflow-hidden bg-pink flex items-center justify-center text-white text-4xl font-display font-bold">
+                    {% if resume and resume.passport_photo %}
+                        <img src="{{ resume.passport_photo.url }}" alt="{{ user.get_full_name|default:user.username }}'s avatar" class="w-full h-full object-cover">
+                    {% else %}
+                        <span>{{ user.username.0|upper }}</span>
+                    {% endif %}
                 </div>
             </div>
-            <button class="bg-surface-950 text-surface-50 px-8 py-3 rounded-2xl font-bold hover:scale-105 transition-transform">
-                Edit Profile
-            </button>
+
+            <div class="flex-1 text-center md:text-left">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-1 justify-center md:justify-start">
+                    <h1 class="text-3xl font-display font-bold text-ink">{{ user.get_full_name|default:user.username }}</h1>
+                    <span class="text-xs font-bold text-mut px-2.5 py-0.5 rounded-full border border-line bg-[#f4f8f1]">@{{ user.username }}</span>
+                </div>
+                <p class="text-sm text-mut font-semibold mb-3">{{ resume.tagline|default:"No professional tagline set" }}</p>
+                
+                <div class="flex flex-wrap justify-center md:justify-start gap-2.5">
+                    <span class="stk bg-[#c8b6ff] text-ink">
+                        <span class="ms text-sm" aria-hidden="true">workspace_premium</span> Free Tier
+                    </span>
+                    <span class="stk bg-lime text-ink">
+                        <span class="ms text-sm" aria-hidden="true">check_circle</span> Active Account
+                    </span>
+                    {% if resume and resume.location %}
+                    <span class="stk bg-[#eef3ea] text-ink">
+                        <span class="ms text-sm" aria-hidden="true">location_on</span> {{ resume.location }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0">
+                <button hx-get="{% url 'leads:profile-edit' %}" hx-target="#modal-content"
+                        class="btn" aria-label="Edit personal profile and contact details">
+                    <span class="ms text-base" aria-hidden="true">edit</span>
+                    <span>Edit Profile</span>
+                </button>
+                <a href="{% url 'resumes:resume-list' %}" class="btn o" aria-label="View master career profiles">
+                    <span class="ms text-base" aria-hidden="true">description</span>
+                    <span>Master Profile</span>
+                </a>
+            </div>
         </div>
     </div>
 
+    <!-- Contact & Details Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div class="bg-surface-100 border border-surface-200 p-8 rounded-[2.5rem]">
-            <h2 class="text-xl font-bold mb-6 flex items-center">
-                <i data-lucide="shield" class="w-5 h-5 mr-3 text-primary-500"></i>
-                Security
-            </h2>
+        <!-- Contact Information -->
+        <div class="bg-card border-2 border-ink p-8 rounded-[28px] shadow-[3px_4px_0_#102a1f]">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-display font-bold text-ink flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-full bg-lime border border-ink flex items-center justify-center">
+                        <span class="ms text-base text-ink" aria-hidden="true">badge</span>
+                    </span>
+                    Contact Information
+                </h2>
+                <button hx-get="{% url 'leads:profile-edit' %}" hx-target="#modal-content"
+                        class="text-xs font-bold text-mut hover:text-pink transition-colors flex items-center gap-1"
+                        aria-label="Edit contact details">
+                    <span class="ms text-sm" aria-hidden="true">edit</span> Edit
+                </button>
+            </div>
+            
             <div class="space-y-4">
-                <div class="flex items-center justify-between p-4 bg-surface-50 rounded-2xl border border-surface-200">
-                    <div>
-                        <p class="font-bold text-surface-900">Password</p>
-                        <p class="text-xs text-surface-500">Last changed 3 months ago</p>
+                <div class="flex items-center justify-between p-4 bg-[#f4f8f1] rounded-2xl border-[1.5px] border-line">
+                    <div class="min-w-0 mr-3">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-mut block">Email Address</span>
+                        <p class="font-bold text-sm text-ink truncate">{{ user.email|default:"No email set" }}</p>
                     </div>
-                    <button class="text-primary-600 font-bold text-sm">Update</button>
+                    <span class="stk text-xs py-0.5 px-2 bg-card text-ink">Primary</span>
                 </div>
-                <div class="flex items-center justify-between p-4 bg-surface-50 rounded-2xl border border-surface-200">
-                    <div>
-                        <p class="font-bold text-surface-900">Two-Factor Auth</p>
-                        <p class="text-xs text-surface-500">Not enabled</p>
+
+                <div class="flex items-center justify-between p-4 bg-[#f4f8f1] rounded-2xl border-[1.5px] border-line">
+                    <div class="min-w-0 mr-3">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-mut block">Phone Number</span>
+                        <p class="font-bold text-sm text-ink truncate">{{ resume.phone|default:"Not specified" }}</p>
                     </div>
-                    <button class="text-primary-600 font-bold text-sm">Enable</button>
+                    <span class="stk text-xs py-0.5 px-2 bg-card text-ink">Direct</span>
+                </div>
+
+                <div class="flex items-center justify-between p-4 bg-[#f4f8f1] rounded-2xl border-[1.5px] border-line">
+                    <div class="min-w-0 mr-3">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-mut block">Location</span>
+                        <p class="font-bold text-sm text-ink truncate">{{ resume.location|default:"Not specified" }}</p>
+                    </div>
+                    <span class="stk text-xs py-0.5 px-2 bg-card text-ink">Region</span>
                 </div>
             </div>
         </div>
 
-        <div class="bg-surface-100 border border-surface-200 p-8 rounded-[2.5rem]">
-            <h2 class="text-xl font-bold mb-6 flex items-center">
-                <i data-lucide="zap" class="w-5 h-5 mr-3 text-primary-500"></i>
-                Usage
+        <!-- Plan & Capacity -->
+        <div class="bg-card border-2 border-ink p-8 rounded-[28px] shadow-[3px_4px_0_#102a1f]">
+            <h2 class="text-xl font-display font-bold text-ink mb-6 flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-full bg-[#ffb938] border border-ink flex items-center justify-center">
+                    <span class="ms text-base text-ink" aria-hidden="true">bolt</span>
+                </span>
+                Plan & Application Limits
             </h2>
             <div class="space-y-6">
                 <div>
-                    <div class="flex justify-between text-sm font-bold mb-2">
-                        <span class="text-surface-500 uppercase tracking-wider">Leads Scraped</span>
-                        <span class="text-surface-900">420 / 1,000</span>
+                    <div class="flex justify-between text-xs font-bold mb-2">
+                        <span class="text-mut uppercase tracking-wider">Free Tailored Applications</span>
+                        <span class="text-ink">3 Included</span>
                     </div>
-                    <div class="w-full bg-surface-200 rounded-full h-3">
-                        <div class="bg-primary-500 h-3 rounded-full" style="width: 42%"></div>
+                    <div class="w-full bg-[#eef3ea] border border-line rounded-full h-3.5 overflow-hidden p-0.5"
+                         role="progressbar" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100" aria-label="Tailored applications used">
+                        <div class="bg-lime h-full rounded-full border border-ink/20" style="width: 35%"></div>
                     </div>
                 </div>
+
                 <div>
-                    <div class="flex justify-between text-sm font-bold mb-2">
-                        <span class="text-surface-500 uppercase tracking-wider">Automations</span>
-                        <span class="text-surface-900">3 / 5</span>
+                    <div class="flex justify-between text-xs font-bold mb-2">
+                        <span class="text-mut uppercase tracking-wider">Kanban Active Tracking</span>
+                        <span class="text-ink">Up to 25 Roles</span>
                     </div>
-                    <div class="w-full bg-surface-200 rounded-full h-3">
-                        <div class="bg-primary-500 h-3 rounded-full" style="width: 60%"></div>
+                    <div class="w-full bg-[#eef3ea] border border-line rounded-full h-3.5 overflow-hidden p-0.5"
+                         role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100" aria-label="Kanban roles capacity">
+                        <div class="bg-pink h-full rounded-full border border-ink/20" style="width: 25%"></div>
                     </div>
+                </div>
+
+                <div class="pt-2">
+                    <a href="{% url 'core:landing' %}#pricing" class="btn o w-full text-xs py-2 justify-center">
+                        <span class="ms text-sm" aria-hidden="true">upgrade</span>
+                        <span>View Upgrade Options</span>
+                    </a>
                 </div>
             </div>
         </div>

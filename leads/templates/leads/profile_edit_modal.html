@@ -1,0 +1,137 @@
+<div class="p-8" x-data="{
+    photoPreview: '{% if resume and resume.passport_photo %}{{ resume.passport_photo.url }}{% endif %}',
+    removePhoto: false,
+    updatePhotoPreview(event) {
+        const file = event.target.files[0];
+        if (file) {
+            this.removePhoto = false;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.photoPreview = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    },
+    clearPhoto() {
+        this.photoPreview = '';
+        this.removePhoto = true;
+        const input = document.getElementById('profile-avatar-input');
+        if (input) input.value = '';
+    }
+}">
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between mb-8 pb-4 border-b-2 border-line">
+        <div>
+            <span class="stk mb-2 bg-lime text-ink">
+                <span class="ms text-sm">manage_accounts</span> Account & Identity
+            </span>
+            <h2 id="modal-title" class="text-3xl font-display font-bold text-ink">Edit Profile</h2>
+            <p class="text-mut text-sm font-semibold mt-0.5">Update your contact details, phone number, and avatar photo.</p>
+        </div>
+        <button type="button" @click="$dispatch('close-modal')" class="text-mut hover:text-ink transition-colors p-1.5 rounded-full hover:bg-[#eef3ea]" aria-label="Close dialog">
+            <span class="ms text-2xl" aria-hidden="true">close</span>
+        </button>
+    </div>
+
+    <!-- Profile Edit Form -->
+    <form hx-post="{% url 'leads:profile-edit' %}"
+          hx-encoding="multipart/form-data"
+          enctype="multipart/form-data"
+          hx-swap="none"
+          class="space-y-6">
+        {% csrf_token %}
+        <input type="hidden" name="remove_photo" :value="removePhoto ? 'true' : ''">
+
+        <!-- Avatar Upload Section -->
+        <div class="p-5 rounded-2xl border-2 border-ink bg-[#f4f8f1] flex flex-col sm:flex-row items-center gap-6">
+            <!-- Avatar Display / Preview -->
+            <div class="relative shrink-0">
+                <div class="w-24 h-24 rounded-full border-2 border-ink shadow-[2px_3px_0_#102a1f] overflow-hidden bg-pink flex items-center justify-center text-white text-3xl font-display font-bold">
+                    <template x-if="photoPreview">
+                        <img :src="photoPreview" alt="Profile avatar preview" class="w-full h-full object-cover">
+                    </template>
+                    <template x-if="!photoPreview">
+                        <span>{{ request.user.username.0|upper }}</span>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Avatar Controls -->
+            <div class="flex-1 text-center sm:text-left space-y-2">
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink" for="profile-avatar-input">Profile Avatar</label>
+                <p class="text-xs text-mut font-medium">Upload a professional headshot (JPG, PNG, or WEBP, max 5MB).</p>
+                <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                    <label for="profile-avatar-input" class="btn o text-xs py-1.5 px-3.5 cursor-pointer">
+                        <span class="ms text-sm" aria-hidden="true">upload</span>
+                        <span>Choose Photo</span>
+                    </label>
+                    <input id="profile-avatar-input" type="file" name="passport_photo" accept="image/*" class="sr-only" @change="updatePhotoPreview">
+                    <button type="button" x-show="photoPreview" @click="clearPhoto" class="text-xs font-bold text-pink hover:text-ink px-3 py-1.5 transition-colors">
+                        Remove
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Name Inputs -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div class="space-y-1.5">
+                <label for="id_first_name" class="block text-xs font-display font-bold uppercase tracking-wider text-ink">First Name</label>
+                <input id="id_first_name" type="text" name="first_name" value="{{ form.first_name.value|default:'' }}"
+                       class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-2.5 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all"
+                       placeholder="e.g. Ada">
+            </div>
+            <div class="space-y-1.5">
+                <label for="id_last_name" class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Last Name</label>
+                <input id="id_last_name" type="text" name="last_name" value="{{ form.last_name.value|default:'' }}"
+                       class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-2.5 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all"
+                       placeholder="e.g. Lovelace">
+            </div>
+        </div>
+
+        <!-- Contact Inputs -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div class="space-y-1.5">
+                <label for="id_email" class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Primary Email *</label>
+                <input id="id_email" type="email" name="email" value="{{ form.email.value|default:'' }}" required
+                       class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-2.5 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all"
+                       placeholder="ada@example.com">
+                <p class="text-[11px] text-mut font-medium">Used for login, account alerts, and tailored applications.</p>
+            </div>
+            <div class="space-y-1.5">
+                <label for="id_phone" class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Phone Number</label>
+                <input id="id_phone" type="tel" name="phone" value="{{ form.phone.value|default:'' }}"
+                       class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-2.5 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all"
+                       placeholder="+1 (555) 012-3456">
+                <p class="text-[11px] text-mut font-medium">Included on your exported ATS resumes and recruiter contacts.</p>
+            </div>
+        </div>
+
+        <!-- Headline & Location -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div class="space-y-1.5">
+                <label for="id_tagline" class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Professional Headline / Tagline</label>
+                <input id="id_tagline" type="text" name="tagline" value="{{ form.tagline.value|default:'' }}"
+                       class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-2.5 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all"
+                       placeholder="e.g. Senior Frontend Engineer">
+            </div>
+            <div class="space-y-1.5">
+                <label for="id_location" class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Location</label>
+                <input id="id_location" type="text" name="location" value="{{ form.location.value|default:'' }}"
+                       class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-2.5 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all"
+                       placeholder="e.g. San Francisco, CA">
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-3 pt-6 border-t-2 border-line">
+            <button type="button" @click="$dispatch('close-modal')" class="btn o text-xs py-2 px-5">
+                Cancel
+            </button>
+            <button type="submit" class="btn text-xs py-2.5 px-6">
+                <span>Save Profile Changes</span>
+                <span class="ms text-base" aria-hidden="true">arrow_forward</span>
+            </button>
+        </div>
+    </form>
+</div>
