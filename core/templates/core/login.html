@@ -1,67 +1,156 @@
 {% extends 'landing_base.html' %}
 {% load crispy_forms_tags %}
 
-{% block title %}Log in | Huntly{% endblock %}
+{% block title %}Log In – Huntly{% endblock %}
 
 {% block content %}
 <section class="min-h-[80vh] flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-md">
-        <div class="text-center mb-10">
-            <h1 class="text-3xl font-display font-bold mb-2">Welcome Back</h1>
-            <p class="text-neutral-400">Log in to your account to continue</p>
+        <div class="text-center mb-8">
+            <span class="stk mb-3">
+                <span class="ms text-base">login</span> Candidate Portal
+            </span>
+            <h1 class="text-4xl font-display font-bold text-ink tracking-tight mb-2">Welcome back</h1>
+            <p class="text-mut text-base">Sign in to track jobs, tailor resumes, and manage outreach.</p>
         </div>
 
-        <div class="bg-neutral-900 border border-white/5 rounded-3xl p-8 shadow-2xl">
-            <form method="POST" class="space-y-6">
+        <div class="landing-card bg-card">
+            <form method="POST" class="space-y-5">
                 {% csrf_token %}
                 {{ form|crispy }}
                 
-                <button type="submit" class="w-full bg-primary-600 text-white py-4 rounded-xl font-bold hover:bg-primary-500 transition-all shadow-lg shadow-primary-600/20">
-                    Sign In
+                <button type="submit" class="btn w-full mt-4 py-3.5 text-base justify-center">
+                    Sign In to Huntly <i class="ms">arrow_forward</i>
                 </button>
             </form>
 
-            <div class="mt-8 pt-8 border-t border-white/5 text-center">
-                <p class="text-neutral-400">
-                    Don't have an account? 
-                    <a href="{% url 'core:signup' %}" class="text-primary-400 font-semibold hover:text-primary-300 transition-colors">Sign up</a>
+            <div class="mt-8 pt-6 border-t border-line text-center">
+                <p class="text-mut text-sm">
+                    Don't have an account yet? 
+                    <a href="{% url 'core:signup' %}" class="text-pink font-bold hover:underline ml-1">Start free</a>
                 </p>
             </div>
         </div>
         
         <div class="mt-8 text-center">
-            <a href="{% url 'core:landing' %}" class="text-sm text-neutral-500 hover:text-white transition-colors inline-flex items-center">
-                <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
-                Back to home
+            <a href="{% url 'core:landing' %}" class="text-sm font-semibold text-mut hover:text-ink transition-colors inline-flex items-center gap-1.5">
+                <span class="ms text-base">arrow_back</span> Back to home
             </a>
         </div>
     </div>
 </section>
 
 <style>
-    /* Customize Crispy Tailwind Inputs for Dark Mode */
-    input[type="text"], input[type="password"], input[type="email"], select, textarea {
-        background-color: rgba(255, 255, 255, 0.03) !important;
-        border-color: rgba(255, 255, 255, 0.1) !important;
-        color: white !important;
-        border-radius: 0.75rem !important;
-        padding-top: 0.75rem !important;
-        padding-bottom: 0.75rem !important;
+    /* Crispy form styles tailored to Landing Page aesthetics */
+    .form-group, .mb-3 {
+        margin-bottom: 1.25rem;
     }
-    input:focus {
-        border-color: #0ea5e9 !important;
-        box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.1) !important;
+    input[type="text"], input[type="password"], input[type="email"], select, textarea {
+        background-color: #ffffff !important;
+        border: 1.5px solid var(--ink) !important;
+        color: var(--ink) !important;
+        border-radius: 1rem !important;
+        padding: 0.85rem 1.15rem !important;
+        font-family: var(--b) !important;
+        font-size: 0.95rem !important;
+        width: 100% !important;
+        transition: all 0.2s ease !important;
+        box-shadow: none !important;
+    }
+    input:focus, select:focus, textarea:focus {
+        outline: 3px solid var(--pink) !important;
+        outline-offset: 2px !important;
+        border-color: var(--ink) !important;
     }
     label {
-        color: #a3a3a3 !important;
-        font-size: 0.875rem !important;
-        font-weight: 500 !important;
-        margin-bottom: 0.5rem !important;
+        color: var(--ink) !important;
+        font-size: 0.85rem !important;
+        font-weight: 700 !important;
+        margin-bottom: 0.4rem !important;
+        display: block !important;
     }
-    .text-red-600 {
-        color: #ef4444 !important;
-        font-size: 0.875rem !important;
-        margin-top: 0.25rem !important;
+    .text-danger, .invalid-feedback, .text-red-600 {
+        color: var(--pink) !important;
+        font-size: 0.825rem !important;
+        font-weight: 600 !important;
+        margin-top: 0.35rem !important;
+    }
+    .help-block, .form-text {
+        color: var(--mut) !important;
+        font-size: 0.8rem !important;
+        margin-top: 0.35rem !important;
+    }
+    /* Password visibility wrapper */
+    .password-wrapper {
+        position: relative;
+        width: 100%;
+    }
+    .password-wrapper input {
+        padding-right: 3rem !important;
+    }
+    .password-toggle-btn {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--mut);
+        padding: 0.35rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        transition: color 0.2s ease, background-color 0.2s ease;
+        z-index: 10;
+    }
+    .password-toggle-btn:hover {
+        color: var(--ink);
+        background-color: #eef3ea;
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        function setupPasswordToggles() {
+            var passwordInputs = document.querySelectorAll('input[type="password"]');
+            passwordInputs.forEach(function(input) {
+                if (input.parentElement.classList.contains('password-wrapper')) return;
+
+                var wrapper = document.createElement('div');
+                wrapper.className = 'password-wrapper';
+                input.parentNode.insertBefore(wrapper, input);
+                wrapper.appendChild(input);
+
+                var toggleBtn = document.createElement('button');
+                toggleBtn.type = 'button';
+                toggleBtn.className = 'password-toggle-btn';
+                toggleBtn.setAttribute('aria-label', 'Toggle password visibility');
+                toggleBtn.setAttribute('tabindex', '-1');
+                toggleBtn.innerHTML = '<span class="ms text-xl select-none pointer-events-none">visibility</span>';
+
+                toggleBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var isPassword = input.type === 'password';
+                    input.type = isPassword ? 'text' : 'password';
+                    toggleBtn.innerHTML = '<span class="ms text-xl select-none pointer-events-none">' + (isPassword ? 'visibility_off' : 'visibility') + '</span>';
+                    toggleBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+                    input.focus();
+                });
+
+                wrapper.appendChild(toggleBtn);
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupPasswordToggles);
+        } else {
+            setupPasswordToggles();
+        }
+    })();
+</script>
 {% endblock %}
