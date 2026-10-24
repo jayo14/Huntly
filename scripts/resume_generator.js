@@ -4,8 +4,17 @@ const {
 } = require('docx');
 const fs = require('fs');
 
-// Get data from command line arguments
-const data = JSON.parse(process.argv[2]);
+// Get data from command line argument or stdin
+let rawInput = process.argv[2];
+if (!rawInput) {
+  try {
+    rawInput = fs.readFileSync(0, 'utf-8');
+  } catch (err) {
+    console.error("Error reading JSON from stdin:", err);
+    process.exit(1);
+  }
+}
+const data = JSON.parse(rawInput);
 
 // Color palette - dynamic accent from user
 const ACCENT = (data.accent_color || "#4F46E5").replace('#', '');

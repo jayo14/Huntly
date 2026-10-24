@@ -27,11 +27,15 @@ def generate_docx(data):
 
     try:
         process = subprocess.Popen(
-            [node_path, script_path, json.dumps(data)],
+            [node_path, script_path],
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        stdout, stderr = process.communicate(timeout=30)
+        stdout, stderr = process.communicate(
+            input=json.dumps(data).encode('utf-8'),
+            timeout=30
+        )
     except Exception as e:
         raise DocxGenerationError(f"Process execution failed: {e}") from e
 
