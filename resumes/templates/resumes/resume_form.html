@@ -3,6 +3,7 @@
 {% block header_title %}Create Resume{% endblock %}
 
 {% block content %}
+{{ resume_data|json_script:"resume-initial-data" }}
 <div class="max-w-5xl mx-auto py-8 px-4" x-data="resumeForm()">
     <!-- Multi-step Progress Bar -->
     <div class="mb-12">
@@ -391,25 +392,36 @@ function resumeForm() {
             { name: 'Violet', hex: '#7C3AED' },
             { name: 'Amber', hex: '#D97706' },
         ],
-        formData: {% if resume_data_json %}{{ resume_data_json|safe }}{% else %}{
-            full_name: '',
-            tagline: '',
-            email: '',
-            phone: '',
-            location: '',
-            linkedin: '',
-            github: '',
-            portfolio: '',
-            summary: '',
-            technical_skills: [{category: '', skills: ''}],
-            experiences: [{role: '', company: '', dates: '', bulletsText: '', bullets: []}],
-            projects: [{name: '', link: '', stack: '', bulletsText: '', bullets: []}],
-            certifications: [{name: '', issuer: '', date: ''}],
-            education: [{degree: '', institution: '', location: '', dates: ''}],
-            include_branding: true,
-            accent_color: '#4F46E5',
-            passport_photo: null
-        }{% endif %},
+        formData: (function() {
+            const el = document.getElementById('resume-initial-data');
+            if (el && el.textContent) {
+                try {
+                    const parsed = JSON.parse(el.textContent);
+                    if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+                        return parsed;
+                    }
+                } catch (e) {}
+            }
+            return {
+                full_name: '',
+                tagline: '',
+                email: '',
+                phone: '',
+                location: '',
+                linkedin: '',
+                github: '',
+                portfolio: '',
+                summary: '',
+                technical_skills: [{category: '', skills: ''}],
+                experiences: [{role: '', company: '', dates: '', bulletsText: '', bullets: []}],
+                projects: [{name: '', link: '', stack: '', bulletsText: '', bullets: []}],
+                certifications: [{name: '', issuer: '', date: ''}],
+                education: [{degree: '', institution: '', location: '', dates: ''}],
+                include_branding: true,
+                accent_color: '#4F46E5',
+                passport_photo: null
+            };
+        })(),
         stepTitle() {
             const titles = [
                 '',

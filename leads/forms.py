@@ -55,3 +55,10 @@ class UserProfileForm(forms.Form):
     passport_photo = forms.ImageField(required=False, label="Profile Avatar Photo")
     remove_photo = forms.BooleanField(required=False, widget=forms.HiddenInput())
 
+    def clean_passport_photo(self):
+        photo = self.cleaned_data.get('passport_photo')
+        if photo:
+            from huntly.security import validate_uploaded_image
+            return validate_uploaded_image(photo, max_size_bytes=5 * 1024 * 1024)
+        return photo
+

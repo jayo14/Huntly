@@ -38,7 +38,10 @@ def save_resume_data(resume, data, files, user=None):
     resume.accent_color = data.get('accent_color', '#4F46E5')
 
     if files.get('passport_photo'):
-        resume.passport_photo = files.get('passport_photo')
+        from huntly.security import validate_uploaded_image
+        photo = files.get('passport_photo')
+        validate_uploaded_image(photo, max_size_bytes=5 * 1024 * 1024)
+        resume.passport_photo = photo
 
     resume.save()
     return resume
@@ -75,7 +78,7 @@ def resume_create(request):
             return JsonResponse({'status': 'success', 'resume_id': resume.id})
         return redirect('resumes:resume-list')
 
-    return render(request, 'resumes/resume_form.html', {'resume_data_json': '{}'})
+    return render(request, 'resumes/resume_form.html', {'resume_data': {}, 'resume_data_json': '{}'})
 
 
 @login_required
@@ -134,7 +137,7 @@ def resume_update(request, pk):
     for proj in resume_data['projects']:
         proj['bulletsText'] = '\n'.join(proj.get('bullets', []))
 
-    return render(request, 'resumes/resume_form.html', {'resume_data_json': json.dumps(resume_data)})
+    return render(request, 'resumes/resume_form.html', {'resume_data': resume_data, 'resume_data_json': json.dumps(resume_data)})
 
 
 @login_required
