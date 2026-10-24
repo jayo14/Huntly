@@ -1,27 +1,25 @@
-<span id="ats-score-badge" hx-swap-oob="outerHTML" class="px-2.5 py-1 rounded-full text-xs font-bold {% if score >= 80 %}bg-emerald-500/10 text-emerald-600 border border-emerald-500/20{% elif score >= 50 %}bg-amber-500/10 text-amber-600 border border-amber-500/20{% else %}bg-surface-200 text-surface-500{% endif %}">
+<span id="ats-score-badge" hx-swap-oob="outerHTML" class="px-3 py-1 rounded-full text-xs font-bold border border-ink shadow-sm {% if score >= 80 %}bg-lime text-ink{% elif score >= 50 %}bg-sun text-ink{% else %}bg-card text-mut{% endif %}">
     ATS Match: {{ score }}%
 </span>
 
 <div id="matched-keywords-container" hx-swap-oob="outerHTML" class="flex flex-wrap gap-1.5">
     {% for kw in matched_keywords %}
-    <span class="text-xs font-medium bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 px-2.5 py-1 rounded-lg border border-primary-200/40">{{ kw }}</span>
+    <span class="ch text-xs py-1 px-3">
+        {{ kw }}<span class="ms text-xs">check</span>
+    </span>
     {% empty %}
-    <span class="text-xs text-surface-400 italic">No specific tech keywords identified.</span>
+    <span class="text-xs text-mut italic">No specific tech keywords identified.</span>
     {% endfor %}
 </div>
 
 <textarea id="tailored-bullets-text" hx-swap-oob="outerHTML" rows="11" readonly
-          class="w-full bg-surface-100 border border-surface-200 rounded-xl p-4 text-xs font-mono text-surface-900 leading-relaxed resize-none focus:outline-none">{{ tailored_resume_text }}</textarea>
+          class="w-full bg-[#f4f8f1] border-[1.5px] border-ink rounded-2xl p-4 text-xs font-mono text-ink leading-relaxed resize-none focus:outline-none">{{ tailored_resume_text }}</textarea>
 
 <textarea id="cover-letter-text" hx-swap-oob="outerHTML" rows="12" readonly
-          class="w-full bg-surface-100 border border-surface-200 rounded-xl p-4 text-xs font-sans text-surface-900 leading-relaxed resize-none focus:outline-none">{{ cover_letter }}</textarea>
+          class="w-full bg-[#f4f8f1] border-[1.5px] border-ink rounded-2xl p-4 text-xs font-sans text-ink leading-relaxed resize-none focus:outline-none">{{ cover_letter }}</textarea>
 
 <input type="text" name="subject" value="{{ subject }}" id="message-subject" hx-swap-oob="outerHTML"
-       class="w-full bg-surface-100 border border-surface-200 rounded-xl text-xs py-2 px-3 text-surface-900 focus:outline-none focus:ring-1 focus:ring-primary-500">
+       class="w-full bg-card border-[1.5px] border-ink rounded-xl text-xs py-2.5 px-3 text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-pink/40">
 
 <textarea name="body" id="message-body" hx-swap-oob="outerHTML" rows="7"
-          class="w-full bg-surface-100 border border-surface-200 rounded-xl text-xs py-2.5 px-3 text-surface-900 focus:outline-none focus:ring-1 focus:ring-primary-500 resize-none font-sans leading-relaxed">{{ body }}</textarea>
-
-<script>
-    if (window.lucide) { lucide.createIcons(); }
-</script>
+          class="w-full bg-card border-[1.5px] border-ink rounded-xl text-xs py-3 px-3.5 text-ink focus:outline-none focus:ring-2 focus:ring-pink/40 resize-none font-sans leading-relaxed">{{ body }}</textarea>
