@@ -5,6 +5,8 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 
+from huntly.security import rate_limit
+
 
 def health_check(request):
     return JsonResponse({'status': 'ok', 'app': 'huntly'})
@@ -14,6 +16,7 @@ def landing_page(request):
         return render(request, 'core/landing.html', {'is_authenticated': True})
     return render(request, 'core/landing.html', {'is_authenticated': False})
 
+@rate_limit('signup', limit=10, period=60)
 def signup(request):
     if request.user.is_authenticated:
         return redirect('leads:dashboard')
@@ -29,6 +32,7 @@ def signup(request):
         form = UserCreationForm()
     return render(request, 'core/signup.html', {'form': form})
 
+@rate_limit('login', limit=15, period=60)
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('leads:dashboard')
