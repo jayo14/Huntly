@@ -1,4 +1,4 @@
-<div class="p-8 bg-white text-gray-900 shadow-inner min-h-[842px] relative" style="font-family: 'Inter', sans-serif;">
+<div class="p-8 bg-card text-ink shadow-inner min-h-[842px] relative rounded-[24px]" style="font-family: var(--b);">
     {% if resume.passport_photo %}
     <div class="absolute top-8 right-8 w-32 h-32 border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50">
         <img src="{{ resume.passport_photo.url }}" alt="Passport Photo" class="w-full h-full object-cover">
@@ -11,18 +11,18 @@
         </h1>
         <p class="text-lg text-gray-500 font-medium mb-4">{{ resume.tagline }}</p>
 
-        <div class="flex flex-wrap gap-y-2 text-sm text-gray-500">
-            <span class="flex items-center"><i data-lucide="mail" class="w-4 h-4 mr-1.5"></i>{{ resume.email }}</span>
-            <span class="mx-3 text-gray-300">|</span>
-            <span class="flex items-center"><i data-lucide="phone" class="w-4 h-4 mr-1.5"></i>{{ resume.phone }}</span>
-            <span class="mx-3 text-gray-300">|</span>
-            <span class="flex items-center"><i data-lucide="map-pin" class="w-4 h-4 mr-1.5"></i>{{ resume.location }}</span>
+        <div class="flex flex-wrap gap-y-2 text-sm text-mut">
+            <span class="flex items-center"><span class="ms text-sm mr-1.5 text-mut">mail</span>{{ resume.email }}</span>
+            <span class="mx-3 text-line">|</span>
+            <span class="flex items-center"><span class="ms text-sm mr-1.5 text-mut">call</span>{{ resume.phone }}</span>
+            <span class="mx-3 text-line">|</span>
+            <span class="flex items-center"><span class="ms text-sm mr-1.5 text-mut">location_on</span>{{ resume.location }}</span>
         </div>
 
         <div class="flex gap-4 mt-3 text-sm">
-            {% if resume.linkedin %}<a href="{{ resume.linkedin }}" class="text-blue-600 hover:underline flex items-center"><i data-lucide="linkedin" class="w-4 h-4 mr-1"></i>LinkedIn</a>{% endif %}
-            {% if resume.github %}<a href="{{ resume.github }}" class="text-gray-700 hover:underline flex items-center"><i data-lucide="github" class="w-4 h-4 mr-1"></i>GitHub</a>{% endif %}
-            {% if resume.portfolio %}<a href="{{ resume.portfolio }}" class="text-emerald-600 hover:underline flex items-center"><i data-lucide="external-link" class="w-4 h-4 mr-1"></i>Portfolio</a>{% endif %}
+            {% if resume.linkedin %}<a href="{{ resume.linkedin }}" class="text-ink font-semibold hover:text-pink flex items-center gap-1"><span class="ms text-sm">link</span>LinkedIn</a>{% endif %}
+            {% if resume.github %}<a href="{{ resume.github }}" class="text-ink font-semibold hover:text-pink flex items-center gap-1"><span class="ms text-sm">code</span>GitHub</a>{% endif %}
+            {% if resume.portfolio %}<a href="{{ resume.portfolio }}" class="text-ink font-semibold hover:text-pink flex items-center gap-1"><span class="ms text-sm">open_in_new</span>Portfolio</a>{% endif %}
         </div>
     </header>
 
@@ -122,4 +122,3 @@
     </footer>
     {% endif %}
 </div>
-<script>lucide.createIcons();</script>

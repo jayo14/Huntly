@@ -9,39 +9,39 @@
         <div class="flex items-center justify-between mb-4">
             <template x-for="i in 9" :key="i">
                 <div class="flex flex-col items-center flex-1">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 shadow-sm border-2"
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border-2"
                          :class="{
-                            'bg-primary-600 border-primary-600 text-white ring-4 ring-primary-100': step === i,
-                            'bg-emerald-500 border-emerald-500 text-white': step > i,
-                            'bg-surface-100 border-surface-200 text-surface-400': step < i
+                            'bg-ink border-ink text-white ring-4 ring-pink/30': step === i,
+                            'bg-lime border-ink text-ink font-bold': step > i,
+                            'bg-card border-line text-mut': step < i
                          }">
-                        <template x-if="step > i"><i data-lucide="check" class="w-5 h-5"></i></template>
-                        <template x-if="step <= i"><span class="text-sm font-bold" x-text="i"></span></template>
+                        <template x-if="step > i"><span class="ms text-base font-bold">check</span></template>
+                        <template x-if="step <= i"><span class="text-sm font-bold font-display" x-text="i"></span></template>
                     </div>
                     <span class="mt-2 text-[10px] font-bold uppercase tracking-wider hidden md:block"
-                          :class="step === i ? 'text-primary-600' : 'text-surface-400'"
+                          :class="step === i ? 'text-pink font-extrabold' : 'text-mut'"
                           x-text="stepTitleShort(i)"></span>
                 </div>
             </template>
         </div>
-        <div class="w-full bg-surface-200 h-1.5 rounded-full overflow-hidden">
-            <div class="bg-primary-600 h-full transition-all duration-700 ease-out" :style="`width: ${progress}%`"></div >
+        <div class="w-full bg-[#eef3ea] border border-line h-3 rounded-full overflow-hidden p-0.5">
+            <div class="bg-lime h-full rounded-full transition-all duration-500 ease-out border border-ink/20" :style="`width: ${progress}%`"></div>
         </div>
     </div>
 
-    <div class="bg-surface-100 rounded-3xl shadow-xl border border-surface-200 overflow-hidden transition-all duration-300">
+    <div class="bg-card rounded-[32px] shadow-[4px_6px_0_#102a1f] border-2 border-ink overflow-hidden transition-all duration-300">
         <!-- Form Content -->
-        <form @submit.prevent="submitForm" enctype="multipart/form-data" class="divide-y divide-surface-200">
+        <form @submit.prevent="submitForm" enctype="multipart/form-data" class="divide-y-2 divide-line">
             {% csrf_token %}
 
-            <div class="px-8 py-6 bg-surface-50/50 border-b border-surface-200 flex items-center justify-between">
+            <div class="px-8 py-6 bg-[#f4f8f1] border-b-2 border-ink flex items-center justify-between">
                 <div>
-                    <h2 class="text-2xl font-black text-surface-950 tracking-tight" x-text="stepTitle()"></h2>
-                    <p class="text-sm text-surface-500 font-medium" x-text="stepDescription()"></p>
+                    <h2 class="text-2xl font-display font-bold text-ink tracking-tight" x-text="stepTitle()"></h2>
+                    <p class="text-sm text-mut font-semibold" x-text="stepDescription()"></p>
                 </div>
-                <div class="hidden sm:flex items-center space-x-2 text-surface-400 bg-surface-100 px-3 py-1.5 rounded-full border border-surface-200">
-                   <i data-lucide="info" class="w-4 h-4"></i>
-                   <span class="text-[10px] font-bold uppercase tracking-wider">Step <span x-text="step"></span> of 9</span>
+                <div class="hidden sm:flex items-center space-x-2 text-ink bg-card px-3.5 py-1.5 rounded-full border border-ink shadow-sm">
+                   <span class="ms text-base">info</span>
+                   <span class="text-[11px] font-bold uppercase tracking-wider">Step <span x-text="step"></span> of 9</span>
                 </div>
             </div>
 
@@ -86,24 +86,24 @@
             <!-- Step 3: Technical Skills -->
             <div x-show="step === 3" class="p-8 space-y-6">
                 <div class="flex justify-end">
-                    <button type="button" @click="addSkill" class="flex items-center px-4 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-xl hover:bg-primary-700 transition shadow-lg shadow-primary-600/20">
-                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                    <button type="button" @click="addSkill" class="btn text-xs py-2 px-4">
+                        <span class="ms text-base mr-1">add</span>
                         Add Skill Category
                     </button>
                 </div>
                 <template x-for="(skill, index) in formData.technical_skills" :key="index">
-                    <div class="p-6 border border-surface-200 rounded-2xl bg-surface-50/50 relative group">
-                        <button type="button" @click="removeSkill(index)" class="absolute top-4 right-4 text-surface-400 hover:text-red-500 transition-colors">
-                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    <div class="p-6 border border-line rounded-2xl bg-[#f4f8f1] relative group">
+                        <button type="button" @click="removeSkill(index)" class="absolute top-4 right-4 text-mut hover:text-pink transition-colors">
+                            <span class="ms text-xl">delete</span>
                         </button>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Category</label>
-                                <input type="text" x-model="skill.category" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3 transition-all" placeholder="Languages">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Category</label>
+                                <input type="text" x-model="skill.category" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3 transition-all" placeholder="Languages">
                             </div>
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Skills (comma separated)</label>
-                                <input type="text" x-model="skill.skills" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3 transition-all" placeholder="Python, JavaScript, Go">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Skills (comma separated)</label>
+                                <input type="text" x-model="skill.skills" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3 transition-all" placeholder="Python, JavaScript, Go">
                             </div>
                         </div>
                     </div>
@@ -113,28 +113,28 @@
             <!-- Step 4: Experience -->
             <div x-show="step === 4" class="p-8 space-y-6">
                 <div class="flex justify-end">
-                    <button type="button" @click="addExperience" class="flex items-center px-4 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-xl hover:bg-primary-700 transition shadow-lg shadow-primary-600/20">
-                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                    <button type="button" @click="addExperience" class="btn text-xs py-2 px-4">
+                        <span class="ms text-base mr-1">add</span>
                         Add Experience
                     </button>
                 </div>
                 <template x-for="(exp, index) in formData.experiences" :key="index">
-                    <div class="p-6 border border-surface-200 rounded-2xl bg-surface-50/50 relative space-y-4">
-                        <button type="button" @click="removeExperience(index)" class="absolute top-4 right-4 text-surface-400 hover:text-red-500 transition-colors">
-                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    <div class="p-6 border border-line rounded-2xl bg-[#f4f8f1] relative space-y-4">
+                        <button type="button" @click="removeExperience(index)" class="absolute top-4 right-4 text-mut hover:text-pink transition-colors">
+                            <span class="ms text-xl">delete</span>
                         </button>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Role</label>
-                                <input type="text" x-model="exp.role" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Role</label>
+                                <input type="text" x-model="exp.role" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3">
                             </div>
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Company</label>
-                                <input type="text" x-model="exp.company" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Company</label>
+                                <input type="text" x-model="exp.company" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3">
                             </div>
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Dates</label>
-                                <input type="text" x-model="exp.dates" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3" placeholder="Jan 2020 - Present">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Dates</label>
+                                <input type="text" x-model="exp.dates" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3" placeholder="Jan 2020 - Present">
                             </div>
                         </div>
                         <div class="space-y-2">
@@ -148,29 +148,29 @@
             <!-- Step 5: Projects -->
             <div x-show="step === 5" class="p-8 space-y-6">
                 <div class="flex justify-end">
-                    <button type="button" @click="addProject" class="flex items-center px-4 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-xl hover:bg-primary-700 transition shadow-lg shadow-primary-600/20">
-                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                    <button type="button" @click="addProject" class="btn text-xs py-2 px-4">
+                        <span class="ms text-base mr-1">add</span>
                         Add Project
                     </button>
                 </div>
                 <template x-for="(proj, index) in formData.projects" :key="index">
-                    <div class="p-6 border border-surface-200 rounded-2xl bg-surface-50/50 relative space-y-4">
-                        <button type="button" @click="removeProject(index)" class="absolute top-4 right-4 text-surface-400 hover:text-red-500 transition-colors">
-                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    <div class="p-6 border border-line rounded-2xl bg-[#f4f8f1] relative space-y-4">
+                        <button type="button" @click="removeProject(index)" class="absolute top-4 right-4 text-mut hover:text-pink transition-colors">
+                            <span class="ms text-xl">delete</span>
                         </button>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Name</label>
-                                <input type="text" x-model="proj.name" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Name</label>
+                                <input type="text" x-model="proj.name" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3">
                             </div>
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Link</label>
-                                <input type="url" x-model="proj.link" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Link</label>
+                                <input type="url" x-model="proj.link" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3">
                             </div>
                         </div>
                         <div class="space-y-2">
-                            <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Bullets</label>
-                            <textarea x-model="proj.bulletsText" @input="updateProjBullets(index)" rows="3" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3"></textarea>
+                            <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Bullets</label>
+                            <textarea x-model="proj.bulletsText" @input="updateProjBullets(index)" rows="3" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3"></textarea>
                         </div>
                     </div>
                 </template>
@@ -179,28 +179,28 @@
             <!-- Step 6: Certifications -->
             <div x-show="step === 6" class="p-8 space-y-6">
                 <div class="flex justify-end">
-                    <button type="button" @click="addCertification" class="flex items-center px-4 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-xl hover:bg-primary-700 transition shadow-lg shadow-primary-600/20">
-                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                    <button type="button" @click="addCertification" class="btn text-xs py-2 px-4">
+                        <span class="ms text-base mr-1">add</span>
                         Add Certification
                     </button>
                 </div>
                 <template x-for="(cert, index) in formData.certifications" :key="index">
-                    <div class="p-6 border border-surface-200 rounded-2xl bg-surface-50/50 relative">
-                        <button type="button" @click="removeCertification(index)" class="absolute top-4 right-4 text-surface-400 hover:text-red-500 transition-colors">
-                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    <div class="p-6 border border-line rounded-2xl bg-[#f4f8f1] relative">
+                        <button type="button" @click="removeCertification(index)" class="absolute top-4 right-4 text-mut hover:text-pink transition-colors">
+                            <span class="ms text-xl">delete</span>
                         </button>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Name</label>
-                                <input type="text" x-model="cert.name" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Name</label>
+                                <input type="text" x-model="cert.name" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3">
                             </div>
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Issuer</label>
-                                <input type="text" x-model="cert.issuer" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Issuer</label>
+                                <input type="text" x-model="cert.issuer" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3">
                             </div>
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Date</label>
-                                <input type="text" x-model="cert.date" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Date</label>
+                                <input type="text" x-model="cert.date" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3">
                             </div>
                         </div>
                     </div>
@@ -210,32 +210,32 @@
             <!-- Step 7: Education -->
             <div x-show="step === 7" class="p-8 space-y-6">
                 <div class="flex justify-end">
-                    <button type="button" @click="addEducation" class="flex items-center px-4 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-xl hover:bg-primary-700 transition shadow-lg shadow-primary-600/20">
-                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                    <button type="button" @click="addEducation" class="btn text-xs py-2 px-4">
+                        <span class="ms text-base mr-1">add</span>
                         Add Education
                     </button>
                 </div>
                 <template x-for="(edu, index) in formData.education" :key="index">
-                    <div class="p-6 border border-surface-200 rounded-2xl bg-surface-50/50 relative">
-                        <button type="button" @click="removeEducation(index)" class="absolute top-4 right-4 text-surface-400 hover:text-red-500 transition-colors">
-                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    <div class="p-6 border border-line rounded-2xl bg-[#f4f8f1] relative">
+                        <button type="button" @click="removeEducation(index)" class="absolute top-4 right-4 text-mut hover:text-pink transition-colors">
+                            <span class="ms text-xl">delete</span>
                         </button>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Degree</label>
-                                <input type="text" x-model="edu.degree" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Degree</label>
+                                <input type="text" x-model="edu.degree" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3">
                             </div>
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Institution</label>
-                                <input type="text" x-model="edu.institution" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Institution</label>
+                                <input type="text" x-model="edu.institution" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3">
                             </div>
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Location</label>
-                                <input type="text" x-model="edu.location" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Location</label>
+                                <input type="text" x-model="edu.location" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3">
                             </div>
                             <div class="space-y-2">
-                                <label class="block text-sm font-bold text-surface-700 tracking-wide uppercase text-[11px]">Dates</label>
-                                <input type="text" x-model="edu.dates" class="w-full bg-surface-100 border-surface-200 rounded-xl focus:ring-primary-500 focus:border-primary-500 p-3">
+                                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Dates</label>
+                                <input type="text" x-model="edu.dates" class="w-full bg-white border-[1.5px] border-ink rounded-xl focus:ring-2 focus:ring-pink/40 p-3">
                             </div>
                         </div>
                     </div>
@@ -267,8 +267,8 @@
                         <div class="w-32 h-40 bg-surface-50 border-2 border-dashed border-surface-200 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group transition-all hover:border-primary-500">
                             <template x-if="!photoPreview">
                                 <div class="flex flex-col items-center text-center p-4">
-                                    <i data-lucide="camera" class="w-8 h-8 text-surface-300 mb-2"></i>
-                                    <span class="text-[10px] font-bold text-surface-400 uppercase">Click to upload</span>
+                                    <span class="ms text-3xl text-mut mb-2">photo_camera</span>
+                                    <span class="text-[10px] font-bold text-mut uppercase">Click to upload</span>
                                 </div>
                             </template>
                             <template x-if="photoPreview">
@@ -287,8 +287,8 @@
                                  <li>• Size: Max 2MB</li>
                              </ul>
                              <template x-if="photoPreview">
-                                 <button type="button" @click="photoPreview = null; formData.passport_photo = null" class="text-xs font-bold text-red-500 hover:text-red-600 transition-colors flex items-center">
-                                     <i data-lucide="x" class="w-3 h-3 mr-1"></i> Remove Photo
+                                 <button type="button" @click="photoPreview = null; formData.passport_photo = null" class="text-xs font-bold text-pink hover:underline transition-colors flex items-center gap-1">
+                                     <span class="ms text-sm">close</span> Remove Photo
                                  </button>
                              </template>
                         </div>
@@ -299,47 +299,48 @@
                     <label class="flex items-center space-x-4 cursor-pointer group">
                         <div class="relative">
                             <input type="checkbox" x-model="formData.include_branding" class="sr-only peer">
-                            <div class="w-11 h-6 bg-surface-200 rounded-full peer-checked:bg-emerald-500 transition-colors"></div>
+                            <div class="w-11 h-6 bg-surface-200 rounded-full peer-checked:bg-lime transition-colors"></div>
                             <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
                         </div>
-                        <span class="text-sm font-bold text-surface-700 group-hover:text-surface-950 transition-colors">Include "Generated by Huntly" branding</span>
+                        <span class="text-sm font-bold text-ink group-hover:text-pink transition-colors">Include "Generated by Huntly" branding</span>
                     </label>
                 </div>
             </div>
 
             <!-- Step 9: Preview -->
             <div x-show="step === 9" class="p-8 bg-surface-200/50">
-                <div class="max-w-[800px] mx-auto bg-white shadow-2xl rounded-sm border border-surface-300 transform scale-75 md:scale-90 origin-top transition-transform hover:scale-[0.98] cursor-zoom-in"
+                <div class="max-w-[800px] mx-auto bg-white shadow-2xl rounded-sm border border-line transform scale-75 md:scale-90 origin-top transition-transform hover:scale-[0.98] cursor-zoom-in"
                      @click="openLargePreview()">
                     <div class="pointer-events-none select-none">
                          <!-- Simplified preview container -->
                          <div class="p-12 text-center py-32 space-y-6">
-                             <div class="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto">
-                                 <i data-lucide="eye" class="w-10 h-10 text-primary-600"></i>
+                             <div class="w-20 h-20 bg-lime/40 border-2 border-ink rounded-full flex items-center justify-center mx-auto shadow-sm">
+                                 <span class="ms text-4xl text-ink">visibility</span>
                              </div>
-                             <h3 class="text-3xl font-black text-surface-950">Click to Preview</h3>
-                             <p class="text-surface-500 font-medium max-w-md mx-auto">Your resume is ready! Click anywhere on this document to see a full-size version before saving.</p>
+                             <h3 class="text-3xl font-display font-bold text-ink">Click to Preview</h3>
+                             <p class="text-mut font-medium max-w-md mx-auto">Your resume is ready! Click anywhere on this document to see a full-size version before saving.</p>
                          </div>
                     </div>
                 </div>
             </div>
 
             <!-- Footer Buttons -->
-            <div class="bg-surface-50 px-8 py-6 border-t border-surface-200 flex justify-between items-center">
-                <button type="button" x-show="step > 1" @click="step--" class="flex items-center px-6 py-2.5 border border-surface-200 rounded-xl text-surface-600 font-bold hover:bg-surface-100 hover:text-surface-950 transition">
-                    <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+            <div class="bg-[#f4f8f1] px-8 py-6 border-t-2 border-ink flex justify-between items-center">
+                <button type="button" x-show="step > 1" @click="step--" class="btn o text-xs py-2 px-5">
+                    <span class="ms text-sm mr-1">arrow_back</span>
                     Back
                 </button>
                 <div x-show="step === 1"></div> <!-- Spacer -->
 
                 <div class="flex items-center space-x-4">
-                    <button type="button" x-show="step < 9" @click="step++" class="flex items-center px-8 py-2.5 bg-primary-600 text-white font-black rounded-xl hover:bg-primary-700 transition shadow-lg shadow-primary-600/20">
-                        Next
-                        <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                    <button type="button" x-show="step < 9" @click="step++" class="btn text-xs py-2.5 px-6">
+                        <span>Next</span>
+                        <span class="ms text-sm">arrow_forward</span>
                     </button>
-                    <button type="submit" x-show="step === 9" class="flex items-center px-10 py-3 bg-emerald-600 text-white font-black rounded-xl hover:bg-emerald-700 transition shadow-xl shadow-emerald-600/30">
-                        <i data-lucide="download" class="w-5 h-5 mr-2"></i>
-                        Save & Download
+                    <button type="submit" x-show="step === 9" class="btn text-xs py-2.5 px-7"
+                            :class="isSubmitting ? 'is-loading' : ''" :disabled="isSubmitting">
+                        <span x-text="isSubmitting ? 'Generating Resume...' : 'Save & Download'">Save & Download</span>
+                        <span class="ms text-sm" :class="isSubmitting ? 'arrow-loading' : ''">arrow_forward</span>
                     </button>
                 </div>
             </div>
@@ -347,11 +348,38 @@
     </div>
 </div>
 
+<style>
+    input[type="text"], input[type="email"], input[type="tel"], input[type="url"], textarea, select {
+        background-color: #ffffff !important;
+        border: 1.5px solid var(--ink) !important;
+        color: var(--ink) !important;
+        border-radius: 1rem !important;
+        padding: 0.75rem 1rem !important;
+        font-family: var(--b) !important;
+        font-size: 0.9rem !important;
+        transition: all 0.2s ease !important;
+    }
+    input:focus, textarea:focus, select:focus {
+        outline: 3px solid var(--pink) !important;
+        outline-offset: 2px !important;
+        border-color: var(--ink) !important;
+    }
+    label {
+        font-family: var(--d) !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.04em !important;
+        color: var(--ink) !important;
+        font-size: 0.75rem !important;
+    }
+</style>
+
 <script>
 function resumeForm() {
     return {
         step: 1,
         progress: 11,
+        isSubmitting: false,
         photoPreview: null,
         colors: [
             { name: 'Indigo', hex: '#4F46E5' },
@@ -419,31 +447,30 @@ function resumeForm() {
         init() {
             this.$watch('step', value => {
                 this.progress = Math.round((value / 9) * 100);
-                setTimeout(() => lucide.createIcons(), 10);
             });
             if (this.formData.passport_photo_url) {
                 this.photoPreview = this.formData.passport_photo_url;
             }
         },
-        addSkill() { this.formData.technical_skills.push({category: '', skills: ''}); this.$nextTick(() => lucide.createIcons()); },
+        addSkill() { this.formData.technical_skills.push({category: '', skills: ''}); },
         removeSkill(index) { this.formData.technical_skills.splice(index, 1); },
 
-        addExperience() { this.formData.experiences.push({role: '', company: '', dates: '', bulletsText: '', bullets: []}); this.$nextTick(() => lucide.createIcons()); },
+        addExperience() { this.formData.experiences.push({role: '', company: '', dates: '', bulletsText: '', bullets: []}); },
         removeExperience(index) { this.formData.experiences.splice(index, 1); },
         updateExpBullets(index) {
             this.formData.experiences[index].bullets = this.formData.experiences[index].bulletsText.split('\n').filter(b => b.trim() !== '');
         },
 
-        addProject() { this.formData.projects.push({name: '', link: '', stack: '', bulletsText: '', bullets: []}); this.$nextTick(() => lucide.createIcons()); },
+        addProject() { this.formData.projects.push({name: '', link: '', stack: '', bulletsText: '', bullets: []}); },
         removeProject(index) { this.formData.projects.splice(index, 1); },
         updateProjBullets(index) {
             this.formData.projects[index].bullets = this.formData.projects[index].bulletsText.split('\n').filter(b => b.trim() !== '');
         },
 
-        addCertification() { this.formData.certifications.push({name: '', issuer: '', date: ''}); this.$nextTick(() => lucide.createIcons()); },
+        addCertification() { this.formData.certifications.push({name: '', issuer: '', date: ''}); },
         removeCertification(index) { this.formData.certifications.splice(index, 1); },
 
-        addEducation() { this.formData.education.push({degree: '', institution: '', location: '', dates: ''}); this.$nextTick(() => lucide.createIcons()); },
+        addEducation() { this.formData.education.push({degree: '', institution: '', location: '', dates: ''}); },
         removeEducation(index) { this.formData.education.splice(index, 1); },
 
         handlePhotoUpload(e) {
@@ -473,32 +500,41 @@ function resumeForm() {
         },
 
         async submitForm() {
-            const formPayload = new FormData();
-            formPayload.append('data', JSON.stringify(this.formData));
-            if (this.formData.passport_photo instanceof File) {
-                formPayload.append('passport_photo', this.formData.passport_photo);
-            }
+            if (this.isSubmitting) return;
+            this.isSubmitting = true;
+            try {
+                const formPayload = new FormData();
+                formPayload.append('data', JSON.stringify(this.formData));
+                if (this.formData.passport_photo instanceof File) {
+                    formPayload.append('passport_photo', this.formData.passport_photo);
+                }
 
-            const response = await fetch('', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: formPayload
-            });
+                const response = await fetch('', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: formPayload
+                });
 
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = this.formData.full_name.replace(/ /g, '_') + "--_by_Huntly.docx";
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                window.location.href = '{% url "resumes:resume-list" %}';
-            } else {
-                alert('Failed to save resume');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = this.formData.full_name.replace(/ /g, '_') + "--_by_Huntly.docx";
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    window.location.href = '{% url "resumes:resume-list" %}';
+                } else {
+                    alert('Failed to save resume');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('An error occurred while saving the resume.');
+            } finally {
+                this.isSubmitting = false;
             }
         }
     }
@@ -513,40 +549,39 @@ function resumeForm() {
         window.addEventListener('open-preview', (e) => {
             this.resume = e.detail;
             this.show = true;
-            this.$nextTick(() => lucide.createIcons());
         });
     }
 }"
      x-show="show"
      x-cloak
-     class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+     class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/70 backdrop-blur-md"
      @keydown.escape.window="show = false">
 
-    <div class="bg-surface-50 w-full max-w-4xl max-h-[90vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col" @click.away="show = false">
-        <div class="px-8 py-4 bg-surface-100 border-b border-surface-200 flex items-center justify-between">
-            <h3 class="font-black text-surface-950 uppercase tracking-widest text-xs">Live Preview</h3>
-            <button @click="show = false" class="p-2 hover:bg-surface-200 rounded-full transition-colors">
-                <i data-lucide="x" class="w-5 h-5"></i>
+    <div class="bg-card w-full max-w-4xl max-h-[90vh] rounded-[28px] border-2 border-ink shadow-[6px_8px_0_#102a1f] overflow-hidden flex flex-col" @click.away="show = false">
+        <div class="px-8 py-4 bg-[#f4f8f1] border-b-2 border-ink flex items-center justify-between">
+            <h3 class="font-display font-bold text-ink uppercase tracking-wider text-xs">Live Preview</h3>
+            <button @click="show = false" class="p-1.5 hover:bg-card rounded-full border border-line hover:border-ink transition-all flex items-center justify-center">
+                <span class="ms text-lg">close</span>
             </button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-4 md:p-12 bg-surface-200/30">
+        <div class="flex-1 overflow-y-auto p-4 md:p-12 bg-bg">
             <!-- Client-side rendition of resume_preview.html -->
-            <div class="bg-white shadow-xl min-h-[1000px] p-12 text-gray-900 relative mx-auto max-w-[800px]" style="font-family: 'Inter', sans-serif;">
-                <div x-show="resume.passport_photo" class="absolute top-12 right-12 w-32 h-32 border-2 border-gray-100 rounded-lg overflow-hidden bg-gray-50 shadow-sm">
+            <div class="bg-card border-2 border-ink rounded-[24px] shadow-sm min-h-[900px] p-12 text-ink relative mx-auto max-w-[800px]" style="font-family: var(--b);">
+                <div x-show="resume.passport_photo" class="absolute top-12 right-12 w-32 h-32 border-2 border-ink rounded-2xl overflow-hidden bg-bg shadow-sm">
                     <img :src="resume.passport_photo instanceof File ? URL.createObjectURL(resume.passport_photo) : (resume.passport_photo_url || '')" class="w-full h-full object-cover">
                 </div>
 
                 <header class="mb-10" :class="resume.passport_photo ? 'pr-40' : ''">
-                    <h1 class="text-5xl font-black uppercase tracking-tighter mb-2" :style="`color: ${resume.accent_color}`" x-text="resume.full_name"></h1>
-                    <p class="text-xl text-surface-500 font-bold mb-6" x-text="resume.tagline"></p>
+                    <h1 class="text-4xl font-display font-bold uppercase tracking-tight mb-2" :style="`color: ${resume.accent_color || '#102a1f'}`" x-text="resume.full_name"></h1>
+                    <p class="text-lg text-mut font-semibold mb-6" x-text="resume.tagline"></p>
 
-                    <div class="flex flex-wrap gap-y-3 text-sm font-medium text-surface-400">
-                        <span class="flex items-center"><i data-lucide="mail" class="w-4 h-4 mr-2"></i><span x-text="resume.email"></span></span>
-                        <span class="mx-4 text-surface-200">|</span>
-                        <span class="flex items-center"><i data-lucide="phone" class="w-4 h-4 mr-2"></i><span x-text="resume.phone"></span></span>
-                        <span class="mx-4 text-surface-200">|</span>
-                        <span class="flex items-center"><i data-lucide="map-pin" class="w-4 h-4 mr-2"></i><span x-text="resume.location"></span></span>
+                    <div class="flex flex-wrap gap-y-3 text-sm font-semibold text-mut">
+                        <span class="flex items-center"><span class="ms text-base mr-1.5 text-mut">mail</span><span x-text="resume.email"></span></span>
+                        <span class="mx-4 text-line">|</span>
+                        <span class="flex items-center"><span class="ms text-base mr-1.5 text-mut">call</span><span x-text="resume.phone"></span></span>
+                        <span class="mx-4 text-line">|</span>
+                        <span class="flex items-center"><span class="ms text-base mr-1.5 text-mut">location_on</span><span x-text="resume.location"></span></span>
                     </div>
                 </header>
 
