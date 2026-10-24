@@ -3,13 +3,15 @@ from django.conf import settings
 from django.core.mail import EmailMessage, get_connection
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib import messages
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.db.models import Count, Q
 
+from huntly.security import rate_limit
 from .models import JobApplication, Lead, Message, AppSetting
 from resumes.models import Resume
 from .forms import JobApplicationForm, LeadForm, AppSettingForm, UserProfileForm
@@ -233,6 +235,7 @@ def lead_detail(request, pk):
 
 @login_required
 @require_POST
+@rate_limit('generate_message', limit=20, period=60)
 def generate_message(request, pk):
     job = get_object_or_404(JobApplication, pk=pk, user=request.user)
     resume = Resume.objects.filter(user=request.user).first()
@@ -281,6 +284,7 @@ def generate_message(request, pk):
 
 @login_required
 @require_POST
+@rate_limit('send_message', limit=20, period=60)
 def send_message(request, pk):
     job = get_object_or_404(JobApplication, pk=pk, user=request.user)
     subject = request.POST.get('subject')
@@ -302,7 +306,7 @@ def send_message(request, pk):
                 host=setting.smtp_host,
                 port=setting.smtp_port,
                 username=setting.email_address,
-                password=setting.email_password,
+                password=setting.get_decrypted_email_password(),
                 use_tls=True,
             )
             email = EmailMessage(
@@ -403,3 +407,110 @@ def profile_edit(request):
         'form': form,
         'resume': resume,
     })
+
+
+@login_required
+def profile_export(request):
+    """Export all personal and career data belonging to the authenticated user in standard JSON format."""
+    user = request.user
+    resume = Resume.objects.filter(user=user).first()
+    jobs = JobApplication.objects.filter(user=user).prefetch_related('messages')
+    setting = AppSetting.objects.filter(user=user).first()
+
+    data = {
+        'export_metadata': {
+            'generated_at': timezone.now().isoformat(),
+            'platform': 'Huntly Job-Search Operating System',
+            'version': '1.0',
+        },
+        'user': {
+            'id': user.pk,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'date_joined': user.date_joined.isoformat() if user.date_joined else None,
+        },
+        'career_profile': {
+            'full_name': getattr(resume, 'full_name', ''),
+            'email': getattr(resume, 'email', ''),
+            'phone': getattr(resume, 'phone', ''),
+            'location': getattr(resume, 'location', ''),
+            'tagline': getattr(resume, 'tagline', ''),
+            'linkedin': getattr(resume, 'linkedin', ''),
+            'github': getattr(resume, 'github', ''),
+            'portfolio': getattr(resume, 'portfolio', ''),
+            'summary': getattr(resume, 'summary', ''),
+            'technical_skills': getattr(resume, 'technical_skills', []),
+            'experiences': getattr(resume, 'experiences', []),
+            'projects': getattr(resume, 'projects', []),
+            'education': getattr(resume, 'education', []),
+            'certifications': getattr(resume, 'certifications', []),
+        } if resume else None,
+        'job_applications': [
+            {
+                'id': job.pk,
+                'company_name': job.company_name,
+                'role_title': job.role_title,
+                'job_url': job.job_url,
+                'job_description': job.job_description,
+                'status': job.status,
+                'score': job.score,
+                'contact_name': job.contact_name,
+                'contact_email': job.contact_email,
+                'matched_keywords': job.matched_keywords,
+                'cover_letter': job.cover_letter,
+                'recruiter_pitch': job.recruiter_pitch,
+                'tailored_resume_text': job.tailored_resume_text,
+                'created_at': job.created_at.isoformat() if job.created_at else None,
+                'updated_at': job.updated_at.isoformat() if job.updated_at else None,
+                'messages': [
+                    {
+                        'id': msg.pk,
+                        'subject': msg.subject,
+                        'body': msg.body,
+                        'sent_at': msg.sent_at.isoformat() if msg.sent_at else None,
+                    }
+                    for msg in job.messages.all()
+                ]
+            }
+            for job in jobs
+        ],
+        'app_settings': {
+            'daily_send_limit': setting.daily_send_limit if setting else 20,
+            'default_tone': setting.default_tone if setting else 'professional',
+            'auto_send': setting.auto_send if setting else False,
+            'email_address': setting.email_address if setting else '',
+            'smtp_host': setting.smtp_host if setting else '',
+            'smtp_port': setting.smtp_port if setting else 587,
+        } if setting else None,
+    }
+
+    response = JsonResponse(data, json_dumps_params={'indent': 2})
+    response['Content-Disposition'] = f'attachment; filename="huntly_data_export_{user.username}_{timezone.now().strftime("%Y%m%d")}.json"'
+    return response
+
+
+@login_required
+@require_POST
+def profile_delete_account(request):
+    """Permanently delete authenticated user and all associated career records upon password verification."""
+    password = request.POST.get('password', '')
+    user = request.user
+
+    if not user.check_password(password):
+        messages.error(request, "Incorrect password. Account deletion aborted.")
+        return redirect('leads:profile')
+
+    # Remove resume passport photo asset if present
+    resumes = Resume.objects.filter(user=user)
+    for res in resumes:
+        if res.passport_photo:
+            res.passport_photo.delete(save=False)
+
+    username = user.username
+    user.delete()
+    logout(request)
+
+    messages.info(request, f"Account '{username}' and all associated personal data have been permanently deleted.")
+    return redirect('core:landing')

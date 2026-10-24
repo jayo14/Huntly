@@ -141,5 +141,84 @@
             </div>
         </div>
     </div>
+
+    <!-- Data Privacy & Account Management -->
+    <div x-data="{ showDeleteModal: false }" class="bg-card border-2 border-ink p-8 rounded-[28px] shadow-[3px_4px_0_#102a1f]">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div>
+                <h2 class="text-xl font-display font-bold text-ink flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-full bg-lil border border-ink flex items-center justify-center">
+                        <span class="ms text-base text-ink" aria-hidden="true">shield</span>
+                    </span>
+                    Data Protection & Account Controls
+                </h2>
+                <p class="text-xs text-mut mt-1">Export a full machine-readable archive of your career profile and activity, or permanently erase your account.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="{% url 'leads:profile-export' %}" class="btn o text-xs py-2.5 px-4" aria-label="Download all personal data in JSON format">
+                    <span class="ms text-base" aria-hidden="true">download</span>
+                    <span>Export My Data (JSON)</span>
+                </a>
+                <button type="button" @click="showDeleteModal = true" class="btn bg-[#ffebee] border-2 border-red-700 text-red-800 hover:bg-red-700 hover:text-white text-xs py-2.5 px-4 shadow-[2px_3px_0_#b71c1c] transition-all" aria-label="Open delete account confirmation modal">
+                    <span class="ms text-base" aria-hidden="true">delete_forever</span>
+                    <span>Delete Account</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Delete Account Modal -->
+        <div x-show="showDeleteModal" x-cloak
+             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @keydown.escape.window="showDeleteModal = false">
+            <div @click.outside="showDeleteModal = false"
+                 class="bg-card border-2 border-ink rounded-[28px] shadow-[6px_8px_0_#102a1f] max-w-md w-full p-6 space-y-5"
+                 x-show="showDeleteModal"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
+                
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-red-100 border-2 border-red-700 flex items-center justify-center shrink-0">
+                        <span class="ms text-2xl text-red-700" aria-hidden="true">warning</span>
+                    </div>
+                    <div>
+                        <h3 id="delete-account-title" class="text-xl font-display font-bold text-ink">Delete Account & Data</h3>
+                        <p class="text-xs text-mut mt-1">This action is <span class="font-bold text-red-700">permanent and non-reversible</span>. Your career profile, resumes, tracking pipelines, generated pitches, and application messages will be permanently deleted.</p>
+                    </div>
+                </div>
+
+                <form method="post" action="{% url 'leads:profile-delete-account' %}" class="space-y-4 pt-2">
+                    {% csrf_token %}
+                    <div>
+                        <label for="delete-account-password" class="block text-xs font-bold text-ink uppercase tracking-wider mb-1">
+                            Confirm Your Password
+                        </label>
+                        <input type="password" id="delete-account-password" name="password" required autocomplete="current-password"
+                               placeholder="Enter your current password"
+                               class="w-full px-4 py-2.5 rounded-xl border-2 border-ink text-sm bg-white focus:outline-none focus:ring-2 focus:ring-pink">
+                    </div>
+                    <div class="flex items-center justify-end gap-3 pt-2">
+                        <button type="button" @click="showDeleteModal = false" class="btn o text-xs py-2 px-4">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn bg-red-600 text-white border-2 border-red-900 hover:bg-red-700 text-xs py-2 px-4 shadow-[2px_3px_0_#7f1d1d]">
+                            <span class="ms text-sm" aria-hidden="true">delete</span>
+                            <span>Confirm Deletion</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

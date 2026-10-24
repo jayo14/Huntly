@@ -18,4 +18,6 @@ urlpatterns = [
     path('leads/<int:pk>/send-message/', views.send_message, name='send-message'),
     path('profile/', views.profile_view, name='profile'),
     path('profile/edit/', views.profile_edit, name='profile-edit'),
+    path('profile/export/', views.profile_export, name='profile-export'),
+    path('profile/delete-account/', views.profile_delete_account, name='profile-delete-account'),
 ]
