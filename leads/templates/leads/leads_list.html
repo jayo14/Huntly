@@ -5,55 +5,44 @@
 
 {% block content %}
 <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-    <div class="flex flex-1 items-center gap-4">
+    <div class="flex flex-1 items-center gap-3">
+        <!-- Search Input -->
         <div class="relative flex-1 max-w-md">
-            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400"></i>
+            <span class="ms text-xl absolute left-4 top-1/2 -translate-y-1/2 text-mut">search</span>
             <input type="text" name="search" placeholder="Search by role, company, or skills..."
-                   class="w-full bg-surface-100 border border-surface-200 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-surface-950 placeholder:text-surface-400"
+                   class="w-full bg-card border-[1.5px] border-ink rounded-full py-2.5 pl-11 pr-4 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all"
                    hx-get="{% url 'leads:lead-list' %}"
                    hx-trigger="keyup changed delay:400ms"
                    hx-target="#leads-table-container"
                    hx-include="[name='status']">
         </div>
 
-        <select name="status"
-                class="bg-surface-100 border border-surface-200 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-surface-950"
-                hx-get="{% url 'leads:lead-list' %}"
-                hx-target="#leads-table-container"
-                hx-include="[name='search']">
-            <option value="">All Statuses</option>
-            {% for value, label in status_choices %}
-            <option value="{{ value }}">{{ label }}</option>
-            {% endfor %}
-        </select>
+        <!-- Status Filter Select -->
+        <div class="relative">
+            <select name="status"
+                    class="appearance-none bg-card border-[1.5px] border-ink rounded-full py-2.5 pl-4 pr-10 text-sm font-bold text-ink focus:outline-none focus:ring-2 focus:ring-pink/40 cursor-pointer transition-all"
+                    hx-get="{% url 'leads:lead-list' %}"
+                    hx-target="#leads-table-container"
+                    hx-include="[name='search']">
+                <option value="">All Statuses</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+            <span class="ms text-base absolute right-3 top-1/2 -translate-y-1/2 text-ink pointer-events-none">expand_more</span>
+        </div>
     </div>
 
+    <!-- Track New Job Button -->
     <button hx-get="{% url 'leads:lead-create' %}" hx-target="#modal-content"
-            class="bg-primary-600 text-white hover:bg-primary-500 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center transition-all shadow-lg shadow-primary-600/20">
-        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+            class="btn">
+        <i class="ms">add</i>
         Track New Job
     </button>
 </div>
 
+<!-- Table Container -->
 <div id="leads-table-container" hx-trigger="leadsChanged from:body" hx-get="{% url 'leads:lead-list' %}" hx-target="this">
     {% include "leads/partials/lead_list_table.html" %}
-</div>
-
-<!-- Modal Container -->
-<div id="modal-container" x-data="{ open: false }" 
-     x-show="open" 
-     @htmx:after-swap.window="if ($event.detail.target.id === 'modal-content') open = true"
-     @keydown.escape.window="open = false" 
-     x-cloak 
-     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-    <div class="bg-surface-50 border border-surface-200 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative"
-         @click.outside="open = false">
-        <button @click="open = false" class="absolute top-4 right-4 text-surface-400 hover:text-surface-900 p-2 rounded-lg bg-surface-100 hover:bg-surface-200 transition-colors z-10">
-            <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-        <div id="modal-content">
-            <!-- HTMX loaded content -->
-        </div>
-    </div>
 </div>
 {% endblock %}

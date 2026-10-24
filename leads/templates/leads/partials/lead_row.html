@@ -1,42 +1,43 @@
-<tr class="hover:bg-surface-200/50 transition-colors group cursor-pointer"
+<tr class="hover:bg-[#f4f8f1] transition-colors group cursor-pointer"
     onclick="if(!event.target.closest('button') && !event.target.closest('a') && !event.target.closest('select')) htmx.ajax('GET', '{% url 'leads:lead-detail' lead.pk %}', {target:'#modal-content'})">
     <td class="px-6 py-4">
-        <div class="font-bold text-surface-950">{{ lead.role_title }}</div>
-        <div class="text-xs text-surface-500 font-medium">{{ lead.company_name }}</div>
+        <div class="font-bold text-ink text-base group-hover:text-pink transition-colors">{{ lead.role_title }}</div>
+        <div class="text-xs text-mut font-semibold">{{ lead.company_name }}</div>
     </td>
     <td class="px-6 py-4">
-        <div class="flex flex-wrap gap-1 max-w-sm">
+        <div class="flex flex-wrap gap-1.5 max-w-sm">
             {% for kw in lead.matched_keywords|slice:":3" %}
-            <span class="text-[10px] bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded border border-primary-200/40">{{ kw }}</span>
+            <span class="ch text-xs py-0.5 px-2.5">
+                {{ kw }}<span class="ms text-xs">check</span>
+            </span>
             {% empty %}
-            <span class="text-xs text-surface-400">-</span>
+            <span class="text-xs text-mut">-</span>
             {% endfor %}
         </div>
     </td>
     <td class="px-6 py-4 text-center">
-        <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold
-            {% if lead.score >= 80 %}bg-emerald-500/10 text-emerald-500 border border-emerald-500/20
-            {% elif lead.score >= 50 %}bg-amber-500/10 text-amber-500 border border-amber-500/20
-            {% else %}bg-surface-200 text-surface-500 border border-surface-300{% endif %}">
+        <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold border border-ink shadow-sm
+            {% if lead.score >= 80 %}bg-lime text-ink
+            {% elif lead.score >= 50 %}bg-sun text-ink
+            {% else %}bg-card text-mut{% endif %}">
             {{ lead.score }}%
         </span>
     </td>
     <td class="px-6 py-4">
-        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border
-            {% if lead.status == 'saved' %}bg-surface-200 text-surface-600 border-surface-300
-            {% elif lead.status == 'applied' %}bg-sky-500/10 text-sky-600 border-sky-500/20
-            {% elif lead.status == 'interviewing' %}bg-amber-500/10 text-amber-600 border-amber-500/20
-            {% elif lead.status == 'offer' %}bg-emerald-500/10 text-emerald-600 border-emerald-500/20
-            {% elif lead.status == 'rejected' %}bg-rose-500/10 text-rose-500 border-rose-500/20
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold uppercase border border-ink
+            {% if lead.status == 'saved' %}bg-[#eef3ea] text-mut
+            {% elif lead.status == 'applied' %}bg-lil text-ink
+            {% elif lead.status == 'interviewing' %}bg-sun text-ink
+            {% elif lead.status == 'offer' %}bg-lime text-ink
+            {% elif lead.status == 'rejected' %}bg-[#ffd6e5] text-ink
             {% endif %}">
-            {{ lead.get_status_display|upper }}
+            {{ lead.get_status_display }}
         </span>
     </td>
     <td class="px-6 py-4 text-right">
         <button hx-get="{% url 'leads:lead-update' lead.pk %}" hx-target="#modal-content"
-                class="p-2 text-surface-400 hover:text-surface-700 hover:bg-surface-200 rounded-lg transition-all">
-            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                class="p-2 text-ink hover:bg-[#eef3ea] rounded-full border border-line hover:border-ink transition-all">
+            <span class="ms text-base">edit</span>
         </button>
     </td>
 </tr>
-<script>lucide.createIcons();</script>
