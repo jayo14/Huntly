@@ -1,18 +1,20 @@
 import json
 from django.conf import settings
 from django.core.mail import EmailMessage, get_connection
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.db import transaction
 from django.db.models import Count, Q
 
 from huntly.security import rate_limit
-from .models import JobApplication, Lead, Message, AppSetting
+from .models import JobApplication, Lead, Message, AppSetting, ApplicationActivity
 from resumes.models import Resume, ApplicationDocument
 from .forms import JobApplicationForm, LeadForm, AppSettingForm, UserProfileForm
 from .services.llm_tailor import tailor_application
@@ -27,7 +29,8 @@ class CountableList(list):
 
 @login_required
 def dashboard(request):
-    user_jobs = JobApplication.objects.filter(user=request.user)
+    """Candidate mission control dashboard with validated metrics and accurate funnel percentages."""
+    user_jobs = JobApplication.objects.filter(user=request.user, is_archived=False)
 
     status_counts = dict(
         user_jobs.values('status')
@@ -42,10 +45,11 @@ def dashboard(request):
     offer_count = status_counts.get('offer', 0)
     rejected_count = status_counts.get('rejected', 0)
 
-    active_applications = applied_count + interviewing_count + offer_count
+    # Active evaluated pipeline for callback rate
+    evaluated_count = applied_count + interviewing_count + offer_count + rejected_count
     callback_rate = round(
-        ((interviewing_count + offer_count) / active_applications * 100), 1
-    ) if active_applications > 0 else 0.0
+        ((interviewing_count + offer_count) / max(1, evaluated_count) * 100), 1
+    ) if evaluated_count > 0 else 0.0
 
     funnel_stages = [
         {
@@ -58,10 +62,19 @@ def dashboard(request):
     ]
 
     recent_jobs = user_jobs.order_by('-updated_at')[:6]
+    upcoming_interviews = user_jobs.filter(
+        interview_date__isnull=False,
+        interview_date__gte=timezone.now()
+    ).order_by('interview_date')[:4]
+    
+    follow_ups_due = user_jobs.filter(
+        next_follow_up__isnull=False,
+        next_follow_up__lte=timezone.now().date()
+    ).order_by('next_follow_up')[:4]
 
     context = {
         'total_jobs': total_jobs,
-        'total_leads': total_jobs,  # For backward-compatible templates
+        'total_leads': total_jobs,
         'saved_count': saved_count,
         'applied_count': applied_count,
         'interviewing_count': interviewing_count,
@@ -70,6 +83,8 @@ def dashboard(request):
         'callback_rate': callback_rate,
         'funnel_stages': funnel_stages,
         'recent_jobs': recent_jobs,
+        'upcoming_interviews': upcoming_interviews,
+        'follow_ups_due': follow_ups_due,
         'needs_attention': recent_jobs,
         'status_choices': JobApplication.STATUS_CHOICES,
     }
@@ -82,27 +97,57 @@ def dashboard(request):
 
 @login_required
 def lead_list(request):
-    search = request.GET.get('search', '')
-    status = request.GET.get('status', '')
+    """Responsive job tracker list view with search, filtering, sorting, and pagination."""
+    search = request.GET.get('search', '').strip()
+    status = request.GET.get('status', '').strip()
+    show_archived = request.GET.get('archived') == '1'
+    sort = request.GET.get('sort', '-updated_at')
 
-    jobs = JobApplication.objects.filter(user=request.user)
+    # Allowed sort fields to defend against SQL / field injection
+    allowed_sorts = {
+        '-updated_at': '-updated_at',
+        '-created_at': '-created_at',
+        '-score': '-score',
+        'company_name': 'company_name',
+        'role_title': 'role_title',
+        'next_follow_up': 'next_follow_up',
+    }
+    order_by_field = allowed_sorts.get(sort, '-updated_at')
+
+    jobs_qs = JobApplication.objects.filter(user=request.user, is_archived=show_archived)
 
     if search:
-        jobs = jobs.filter(
+        jobs_qs = jobs_qs.filter(
             Q(company_name__icontains=search) |
             Q(role_title__icontains=search) |
+            Q(location__icontains=search) |
             Q(job_description__icontains=search)
         )
 
-    if status:
-        jobs = jobs.filter(status=status)
+    if status and status in dict(JobApplication.STATUS_CHOICES):
+        jobs_qs = jobs_qs.filter(status=status)
+
+    jobs_qs = jobs_qs.order_by(order_by_field)
+
+    # Pagination: 12 jobs per page
+    paginator = Paginator(jobs_qs, 12)
+    page_number = request.GET.get('page', 1)
+    try:
+        page_obj = paginator.get_page(page_number)
+    except (PageNotAnInteger, EmptyPage):
+        page_obj = paginator.get_page(1)
 
     context = {
-        'jobs': jobs,
-        'leads': jobs,  # Template alias
+        'jobs': page_obj,
+        'leads': page_obj,  # Template alias
+        'page_obj': page_obj,
+        'is_paginated': page_obj.has_other_pages(),
         'status_choices': JobApplication.STATUS_CHOICES,
         'search': search,
         'selected_status': status,
+        'current_sort': sort,
+        'show_archived': show_archived,
+        'total_count': paginator.count,
     }
 
     if request.headers.get('HX-Request'):
@@ -117,12 +162,16 @@ def lead_list_partial(request):
 
 @login_required
 def lead_create(request):
+    """Add a new job application manually without forcing immediate resume tailoring."""
     if request.method == 'POST':
         form = JobApplicationForm(request.POST)
         if form.is_valid():
-            job = form.save(commit=False)
-            job.user = request.user
-            job.save()
+            with transaction.atomic():
+                job = form.save(commit=False)
+                job.user = request.user
+                job.save()
+                job.record_activity('created', f"Added job: {job.role_title} at {job.company_name}.")
+
             messages.success(request, f"Added {job.role_title} at {job.company_name}!")
             if request.headers.get('HX-Request'):
                 return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
@@ -135,26 +184,52 @@ def lead_create(request):
 
 @login_required
 def lead_update(request, pk):
+    """Update job details, interview dates, follow-up schedule, and notes."""
     job = get_object_or_404(JobApplication, pk=pk, user=request.user)
+    old_status = job.status
+
     if request.method == 'POST':
         form = JobApplicationForm(request.POST, instance=job)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Job application updated.")
+            with transaction.atomic():
+                updated_job = form.save()
+                if old_status != updated_job.status:
+                    updated_job.transition_to_status(updated_job.status, notes="Updated via edit form")
+                elif form.cleaned_data.get('notes'):
+                    updated_job.record_activity('note_added', "Application details or notes updated.")
+
+            messages.success(request, f"Updated {job.role_title} at {job.company_name}.")
             if request.headers.get('HX-Request'):
                 return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
             return redirect('leads:lead-list')
     else:
         form = JobApplicationForm(instance=job)
 
-    return render(request, 'leads/lead_form.html', {'form': form, 'lead': job})
+    return render(request, 'leads/lead_form.html', {'form': form, 'lead': job, 'job': job})
 
 
 @login_required
 @require_POST
 def lead_delete(request, pk):
+    """Delete job application with strict ownership verification."""
     job = get_object_or_404(JobApplication, pk=pk, user=request.user)
+    company = job.company_name
     job.delete()
+    messages.info(request, f"Removed job application for {company}.")
+    if request.headers.get('HX-Request'):
+        return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
+    return redirect('leads:lead-list')
+
+
+@login_required
+@require_POST
+def lead_archive(request, pk):
+    """Archive or unarchive a job application without data loss."""
+    job = get_object_or_404(JobApplication, pk=pk, user=request.user)
+    job.is_archived = not job.is_archived
+    job.save(update_fields=['is_archived'])
+    action = "archived" if job.is_archived else "restored to active pipeline"
+    messages.info(request, f"{job.role_title} at {job.company_name} {action}.")
     if request.headers.get('HX-Request'):
         return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
     return redirect('leads:lead-list')
@@ -163,20 +238,29 @@ def lead_delete(request, pk):
 @login_required
 @require_POST
 def update_status(request, pk):
+    """Transition application status with validation and activity history recording."""
     job = get_object_or_404(JobApplication, pk=pk, user=request.user)
-    status = request.POST.get('status')
-    if status in dict(JobApplication.STATUS_CHOICES):
-        job.status = status
-        job.save()
+    new_status = request.POST.get('status')
+    notes = request.POST.get('notes', '')
+
+    if new_status not in dict(JobApplication.STATUS_CHOICES):
+        return HttpResponseBadRequest(f"Invalid status: {new_status}")
+
+    job.transition_to_status(new_status, notes=notes)
 
     if request.headers.get('HX-Request'):
-        return render(request, 'leads/partials/lead_row.html', {'lead': job})
+        return render(request, 'leads/partials/lead_row.html', {'lead': job, 'job': job})
     return redirect('leads:lead-list')
 
 
 @login_required
 def pipeline(request):
-    all_jobs = list(JobApplication.objects.filter(user=request.user).order_by('-score', '-updated_at'))
+    """Kanban board visualizer across Saved, Applied, Interviewing, Offer, and Rejected."""
+    all_jobs = list(
+        JobApplication.objects.filter(user=request.user, is_archived=False)
+        .prefetch_related('activities')
+        .order_by('-score', '-updated_at')
+    )
 
     jobs_by_status = {status: CountableList() for status, _ in JobApplication.STATUS_CHOICES}
     for job in all_jobs:
@@ -188,16 +272,22 @@ def pipeline(request):
             'status': status,
             'label': label,
             'leads': jobs_by_status.get(status, CountableList()),
+            'count': len(jobs_by_status.get(status, [])),
         }
         for status, label in JobApplication.STATUS_CHOICES
     ]
 
-    context = {'stages': stages}
+    context = {
+        'stages': stages,
+        'total_active_jobs': len(all_jobs),
+        'status_choices': JobApplication.STATUS_CHOICES,
+    }
     return render(request, 'leads/pipeline.html', context)
 
 
 @login_required
 def settings_view(request):
+    """User outreach settings and SMTP credentials view."""
     setting = AppSetting.objects.filter(user=request.user).first()
     if not setting:
         setting = AppSetting.objects.create(user=request.user)
@@ -220,17 +310,27 @@ def settings_view(request):
 
 @login_required
 def lead_detail(request, pk):
-    job = get_object_or_404(JobApplication, pk=pk, user=request.user)
+    """Application detail view with requirements, documents, outreach, and timeline."""
+    job = get_object_or_404(
+        JobApplication.objects.prefetch_related('messages', 'activities', 'documents'),
+        pk=pk,
+        user=request.user
+    )
     messages_list = job.messages.all().order_by('-sent_at')
-    resume = Resume.objects.filter(user=request.user).first()
+    activities_list = job.activities.all().order_by('-created_at')
+    documents_list = job.documents.all().order_by('-version')
+    resume = Resume.objects.filter(user=request.user, is_master=True).first() or Resume.objects.filter(user=request.user).first()
 
     context = {
         'lead': job,
         'job': job,
         'messages': messages_list,
+        'activities': activities_list,
+        'documents': documents_list,
         'resume': resume,
     }
     return render(request, 'leads/lead_detail_modal.html', context)
+
 
 
 @login_required
