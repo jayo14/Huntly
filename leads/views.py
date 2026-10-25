@@ -1,4 +1,5 @@
 import json
+import logging
 from django.conf import settings
 from django.core.mail import EmailMessage, get_connection
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -18,6 +19,13 @@ from .models import JobApplication, Lead, Message, AppSetting, ApplicationActivi
 from resumes.models import Resume, ApplicationDocument
 from .forms import JobApplicationForm, LeadForm, AppSettingForm, UserProfileForm, OutreachPitchForm, OutreachReplyForm
 from .services.llm_tailor import tailor_application
+from .services.job_intake import (
+    JobIntakeError,
+    analyze_job_intake,
+    apply_intake_analysis,
+    build_employer_research,
+    build_fit_analysis,
+)
 from billing.services import (
     check_and_consume_tailored_application,
     check_tracked_job_limit,
@@ -36,6 +44,8 @@ from .services.outreach_service import (
     DuplicateSendError,
     InvalidRecipientError,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class CountableList(list):
@@ -254,6 +264,105 @@ def lead_list_partial(request):
     return lead_list(request)
 
 
+def _attach_intake_intelligence(job, user):
+    """Attach free deterministic research and fit data without blocking the save."""
+    if not (job.job_description or '').strip():
+        job.extraction_status = 'none'
+        return
+    try:
+        fields = {
+            'company_name': job.company_name,
+            'role_title': job.role_title,
+            'job_url': job.job_url,
+            'location': job.location,
+            'salary': job.salary,
+            'employment_type': job.employment_type,
+            'job_description': job.job_description,
+        }
+        job.employer_research = build_employer_research(fields)
+        resume = (
+            Resume.objects.filter(user=user, is_master=True).first()
+            or Resume.objects.filter(user=user).first()
+        )
+        fit = build_fit_analysis(resume, job.job_description)
+        if fit:
+            job.fit_analysis = fit
+            if not job.score and fit.get('fit_heuristic_score'):
+                job.score = fit['fit_heuristic_score']
+        job.analyzed_at = timezone.now()
+        job.extraction_status = 'extracted' if job.company_name and job.role_title else 'partial'
+    except Exception:
+        logger.exception("Job intake analysis failed during create")
+        job.extraction_status = 'failed'
+
+
+@login_required
+@require_POST
+@rate_limit('job_intake', limit=20, period=60)
+def intake_analyze(request):
+    """Preview extracted job details and deterministic fit without saving or using AI credits."""
+    resume = (
+        Resume.objects.filter(user=request.user, is_master=True).first()
+        or Resume.objects.filter(user=request.user).first()
+    )
+    try:
+        analysis = analyze_job_intake(
+            job_url=request.POST.get('job_url', ''),
+            job_description=request.POST.get('job_description', ''),
+            company_name=request.POST.get('company_name', ''),
+            role_title=request.POST.get('role_title', ''),
+            resume=resume,
+        )
+    except JobIntakeError as exc:
+        return render(
+            request,
+            'leads/partials/intake_preview.html',
+            {'error': str(exc), 'analysis': None},
+            status=400,
+        )
+    return render(
+        request,
+        'leads/partials/intake_preview.html',
+        {'analysis': analysis},
+    )
+
+
+@login_required
+@require_POST
+@rate_limit('job_intake', limit=20, period=60)
+def lead_reanalyze(request, pk):
+    """Refresh research and fit for a saved job without overwriting user edits or status."""
+    job = get_object_or_404(JobApplication, pk=pk, user=request.user)
+    resume = (
+        Resume.objects.filter(user=request.user, is_master=True).first()
+        or Resume.objects.filter(user=request.user).first()
+    )
+    description = (request.POST.get('job_description') or job.job_description or '').strip()
+    try:
+        analysis = analyze_job_intake(
+            job_url='' if description else job.job_url,
+            job_description=description,
+            company_name=job.company_name,
+            role_title=job.role_title,
+            resume=resume,
+        )
+    except JobIntakeError as exc:
+        return render(
+            request,
+            'leads/partials/job_intelligence.html',
+            {'job': job, 'error': str(exc)},
+            status=400,
+        )
+
+    apply_intake_analysis(job, analysis)
+    job.record_activity('note_added', "Refreshed job intelligence analysis.")
+    return render(
+        request,
+        'leads/partials/job_intelligence.html',
+        {'job': job, 'analysis': analysis, 'warnings': analysis.get('warnings', [])},
+    )
+
+
 @login_required
 def lead_create(request):
     """Add a new job application manually without forcing immediate resume tailoring."""
@@ -268,6 +377,10 @@ def lead_create(request):
             with transaction.atomic():
                 job = form.save(commit=False)
                 job.user = request.user
+                job.intake_source = request.POST.get('intake_source') or ''
+                if job.intake_source not in dict(JobApplication.INTAKE_SOURCES):
+                    job.intake_source = 'url' if job.job_url else 'manual'
+                _attach_intake_intelligence(job, request.user)
                 job.save()
                 job.record_activity('created', f"Added job: {job.role_title} at {job.company_name}.")
 
