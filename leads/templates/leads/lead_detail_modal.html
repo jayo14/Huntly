@@ -53,14 +53,38 @@
                         </div>
                     </button>
                     {% if resume %}
-                    <a href="{% url 'resumes:resume-download' resume.pk %}?job_id={{ lead.pk }}"
-                       class="btn o w-full text-xs py-2.5 justify-center">
-                        <span class="ms text-sm">download</span>
-                        <span>Download Tailored DOCX</span>
-                    </a>
+                    <div class="grid grid-cols-2 gap-2">
+                        <a href="{% url 'resumes:resume-download' resume.pk %}?job_id={{ lead.pk }}&format=docx"
+                           class="btn o text-xs py-2 justify-center">
+                            <span class="ms text-sm">description</span>
+                            <span>Resume DOCX</span>
+                        </a>
+                        <a href="{% url 'resumes:resume-download' resume.pk %}?job_id={{ lead.pk }}&format=pdf"
+                           class="btn o text-xs py-2 justify-center">
+                            <span class="ms text-sm">picture_as_pdf</span>
+                            <span>Resume PDF</span>
+                        </a>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <a href="{% url 'resumes:cover-letter-download' lead.pk %}?format=docx"
+                           class="btn o text-xs py-2 justify-center">
+                            <span class="ms text-sm">article</span>
+                            <span>Letter DOCX</span>
+                        </a>
+                        <a href="{% url 'resumes:cover-letter-download' lead.pk %}?format=pdf"
+                           class="btn o text-xs py-2 justify-center">
+                            <span class="ms text-sm">picture_as_pdf</span>
+                            <span>Letter PDF</span>
+                        </a>
+                    </div>
+                    <button type="button" hx-get="{% url 'resumes:document-history' lead.pk %}"
+                            hx-target="#modal-content"
+                            class="text-xs font-bold text-mut hover:text-ink flex items-center justify-center gap-1 mt-1">
+                        <span class="ms text-sm">history</span> View Version History
+                    </button>
                     {% else %}
                     <a href="{% url 'resumes:resume-create' %}" class="text-xs font-bold text-pink hover:underline text-center mt-1">
-                        + Create Master Profile to enable DOCX export
+                        + Create Master Profile to enable exports
                     </a>
                     {% endif %}
                 </div>
@@ -117,36 +141,44 @@
             <!-- Hidden container for HTMX response injection -->
             <div id="generation-swap-target" class="hidden"></div>
 
-            <div class="flex-1 p-6 overflow-y-auto">
+            <div class="flex-1 p-6 overflow-y-auto space-y-4">
+                <div id="match-assessment-container"></div>
+
                 <!-- Tab: Tailored Resume Bullets -->
                 <div x-show="tab === 'tailoring'" class="space-y-4">
                     <div class="flex items-center justify-between">
-                        <label class="text-xs font-display font-bold text-ink uppercase tracking-wider">Tailored Achievement Bullets</label>
+                        <div>
+                            <label class="text-xs font-display font-bold text-ink uppercase tracking-wider block">Tailored Achievement Bullets</label>
+                            <span class="text-[10px] text-mut">Review and refine tailored accomplishments before export</span>
+                        </div>
                         <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('tailored-bullets-text').value); alert('Bullets copied to clipboard!');"
                                 class="btn o text-xs py-1 px-3">
                             <span class="ms text-xs">content_copy</span> Copy
                         </button>
                     </div>
-                    <textarea id="tailored-bullets-text" rows="11" readonly
+                    <textarea id="tailored-bullets-text" rows="11"
                               placeholder="Generated resume achievement bullets tailored to this job's keywords will appear here..."
-                              class="w-full bg-[#f4f8f1] border-[1.5px] border-ink rounded-2xl p-4 text-xs font-mono text-ink leading-relaxed resize-none focus:outline-none">{{ lead.tailored_resume_text }}</textarea>
+                              class="w-full bg-[#f4f8f1] border-[1.5px] border-ink rounded-2xl p-4 text-xs font-mono text-ink leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-pink">{{ lead.tailored_resume_text }}</textarea>
                     <p class="text-[11px] text-mut font-semibold">
-                        These bullet points are automatically merged into your master profile when you download the tailored DOCX resume.
+                        These bullet points are automatically included in your tailored resume exports.
                     </p>
                 </div>
 
                 <!-- Tab: Cover Letter -->
                 <div x-show="tab === 'cover_letter'" x-cloak class="space-y-4">
                     <div class="flex items-center justify-between">
-                        <label class="text-xs font-display font-bold text-ink uppercase tracking-wider">Targeted Cover Letter</label>
+                        <div>
+                            <label class="text-xs font-display font-bold text-ink uppercase tracking-wider block">Targeted Cover Letter</label>
+                            <span class="text-[10px] text-mut">Review and customize your cover letter before download</span>
+                        </div>
                         <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('cover-letter-text').value); alert('Cover letter copied!');"
                                 class="btn o text-xs py-1 px-3">
                             <span class="ms text-xs">content_copy</span> Copy
                         </button>
                     </div>
-                    <textarea id="cover-letter-text" rows="12" readonly
+                    <textarea id="cover-letter-text" rows="12"
                               placeholder="Role-specific 3-paragraph cover letter will appear here after clicking Generate..."
-                              class="w-full bg-[#f4f8f1] border-[1.5px] border-ink rounded-2xl p-4 text-xs font-sans text-ink leading-relaxed resize-none focus:outline-none">{{ lead.cover_letter }}</textarea>
+                              class="w-full bg-[#f4f8f1] border-[1.5px] border-ink rounded-2xl p-4 text-xs font-sans text-ink leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-pink">{{ lead.cover_letter }}</textarea>
                 </div>
 
                 <!-- Tab: Recruiter Outreach Email -->

@@ -1,5 +1,8 @@
 <span id="ats-score-badge" hx-swap-oob="outerHTML" class="px-3 py-1 rounded-full text-xs font-bold border border-ink shadow-sm {% if score >= 80 %}bg-lime text-ink{% elif score >= 50 %}bg-sun text-ink{% else %}bg-card text-mut{% endif %}">
-    ATS Match: {{ score }}%
+    Fit Heuristic: {{ score }}%
+    {% if doc_version %}
+    <span class="ml-1 text-[10px] opacity-80">(v{{ doc_version }})</span>
+    {% endif %}
 </span>
 
 <div id="matched-keywords-container" hx-swap-oob="outerHTML" class="flex flex-wrap gap-1.5">
@@ -12,10 +15,61 @@
     {% endfor %}
 </div>
 
-<textarea id="tailored-bullets-text" hx-swap-oob="outerHTML" rows="11" readonly
+<!-- Match Assessment Breakdown -->
+<div id="match-assessment-container" hx-swap-oob="outerHTML" class="p-4 bg-[#f4f8f1] border-[1.5px] border-ink rounded-2xl space-y-3 mb-4">
+    <div class="flex items-center justify-between">
+        <span class="text-xs font-display font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
+            <span class="ms text-sm text-ink">query_stats</span> Evidence-to-Role Assessment
+        </span>
+        <span class="stk text-[10px] py-0.5 px-2 bg-card text-ink">v{{ doc_version|default:1 }} Snapshot</span>
+    </div>
+
+    {% if match_assessment.strengths %}
+    <div>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-green-800 block mb-1">Supported Profile Strengths</span>
+        <ul class="text-xs text-ink space-y-1">
+            {% for s in match_assessment.strengths|slice:":3" %}
+            <li class="flex items-start gap-1.5">
+                <span class="ms text-green-700 text-sm shrink-0">check_circle</span>
+                <span>{{ s }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if match_assessment.gaps %}
+    <div>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800 block mb-1">Unmet Job Requirements (Honest Gaps)</span>
+        <ul class="text-xs text-mut space-y-1">
+            {% for g in match_assessment.gaps|slice:":2" %}
+            <li class="flex items-start gap-1.5">
+                <span class="ms text-amber-600 text-sm shrink-0">info</span>
+                <span>{{ g }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if claims_for_verification %}
+    <div class="p-2.5 bg-amber-50 border border-amber-300 rounded-xl">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-amber-900 block mb-0.5 flex items-center gap-1">
+            <span class="ms text-xs">fact_check</span> User Review Required
+        </span>
+        <p class="text-[11px] text-amber-900 leading-snug">{{ claims_for_verification.0 }}</p>
+    </div>
+    {% endif %}
+
+    <p class="text-[10px] text-mut italic pt-1 border-t border-line">
+        {{ match_assessment.score_disclaimer|default:"Internal fit heuristic based on profile facts; does not represent interview probability." }}
+    </p>
+</div>
+
+<textarea id="tailored-bullets-text" hx-swap-oob="outerHTML" rows="11"
           class="w-full bg-[#f4f8f1] border-[1.5px] border-ink rounded-2xl p-4 text-xs font-mono text-ink leading-relaxed resize-none focus:outline-none">{{ tailored_resume_text }}</textarea>
 
-<textarea id="cover-letter-text" hx-swap-oob="outerHTML" rows="12" readonly
+<textarea id="cover-letter-text" hx-swap-oob="outerHTML" rows="12"
           class="w-full bg-[#f4f8f1] border-[1.5px] border-ink rounded-2xl p-4 text-xs font-sans text-ink leading-relaxed resize-none focus:outline-none">{{ cover_letter }}</textarea>
 
 <input type="text" name="subject" value="{{ subject }}" id="message-subject" hx-swap-oob="outerHTML"

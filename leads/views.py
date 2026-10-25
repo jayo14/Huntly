@@ -13,7 +13,7 @@ from django.db.models import Count, Q
 
 from huntly.security import rate_limit
 from .models import JobApplication, Lead, Message, AppSetting
-from resumes.models import Resume
+from resumes.models import Resume, ApplicationDocument
 from .forms import JobApplicationForm, LeadForm, AppSettingForm, UserProfileForm
 from .services.llm_tailor import tailor_application
 
@@ -238,13 +238,14 @@ def lead_detail(request, pk):
 @rate_limit('generate_message', limit=20, period=60)
 def generate_message(request, pk):
     job = get_object_or_404(JobApplication, pk=pk, user=request.user)
-    resume = Resume.objects.filter(user=request.user).first()
+    resume = Resume.objects.filter(user=request.user, is_master=True).first() or Resume.objects.filter(user=request.user).first()
 
     tailored = tailor_application(
         resume=resume,
         company_name=job.company_name,
         role_title=job.role_title,
         job_description=job.job_description or f"{job.role_title} at {job.company_name}",
+        contact_name=job.contact_name,
     )
 
     bullets = tailored.get('tailored_bullets', [])
@@ -256,10 +257,39 @@ def generate_message(request, pk):
     job.cover_letter = tailored.get('cover_letter', '')
     job.recruiter_pitch = tailored.get('recruiter_pitch', '')
     job.matched_keywords = tailored.get('matched_keywords', [])
-
-    keyword_bonus = min(50, len(job.matched_keywords) * 10)
-    job.score = 50 + keyword_bonus
+    job.score = tailored.get('score', 65)
     job.save()
+
+    # Create immutable application document snapshot with version history
+    last_doc = ApplicationDocument.objects.filter(job_application=job).order_by('-version').first()
+    next_version = (last_doc.version + 1) if last_doc else 1
+
+    ApplicationDocument.objects.create(
+        user=request.user,
+        job_application=job,
+        version=next_version,
+        document_type='full_bundle',
+        title=f"Application for {job.role_title} at {job.company_name}",
+        tailored_resume_text=job.tailored_resume_text,
+        cover_letter_text=job.cover_letter,
+        recruiter_pitch_text=job.recruiter_pitch,
+        match_score=job.score,
+        match_assessment=tailored.get('match_assessment', {}),
+        claims_for_verification=tailored.get('claims_for_verification', []),
+        profile_snapshot={
+            'full_name': getattr(resume, 'full_name', ''),
+            'tagline': getattr(resume, 'tagline', ''),
+            'skills': getattr(resume, 'technical_skills', []),
+            'experiences': getattr(resume, 'experiences', []),
+            'summary': getattr(resume, 'summary', ''),
+        } if resume else {},
+        job_snapshot={
+            'company_name': job.company_name,
+            'role_title': job.role_title,
+            'job_description': job.job_description,
+            'job_url': job.job_url,
+        }
+    )
 
     candidate_name = (
         getattr(resume, 'full_name', '') or
@@ -278,6 +308,10 @@ def generate_message(request, pk):
         'tailored_resume_text': job.tailored_resume_text,
         'matched_keywords': job.matched_keywords,
         'score': job.score,
+        'doc_version': next_version,
+        'match_assessment': tailored.get('match_assessment', {}),
+        'claims_for_verification': tailored.get('claims_for_verification', []),
+        'generation_method': tailored.get('generation_method', ''),
     }
     return render(request, 'leads/partials/generated_message_fields.html', context)
 
