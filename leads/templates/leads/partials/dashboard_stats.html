@@ -33,7 +33,7 @@
             <span class="text-[11px] font-bold text-mut uppercase tracking-wider">Interviews</span>
         </div>
         <div class="text-4xl font-display font-bold text-ink">{{ interviewing_count }}</div>
-        <div class="text-xs text-mut font-semibold mt-1">In active conversations</div>
+        <div class="text-xs text-mut font-semibold mt-1">Active round conversations</div>
     </div>
 
     <!-- Offers -->
@@ -57,11 +57,11 @@
             <span class="text-[11px] font-bold text-ink uppercase tracking-wider">Callback Rate</span>
         </div>
         <div class="text-4xl font-display font-bold text-ink">{{ callback_rate }}%</div>
-        <div class="text-xs text-ink/80 font-bold mt-1">vs 2% industry avg</div>
+        <div class="text-xs text-ink/80 font-bold mt-1">Interview / active ratio</div>
     </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
     <!-- Funnel Visualization -->
     <div class="bg-card border-2 border-ink p-8 rounded-[32px] shadow-[4px_5px_0_#102a1f]">
         <div class="flex items-center justify-between mb-6">
@@ -72,7 +72,7 @@
                 Application Funnel
             </h3>
             <span class="stk bg-[#eef3ea]">
-                <b>{{ total_jobs }}</b> Total Roles
+                <b>{{ total_jobs }}</b> Active Roles
             </span>
         </div>
         <div class="space-y-5 mt-4">
@@ -80,13 +80,13 @@
             <div>
                 <div class="flex justify-between text-sm font-bold mb-1.5">
                     <span class="text-ink flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full border border-ink {% if forloop.counter == 1 %}bg-[#c8b6ff]{% elif forloop.counter == 2 %}bg-[#ffb938]{% elif forloop.counter == 3 %}bg-[#d6f24a]{% else %}bg-[#ff3d8b]{% endif %}"></span>
+                        <span class="w-2.5 h-2.5 rounded-full border border-ink {% if forloop.counter == 1 %}bg-[#c8b6ff]{% elif forloop.counter == 2 %}bg-[#ffb938]{% elif forloop.counter == 3 %}bg-[#d6f24a]{% elif forloop.counter == 4 %}bg-[#ff3d8b]{% else %}bg-[#ffd6e5]{% endif %}"></span>
                         {{ stage.label }}
                     </span>
                     <span class="text-ink">{{ stage.count }} <span class="text-mut font-normal">({{ stage.percentage }}%)</span></span>
                 </div>
                 <div class="w-full bg-[#eef3ea] border border-line rounded-full h-4 overflow-hidden p-0.5">
-                    <div class="h-full rounded-full transition-all duration-1000 border border-ink/20 {% if forloop.counter == 1 %}bg-[#c8b6ff]{% elif forloop.counter == 2 %}bg-[#ffb938]{% elif forloop.counter == 3 %}bg-[#d6f24a]{% else %}bg-[#ff3d8b]{% endif %}" style="width: {{ stage.percentage }}%"></div>
+                    <div class="h-full rounded-full transition-all duration-1000 border border-ink/20 {% if forloop.counter == 1 %}bg-[#c8b6ff]{% elif forloop.counter == 2 %}bg-[#ffb938]{% elif forloop.counter == 3 %}bg-[#d6f24a]{% elif forloop.counter == 4 %}bg-[#ff3d8b]{% else %}bg-[#ffd6e5]{% endif %}" style="width: {{ stage.percentage }}%"></div>
                 </div>
             </div>
             {% endfor %}
@@ -110,7 +110,7 @@
                  onclick="htmx.ajax('GET', '{% url 'leads:lead-detail' lead.pk %}', {target:'#modal-content'})">
                 <div class="flex-1 min-w-0 mr-4">
                     <div class="font-bold text-ink truncate group-hover:text-pink transition-colors">{{ lead.role_title }}</div>
-                    <div class="text-xs text-mut font-medium truncate mt-0.5">{{ lead.company_name }}</div>
+                    <div class="text-xs text-mut font-medium truncate mt-0.5">{{ lead.company_name }} &bull; {{ lead.location|default:"Remote / Local" }}</div>
                 </div>
                 <div class="flex items-center space-x-2.5">
                     <span class="text-[11px] font-bold uppercase px-3 py-1 rounded-full border border-ink {% if lead.status == 'offer' %}bg-lime text-ink{% elif lead.status == 'interviewing' %}bg-sun text-ink{% elif lead.status == 'applied' %}bg-lil text-ink{% else %}bg-[#eef3ea] text-mut{% endif %}">
@@ -136,3 +136,41 @@
         </div>
     </div>
 </div>
+
+<!-- Upcoming Interviews & Schedule -->
+{% if upcoming_interviews or follow_ups_due %}
+<div class="bg-card border-2 border-ink p-8 rounded-[32px] shadow-[4px_5px_0_#102a1f]">
+    <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-display font-bold text-ink flex items-center gap-3">
+            <span class="w-8 h-8 rounded-full bg-lil border border-ink flex items-center justify-center">
+                <span class="ms text-base text-ink">event</span>
+            </span>
+            Scheduled Interviews & Follow-Up Deadlines
+        </h3>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for job in upcoming_interviews %}
+        <div class="p-4 bg-[#f4f8f1] border-[1.5px] border-ink rounded-2xl flex items-center justify-between cursor-pointer hover:shadow-md transition-all"
+             onclick="htmx.ajax('GET', '{% url 'leads:lead-detail' job.pk %}', {target:'#modal-content'})">
+            <div>
+                <span class="text-xs font-bold text-pink uppercase tracking-wider block">Interview Round</span>
+                <span class="font-bold text-sm text-ink">{{ job.role_title }} at {{ job.company_name }}</span>
+                <span class="text-xs text-mut block mt-0.5">{{ job.interview_date|date:"l, M d @ H:i" }}</span>
+            </div>
+            <span class="stk bg-lime text-ink text-xs py-1 px-3">Scheduled</span>
+        </div>
+        {% endfor %}
+        {% for job in follow_ups_due %}
+        <div class="p-4 bg-amber-50 border-[1.5px] border-amber-400 rounded-2xl flex items-center justify-between cursor-pointer hover:shadow-md transition-all"
+             onclick="htmx.ajax('GET', '{% url 'leads:lead-detail' job.pk %}', {target:'#modal-content'})">
+            <div>
+                <span class="text-xs font-bold text-amber-900 uppercase tracking-wider block">Follow-Up Action Due</span>
+                <span class="font-bold text-sm text-ink">{{ job.role_title }} at {{ job.company_name }}</span>
+                <span class="text-xs text-amber-800 block mt-0.5">Due date: {{ job.next_follow_up|date:"M d, Y" }}</span>
+            </div>
+            <span class="stk bg-sun text-ink text-xs py-1 px-3">Follow-Up</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}

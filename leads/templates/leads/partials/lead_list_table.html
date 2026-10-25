@@ -1,12 +1,12 @@
 <div class="bg-card border-2 border-ink rounded-[28px] overflow-hidden shadow-[4px_5px_0_#102a1f]">
     <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-[700px]">
+        <table class="w-full text-left border-collapse min-w-[750px]">
             <thead>
                 <tr class="border-b-2 border-ink bg-[#eef3ea]">
                     <th scope="col" class="px-6 py-4 font-display text-xs font-bold text-ink uppercase tracking-wider">Role & Company</th>
-                    <th scope="col" class="px-6 py-4 font-display text-xs font-bold text-ink uppercase tracking-wider">Matched Keywords</th>
-                    <th scope="col" class="px-6 py-4 font-display text-xs font-bold text-ink uppercase tracking-wider text-center">ATS Score</th>
-                    <th scope="col" class="px-6 py-4 font-display text-xs font-bold text-ink uppercase tracking-wider">Status</th>
+                    <th scope="col" class="px-6 py-4 font-display text-xs font-bold text-ink uppercase tracking-wider">Location & Details</th>
+                    <th scope="col" class="px-6 py-4 font-display text-xs font-bold text-ink uppercase tracking-wider text-center">Fit Heuristic</th>
+                    <th scope="col" class="px-6 py-4 font-display text-xs font-bold text-ink uppercase tracking-wider">Stage</th>
                     <th scope="col" class="px-6 py-4 font-display text-xs font-bold text-ink uppercase tracking-wider text-right">Actions</th>
                 </tr>
             </thead>
@@ -18,6 +18,7 @@
                     aria-label="View application details for {{ lead.role_title }} at {{ lead.company_name }}"
                     onkeydown="if(event.key === 'Enter' || event.key === ' ') { htmx.ajax('GET', '{% url 'leads:lead-detail' lead.pk %}', {target:'#modal-content'}); }"
                     onclick="if(!event.target.closest('button') && !event.target.closest('a') && !event.target.closest('select')) htmx.ajax('GET', '{% url 'leads:lead-detail' lead.pk %}', {target:'#modal-content'})">
+                    
                     <td class="px-6 py-4">
                         <div class="font-bold text-ink text-base group-hover:text-pink transition-colors">{{ lead.role_title }}</div>
                         <div class="text-xs text-mut font-semibold flex items-center gap-2 mt-0.5">
@@ -29,20 +30,21 @@
                             {% endif %}
                         </div>
                     </td>
+
                     <td class="px-6 py-4">
-                        <div class="flex flex-wrap gap-1.5 max-w-sm">
-                            {% for kw in lead.matched_keywords|slice:":3" %}
-                            <span class="ch text-xs py-0.5 px-2.5">
-                                {{ kw }}<span class="ms text-xs">check</span>
+                        <div class="text-xs font-bold text-ink">{{ lead.location|default:"Location not specified" }}</div>
+                        <div class="text-[11px] text-mut font-semibold mt-0.5 flex items-center gap-2">
+                            {% if lead.salary %}
+                            <span class="stk text-[10px] py-0.2 px-1.5 bg-[#eef3ea] text-ink">{{ lead.salary }}</span>
+                            {% endif %}
+                            {% if lead.next_follow_up %}
+                            <span class="text-pink font-bold flex items-center gap-0.5">
+                                <span class="ms text-xs">calendar_today</span> Due: {{ lead.next_follow_up|date:"M d" }}
                             </span>
-                            {% empty %}
-                            <span class="text-xs text-mut italic">Click Tailor to match keywords</span>
-                            {% endfor %}
-                            {% if lead.matched_keywords|length > 3 %}
-                            <span class="text-[11px] text-mut font-bold self-center">+{{ lead.matched_keywords|length|add:"-3" }} more</span>
                             {% endif %}
                         </div>
                     </td>
+
                     <td class="px-6 py-4 text-center">
                         <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold border border-ink shadow-sm
                             {% if lead.score >= 80 %}bg-lime text-ink
@@ -51,6 +53,7 @@
                             {{ lead.score }}%
                         </span>
                     </td>
+
                     <td class="px-6 py-4">
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold uppercase border border-ink
                             {% if lead.status == 'saved' %}bg-[#eef3ea] text-mut
@@ -62,16 +65,17 @@
                             {{ lead.get_status_display }}
                         </span>
                     </td>
+
                     <td class="px-6 py-4 text-right">
                         <div class="flex items-center justify-end gap-2">
                             <button hx-get="{% url 'leads:lead-detail' lead.pk %}" hx-target="#modal-content"
                                     title="Tailor & Outreach"
-                                    class="p-2 text-ink hover:bg-lime rounded-full border border-ink transition-all">
+                                    class="p-2 text-ink hover:bg-lime rounded-xl border border-ink transition-all shadow-sm">
                                 <span class="ms text-base">auto_fix_high</span>
                             </button>
                             <button hx-get="{% url 'leads:lead-update' lead.pk %}" hx-target="#modal-content"
                                     title="Edit Job"
-                                    class="p-2 text-ink hover:bg-[#eef3ea] rounded-full border border-line hover:border-ink transition-all">
+                                    class="p-2 text-ink hover:bg-[#eef3ea] rounded-xl border border-line hover:border-ink transition-all shadow-sm">
                                 <span class="ms text-base">edit</span>
                             </button>
                         </div>
@@ -84,7 +88,7 @@
                             <div class="w-14 h-14 rounded-full bg-[#eef3ea] border border-line flex items-center justify-center mb-3">
                                 <span class="ms text-2xl text-mut">work_outline</span>
                             </div>
-                            <p class="text-mut font-bold">No job applications tracked yet.</p>
+                            <p class="text-mut font-bold">No job applications match your filters.</p>
                             <button hx-get="{% url 'leads:lead-create' %}" hx-target="#modal-content"
                                     class="btn mt-4 text-xs py-2 px-4">
                                 + Track your first job listing
@@ -96,4 +100,30 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Pagination Footer -->
+    {% if is_paginated %}
+    <div class="px-6 py-4 bg-[#eef3ea] border-t-2 border-ink flex items-center justify-between">
+        <span class="text-xs font-bold text-ink">
+            Showing Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} ({{ total_count }} roles total)
+        </span>
+        <div class="flex items-center gap-2">
+            {% if page_obj.has_previous %}
+            <button hx-get="{% url 'leads:lead-list' %}?page={{ page_obj.previous_page_number }}&search={{ search }}&status={{ selected_status }}"
+                    hx-target="#leads-table-container"
+                    class="btn o text-xs py-1.5 px-3">
+                <span class="ms text-xs">arrow_back</span> Prev
+            </button>
+            {% endif %}
+
+            {% if page_obj.has_next %}
+            <button hx-get="{% url 'leads:lead-list' %}?page={{ page_obj.next_page_number }}&search={{ search }}&status={{ selected_status }}"
+                    hx-target="#leads-table-container"
+                    class="btn o text-xs py-1.5 px-3">
+                Next <span class="ms text-xs">arrow_forward</span>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>

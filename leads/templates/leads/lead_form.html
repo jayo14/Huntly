@@ -2,7 +2,7 @@
     <div class="flex items-center justify-between mb-8">
         <div>
             <h2 class="text-3xl font-display font-bold text-ink">{% if lead %}Edit Job Application{% else %}Track New Job Listing{% endif %}</h2>
-            <p class="text-mut text-sm font-semibold mt-1">Paste the job description to extract ATS keywords and tailor your materials.</p>
+            <p class="text-mut text-sm font-semibold mt-1">Save roles quickly as discovery leads or fill in complete details for ATS tailoring.</p>
         </div>
         <button type="button" @click="$dispatch('close-modal')" class="text-mut hover:text-ink transition-colors p-1.5 rounded-full hover:bg-[#eef3ea]">
             <span class="ms text-2xl">close</span>
@@ -13,6 +13,7 @@
           hx-swap="none" @htmx:after-request="if(event.detail.successful) { $dispatch('close-modal'); }" class="space-y-6">
         {% csrf_token %}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Company & Role -->
             <div class="space-y-2">
                 <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Company Name *</label>
                 <input type="text" name="company_name" value="{{ lead.company_name|default:'' }}" required placeholder="e.g. Stripe, OpenAI, Linear"
@@ -23,13 +24,15 @@
                 <input type="text" name="role_title" value="{{ lead.role_title|default:'' }}" required placeholder="e.g. Senior Backend Engineer"
                        class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all">
             </div>
+
+            <!-- Job URL & Stage -->
             <div class="space-y-2">
-                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Job URL</label>
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Job Posting URL</label>
                 <input type="url" name="job_url" value="{{ lead.job_url|default:'' }}" placeholder="https://careers.company.com/job/..."
                        class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all">
             </div>
             <div class="space-y-2">
-                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Status</label>
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Pipeline Stage</label>
                 <div class="relative">
                     <select name="status" class="appearance-none w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm font-bold text-ink focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all cursor-pointer">
                         <option value="saved" {% if not lead or lead.status == 'saved' %}selected{% endif %}>Saved</option>
@@ -41,30 +44,71 @@
                     <span class="ms text-base absolute right-4 top-1/2 -translate-y-1/2 text-ink pointer-events-none">expand_more</span>
                 </div>
             </div>
+
+            <!-- Location & Salary -->
             <div class="space-y-2">
-                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Hiring Manager / Recruiter Name</label>
-                <input type="text" name="contact_name" value="{{ lead.contact_name|default:'' }}" placeholder="e.g. Sarah Connor"
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Location / Work Type</label>
+                <input type="text" name="location" value="{{ lead.location|default:'' }}" placeholder="e.g. San Francisco, CA / Remote"
                        class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all">
             </div>
             <div class="space-y-2">
-                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Recruiter Email (for outreach)</label>
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Target Salary or Range</label>
+                <input type="text" name="salary" value="{{ lead.salary|default:'' }}" placeholder="e.g. $150,000 - $180,000"
+                       class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all">
+            </div>
+
+            <!-- Follow-up & Interview Dates -->
+            <div class="space-y-2">
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Next Follow-Up Date</label>
+                <input type="date" name="next_follow_up" value="{{ lead.next_follow_up|date:'Y-m-d'|default:'' }}"
+                       class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all">
+            </div>
+            <div class="space-y-2">
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Interview Scheduled</label>
+                <input type="datetime-local" name="interview_date" value="{{ lead.interview_date|date:'Y-m-d\TH:i'|default:'' }}"
+                       class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all">
+            </div>
+
+            <!-- Recruiter Contact -->
+            <div class="space-y-2">
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Contact Person</label>
+                <input type="text" name="contact_name" value="{{ lead.contact_name|default:'' }}" placeholder="e.g. Sarah Connor (Recruiter)"
+                       class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all">
+            </div>
+            <div class="space-y-2">
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Contact Email</label>
                 <input type="email" name="contact_email" value="{{ lead.contact_email|default:'' }}" placeholder="recruiter@company.com"
                        class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all">
             </div>
+
+            <!-- Job Description -->
             <div class="col-span-full space-y-2">
-                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Job Description (JD) *</label>
-                <p class="text-xs text-mut font-medium">Paste the full job posting requirements and responsibilities. The AI matches your master profile against this to tailor your resume bullets and cover letter.</p>
-                <textarea name="job_description" rows="6" required placeholder="Paste full job description requirements here..."
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Job Description (Optional)</label>
+                <p class="text-xs text-mut font-medium">You can save this job without a description and add it later whenever you're ready to run AI tailoring.</p>
+                <textarea name="job_description" rows="5" placeholder="Paste full job description requirements here..."
                           class="w-full bg-white border-[1.5px] border-ink rounded-2xl p-4 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all font-sans leading-relaxed resize-y">{{ lead.job_description|default:'' }}</textarea>
+            </div>
+
+            <!-- Notes -->
+            <div class="col-span-full space-y-2">
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Candidate Notes & Observations</label>
+                <textarea name="notes" rows="3" placeholder="Personal notes, referrals, team dynamics, interview impressions..."
+                          class="w-full bg-white border-[1.5px] border-ink rounded-2xl p-4 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all font-sans leading-relaxed resize-y">{{ lead.notes|default:'' }}</textarea>
             </div>
         </div>
 
         <div class="flex items-center justify-between pt-6 border-t border-line">
             {% if lead %}
-            <button type="button" hx-post="{% url 'leads:lead-delete' lead.pk %}" hx-confirm="Are you sure you want to delete this job application?"
-                    class="text-pink hover:text-ink text-xs font-bold flex items-center gap-1 transition-colors">
-                <span class="ms text-base">delete</span> Delete Application
-            </button>
+            <div class="flex items-center gap-3">
+                <button type="button" hx-post="{% url 'leads:lead-delete' lead.pk %}" hx-confirm="Permanently delete this job application?"
+                        class="text-red-700 hover:text-red-900 text-xs font-bold flex items-center gap-1 transition-colors">
+                    <span class="ms text-base">delete</span> Delete
+                </button>
+                <button type="button" hx-post="{% url 'leads:lead-archive' lead.pk %}"
+                        class="text-mut hover:text-ink text-xs font-bold flex items-center gap-1 transition-colors">
+                    <span class="ms text-base">archive</span> {% if lead.is_archived %}Restore{% else %}Archive{% endif %}
+                </button>
+            </div>
             {% else %}
             <div></div>
             {% endif %}

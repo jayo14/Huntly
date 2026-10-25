@@ -123,18 +123,23 @@
             <div class="flex border-b-2 border-ink px-4 bg-[#f4f8f1] gap-2 pt-2">
                 <button @click="tab = 'tailoring'"
                         :class="tab === 'tailoring' ? 'bg-card border-t-2 border-x-2 border-ink font-bold text-ink -mb-[2px] rounded-t-xl shadow-sm' : 'text-mut hover:text-ink font-semibold'"
-                        class="px-5 py-3 text-xs uppercase tracking-wider transition-all flex items-center gap-1.5">
+                        class="px-4 py-3 text-xs uppercase tracking-wider transition-all flex items-center gap-1.5">
                     <span class="ms text-sm">assignment_turned_in</span> Resume Bullets
                 </button>
                 <button @click="tab = 'cover_letter'"
                         :class="tab === 'cover_letter' ? 'bg-card border-t-2 border-x-2 border-ink font-bold text-ink -mb-[2px] rounded-t-xl shadow-sm' : 'text-mut hover:text-ink font-semibold'"
-                        class="px-5 py-3 text-xs uppercase tracking-wider transition-all flex items-center gap-1.5">
+                        class="px-4 py-3 text-xs uppercase tracking-wider transition-all flex items-center gap-1.5">
                     <span class="ms text-sm">article</span> Cover Letter
                 </button>
                 <button @click="tab = 'outreach'"
                         :class="tab === 'outreach' ? 'bg-card border-t-2 border-x-2 border-ink font-bold text-ink -mb-[2px] rounded-t-xl shadow-sm' : 'text-mut hover:text-ink font-semibold'"
-                        class="px-5 py-3 text-xs uppercase tracking-wider transition-all flex items-center gap-1.5">
-                    <span class="ms text-sm">mail</span> Recruiter Pitch
+                        class="px-4 py-3 text-xs uppercase tracking-wider transition-all flex items-center gap-1.5">
+                    <span class="ms text-sm">mail</span> Outreach
+                </button>
+                <button @click="tab = 'timeline'"
+                        :class="tab === 'timeline' ? 'bg-card border-t-2 border-x-2 border-ink font-bold text-ink -mb-[2px] rounded-t-xl shadow-sm' : 'text-mut hover:text-ink font-semibold'"
+                        class="px-4 py-3 text-xs uppercase tracking-wider transition-all flex items-center gap-1.5">
+                    <span class="ms text-sm">timeline</span> History & Notes
                 </button>
             </div>
 
@@ -212,6 +217,76 @@
                             </div>
                         </div>
                     </form>
+                </div>
+
+                <!-- Tab: Timeline History & Notes -->
+                <div x-show="tab === 'timeline'" x-cloak class="space-y-6">
+                    <!-- Quick Attributes Overview -->
+                    <div class="grid grid-cols-2 gap-3 p-4 bg-[#f4f8f1] rounded-2xl border-[1.5px] border-line">
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-mut block">Location</span>
+                            <span class="text-xs font-bold text-ink">{{ lead.location|default:"Not specified" }}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-mut block">Target Salary</span>
+                            <span class="text-xs font-bold text-ink">{{ lead.salary|default:"Not specified" }}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-mut block">Next Follow-Up</span>
+                            <span class="text-xs font-bold text-ink">{{ lead.next_follow_up|default:"None scheduled" }}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-mut block">Interview Scheduled</span>
+                            <span class="text-xs font-bold text-ink">{{ lead.interview_date|date:"M d, Y H:i"|default:"None" }}</span>
+                        </div>
+                    </div>
+
+                    {% if lead.notes %}
+                    <div>
+                        <span class="text-xs font-display font-bold text-ink uppercase tracking-wider block mb-1">Candidate Notes</span>
+                        <p class="text-xs text-ink bg-[#f4f8f1] border border-line p-3 rounded-xl whitespace-pre-line">{{ lead.notes }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if lead.outcome_details %}
+                    <div>
+                        <span class="text-xs font-display font-bold text-ink uppercase tracking-wider block mb-1">Outcome & Feedback</span>
+                        <p class="text-xs text-ink bg-emerald-50 border border-emerald-300 p-3 rounded-xl whitespace-pre-line">{{ lead.outcome_details }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Timeline Events -->
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-display font-bold text-ink uppercase tracking-wider">Application Activity Timeline</span>
+                            <button hx-get="{% url 'leads:lead-update' lead.pk %}" hx-target="#modal-content" class="text-xs font-bold text-pink hover:underline">
+                                Edit Details
+                            </button>
+                        </div>
+                        <div class="space-y-3">
+                            {% for act in activities %}
+                            <div class="p-3 bg-white border border-line rounded-xl flex items-start gap-3 shadow-sm">
+                                <span class="w-7 h-7 rounded-full bg-[#eef3ea] border border-ink flex items-center justify-center shrink-0 mt-0.5">
+                                    <span class="ms text-sm text-ink">
+                                        {% if act.activity_type == 'status_change' %}swap_horiz
+                                        {% elif act.activity_type == 'email_sent' %}mail
+                                        {% elif act.activity_type == 'interview_scheduled' %}event
+                                        {% else %}check{% endif %}
+                                    </span>
+                                </span>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-ink">{{ act.get_activity_type_display }}</span>
+                                        <span class="text-[10px] text-mut font-semibold">{{ act.created_at|date:"M d, Y H:i" }}</span>
+                                    </div>
+                                    <p class="text-xs text-mut mt-0.5">{{ act.description }}</p>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <p class="text-xs text-mut italic">No recorded timeline events yet.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
