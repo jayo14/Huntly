@@ -1,0 +1,88 @@
+name: Production Quality Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: Lint, Test, Security & Build Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: huntly_test_db
+          POSTGRES_USER: huntly_user
+          POSTGRES_PASSWORD: huntly_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Node dependencies
+        run: |
+          npm ci
+
+      - name: Run Node test suite
+        run: |
+          npm test
+
+      - name: Run Node security audit
+        run: |
+          npm audit --omit=dev
+
+      - name: Verify no unapplied or missing Django migrations
+        env:
+          DATABASE_URL: postgresql://huntly_user:huntly_test_password@127.0.0.1:5432/huntly_test_db
+          SECRET_KEY: test-ci-secret-key-for-migrations-check
+        run: |
+          python manage.py makemigrations --check --dry-run
+
+      - name: Run Django deployment security check
+        env:
+          DATABASE_URL: postgresql://huntly_user:huntly_test_password@127.0.0.1:5432/huntly_test_db
+          SECRET_KEY: test-ci-secret-key-for-deploy-check
+          ALLOWED_HOSTS: huntly.app,www.huntly.app
+          DJANGO_SETTINGS_MODULE: huntly.settings.prod
+        run: |
+          python manage.py check --deploy
+
+      - name: Run Full Django Test Suite (Billing, Leads, Resumes, Core)
+        env:
+          DATABASE_URL: postgresql://huntly_user:huntly_test_password@127.0.0.1:5432/huntly_test_db
+          DJANGO_SETTINGS_MODULE: huntly.settings.test
+        run: |
+          python manage.py test billing leads resumes core --verbosity=2
