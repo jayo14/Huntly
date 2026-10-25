@@ -16,8 +16,20 @@ from django.db.models import Count, Q
 from huntly.security import rate_limit
 from .models import JobApplication, Lead, Message, AppSetting, ApplicationActivity
 from resumes.models import Resume, ApplicationDocument
-from .forms import JobApplicationForm, LeadForm, AppSettingForm, UserProfileForm
+from .forms import JobApplicationForm, LeadForm, AppSettingForm, UserProfileForm, OutreachPitchForm, OutreachReplyForm
 from .services.llm_tailor import tailor_application
+from .services.outreach_service import (
+    generate_grounded_pitch,
+    create_or_update_draft,
+    send_approved_outreach,
+    record_manual_reply,
+    cancel_reminder_or_draft,
+    check_daily_quota,
+    OutreachServiceError,
+    QuotaExceededError,
+    DuplicateSendError,
+    InvalidRecipientError,
+)
 
 
 class CountableList(list):
@@ -316,10 +328,14 @@ def lead_detail(request, pk):
         pk=pk,
         user=request.user
     )
-    messages_list = job.messages.all().order_by('-sent_at')
+    messages_list = job.messages.all().order_by('-created_at')
     activities_list = job.activities.all().order_by('-created_at')
     documents_list = job.documents.all().order_by('-version')
     resume = Resume.objects.filter(user=request.user, is_master=True).first() or Resume.objects.filter(user=request.user).first()
+
+    # Quota check
+    is_quota_allowed, remaining_quota, quota_limit = check_daily_quota(request.user)
+    latest_draft = job.messages.filter(status='draft').first()
 
     context = {
         'lead': job,
@@ -328,9 +344,11 @@ def lead_detail(request, pk):
         'activities': activities_list,
         'documents': documents_list,
         'resume': resume,
+        'remaining_quota': remaining_quota,
+        'quota_limit': quota_limit,
+        'latest_draft': latest_draft,
     }
     return render(request, 'leads/lead_detail_modal.html', context)
-
 
 
 @login_required
@@ -399,6 +417,16 @@ def generate_message(request, pk):
     subject = f"Application: {job.role_title} - {candidate_name}"
     body = job.recruiter_pitch
 
+    # Also generate grounded pitch options through outreach service
+    outreach_info = generate_grounded_pitch(
+        resume=resume,
+        job=job,
+        contact_name=job.contact_name,
+        contact_role=getattr(job, 'contact_role', '')
+    )
+    if not body:
+        body = outreach_info['body']
+
     context = {
         'subject': subject,
         'body': body,
@@ -412,6 +440,9 @@ def generate_message(request, pk):
         'match_assessment': tailored.get('match_assessment', {}),
         'claims_for_verification': tailored.get('claims_for_verification', []),
         'generation_method': tailored.get('generation_method', ''),
+        'recipient_email': job.contact_email,
+        'recipient_name': job.contact_name,
+        'recipient_role': getattr(job, 'contact_role', ''),
     }
     return render(request, 'leads/partials/generated_message_fields.html', context)
 
@@ -420,65 +451,157 @@ def generate_message(request, pk):
 @require_POST
 @rate_limit('send_message', limit=20, period=60)
 def send_message(request, pk):
+    """
+    Handle outreach drafting or explicit confirmed send.
+    Distinguishes draft, queued, accepted_by_provider, and failed.
+    """
     job = get_object_or_404(JobApplication, pk=pk, user=request.user)
-    subject = request.POST.get('subject')
-    body = request.POST.get('body')
+    subject = request.POST.get('subject', '').strip()
+    body = request.POST.get('body', '').strip()
+    recipient_email = request.POST.get('recipient_email', '').strip() or job.contact_email
+    recipient_name = request.POST.get('recipient_name', '').strip() or job.contact_name
+    recipient_role = request.POST.get('recipient_role', '').strip() or getattr(job, 'contact_role', '')
+    confirmed = request.POST.get('confirm_send') in ['1', 'true', 'on', True]
+    is_draft = request.POST.get('is_draft') in ['1', 'true', 'on', True]
+    follow_up_str = request.POST.get('schedule_follow_up', '').strip()
+
+    follow_up_date = None
+    if follow_up_str:
+        try:
+            parsed_dt = timezone.datetime.strptime(follow_up_str, '%Y-%m-%d')
+            follow_up_date = timezone.make_aware(parsed_dt)
+        except ValueError:
+            pass
 
     if not (subject and body):
-        return HttpResponse("Invalid form: subject and body are required", status=400)
+        return HttpResponseBadRequest("Subject and pitch body are required.")
 
-    recipient = job.contact_email
-    if not recipient:
-        return HttpResponse("No contact email specified for this job application", status=400)
-
-    setting = AppSetting.objects.filter(user=request.user).first()
-
-    try:
-        if setting and setting.smtp_host and setting.email_address and setting.email_password:
-            connection = get_connection(
-                backend='django.core.mail.backends.smtp.EmailBackend',
-                host=setting.smtp_host,
-                port=setting.smtp_port,
-                username=setting.email_address,
-                password=setting.get_decrypted_email_password(),
-                use_tls=True,
-            )
-            email = EmailMessage(
-                subject=subject,
-                body=body,
-                from_email=setting.email_address,
-                to=[recipient],
-                connection=connection,
-            )
-            email.send()
-        elif getattr(settings, 'EMAIL_BACKEND', None):
-            email = EmailMessage(
-                subject=subject,
-                body=body,
-                from_email='noreply@huntly.local',
-                to=[recipient],
-            )
-            email.send()
-        else:
-            raise ValueError("No email configuration found.")
-
-        Message.objects.create(
-            job_application=job,
+    # Save as Draft branch
+    if is_draft:
+        draft = create_or_update_draft(
+            user=request.user,
+            job=job,
             subject=subject,
-            body=body
+            body=body,
+            recipient_email=recipient_email,
+            recipient_name=recipient_name,
+            recipient_role=recipient_role,
+            follow_up_reminder_at=follow_up_date
+        )
+        messages.success(request, f"Pitch draft saved for {job.company_name}.")
+        if request.headers.get('HX-Request'):
+            return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
+        return redirect('leads:lead-list')
+
+    # Explicit user confirmation check
+    if not confirmed:
+        return HttpResponseBadRequest(
+            "Explicit user confirmation is required before sending recruiter outreach. "
+            "Please check the confirmation box to approve sending."
         )
 
-        if job.status == 'saved':
-            job.status = 'applied'
-        job.last_contacted = timezone.now()
-        job.save()
+    # First ensure draft is recorded
+    draft = create_or_update_draft(
+        user=request.user,
+        job=job,
+        subject=subject,
+        body=body,
+        recipient_email=recipient_email,
+        recipient_name=recipient_name,
+        recipient_role=recipient_role,
+        follow_up_reminder_at=follow_up_date
+    )
 
-        messages.success(request, f"Pitch email sent to {job.company_name}!")
-        return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
+    try:
+        success, status_msg, sent_msg = send_approved_outreach(
+            message=draft,
+            user=request.user,
+            confirmed=True
+        )
 
+        if success:
+            messages.success(request, f"Pitch email accepted by provider for delivery to {job.company_name}!")
+            if request.headers.get('HX-Request'):
+                return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
+            return redirect('leads:lead-list')
+        else:
+            messages.error(request, status_msg)
+            return HttpResponse(status_msg, status=502)
+
+    except QuotaExceededError as e:
+        messages.error(request, str(e))
+        return HttpResponse(str(e), status=429)
+    except DuplicateSendError as e:
+        messages.warning(request, str(e))
+        return HttpResponse(str(e), status=400)
+    except InvalidRecipientError as e:
+        messages.error(request, str(e))
+        return HttpResponse(str(e), status=400)
+    except OutreachServiceError as e:
+        messages.error(request, str(e))
+        return HttpResponse(str(e), status=400)
     except Exception as e:
-        messages.error(request, f"Failed to send email: {e}")
-        return HttpResponse(f"Failed to send email: {e}", status=500)
+        messages.error(request, f"Unexpected delivery error: {e}")
+        return HttpResponse(f"Unexpected delivery error: {e}", status=500)
+
+
+@login_required
+@require_POST
+def record_message_reply(request, pk):
+    """Log a manual reply received from the recruiter or hiring manager."""
+    message = get_object_or_404(Message, pk=pk, user=request.user)
+    reply_notes = request.POST.get('reply_notes', '').strip()
+    if not reply_notes:
+        return HttpResponseBadRequest("Reply notes are required.")
+
+    record_manual_reply(message, request.user, reply_notes=reply_notes)
+    messages.success(request, f"Recorded reply for {message.job_application.company_name}.")
+    if request.headers.get('HX-Request'):
+        return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
+    return redirect('leads:lead-list')
+
+
+@login_required
+@require_POST
+def cancel_message_reminder(request, pk):
+    """Cancel a pending message draft or clear a follow-up reminder."""
+    message = get_object_or_404(Message, pk=pk, user=request.user)
+    cancel_reminder_or_draft(message, request.user)
+    messages.info(request, "Outreach item cancelled.")
+    if request.headers.get('HX-Request'):
+        return HttpResponse(status=204, headers={'HX-Trigger': 'leadsChanged'})
+    return redirect('leads:lead-list')
+
+
+@login_required
+@require_POST
+def verify_smtp_settings(request):
+    """Safely verify SMTP credentials without dispatching an email."""
+    setting = AppSetting.objects.filter(user=request.user).first()
+    if not setting or not setting.email_address or not setting.email_password:
+        return JsonResponse({'success': False, 'message': 'Incomplete SMTP credentials configured.'}, status=400)
+
+    try:
+        connection = get_connection(
+            backend='django.core.mail.backends.smtp.EmailBackend',
+            host=setting.smtp_host,
+            port=setting.smtp_port,
+            username=setting.email_address,
+            password=setting.get_decrypted_email_password(),
+            use_tls=(setting.smtp_port == 587),
+            use_ssl=(setting.smtp_port == 465),
+            timeout=8,
+        )
+        connection.open()
+        connection.close()
+        setting.is_verified = True
+        setting.last_verified_at = timezone.now()
+        setting.save(update_fields=['is_verified', 'last_verified_at'])
+        return JsonResponse({'success': True, 'message': 'SMTP connection verified successfully!'})
+    except Exception as exc:
+        setting.is_verified = False
+        setting.save(update_fields=['is_verified'])
+        return JsonResponse({'success': False, 'message': f'Connection failed: {exc}'}, status=400)
 
 
 @login_required
