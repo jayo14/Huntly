@@ -1,0 +1,61 @@
+<div class="p-8 space-y-6">
+    <div class="flex items-center justify-between pb-4 border-b-2 border-ink">
+        <div>
+            <h2 class="text-2xl font-display font-bold text-ink">Version History & Document Snapshots</h2>
+            <p class="text-xs text-mut font-semibold mt-1">Application snapshots for <span class="font-bold text-ink">{{ job.role_title }}</span> at <span class="font-bold text-ink">{{ job.company_name }}</span></p>
+        </div>
+        <button type="button" @click="$dispatch('close-modal')" class="text-mut hover:text-ink p-1 rounded-full">
+            <span class="ms text-2xl">close</span>
+        </button>
+    </div>
+
+    <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+        {% for doc in documents %}
+        <div class="p-5 border-2 border-ink rounded-[20px] bg-[#fbfdf9] shadow-[3px_4px_0_#102a1f] space-y-3">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="stk bg-lime text-ink font-bold text-xs py-0.5 px-2.5">Version {{ doc.version }}</span>
+                    <span class="text-xs font-bold text-mut">{{ doc.created_at|date:"M d, Y H:i" }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-ink bg-[#eef3ea] border border-line px-2.5 py-0.5 rounded-full">
+                        Fit Score: {{ doc.match_score }}%
+                    </span>
+                </div>
+            </div>
+
+            <!-- Tailored resume snippet -->
+            {% if doc.tailored_resume_text %}
+            <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-mut block mb-1">Tailored Achievements</span>
+                <p class="text-xs font-mono bg-[#f4f8f1] border border-line p-3 rounded-xl whitespace-pre-line text-ink">{{ doc.tailored_resume_text|truncatechars:250 }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Cover letter preview -->
+            {% if doc.cover_letter_text %}
+            <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-mut block mb-1">Cover Letter Draft</span>
+                <p class="text-xs text-mut bg-[#f4f8f1] border border-line p-3 rounded-xl line-clamp-2 font-sans">{{ doc.cover_letter_text }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-line">
+                <a href="{% url 'resumes:resume-download' job.user.resumes.first.pk|default:1 %}?job_id={{ job.pk }}&format=docx" class="btn o text-xs py-1.5 px-3">
+                    <span class="ms text-sm">download</span> DOCX
+                </a>
+                <a href="{% url 'resumes:resume-download' job.user.resumes.first.pk|default:1 %}?job_id={{ job.pk }}&format=pdf" class="btn o text-xs py-1.5 px-3">
+                    <span class="ms text-sm">picture_as_pdf</span> PDF
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-12">
+            <span class="ms text-4xl text-mut mb-2">history</span>
+            <p class="text-sm font-bold text-ink">No document versions yet.</p>
+            <p class="text-xs text-mut mt-1">Generate tailoring to create your first application snapshot.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>

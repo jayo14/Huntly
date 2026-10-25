@@ -1,18 +1,18 @@
 {% extends 'base.html' %}
 
 {% block title %}Master Profiles | Huntly{% endblock %}
-{% block header_title %}Master Profiles{% endblock %}
+{% block header_title %}Master Career Profile{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto py-4">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+<div class="max-w-7xl mx-auto py-4 space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-3xl font-display font-bold text-ink tracking-tight">Master Career Profiles</h1>
-            <p class="text-mut text-sm font-semibold mt-1">Your core achievements, experiences, and skills used to generate tailored applications.</p>
+            <p class="text-mut text-sm font-semibold mt-1">Your single authoritative source-of-truth. All job applications derive role-specific resumes and cover letters without overwriting original facts.</p>
         </div>
         <a href="{% url 'resumes:resume-create' %}" class="btn">
-            <i class="ms">add</i>
-            Create Master Profile
+            <span class="ms text-lg">add</span>
+            <span>Create Profile</span>
         </a>
     </div>
 
@@ -22,65 +22,96 @@
                 <thead class="bg-[#eef3ea] border-b-2 border-ink">
                     <tr>
                         <th class="px-8 py-4 text-left font-display text-xs font-bold text-ink uppercase tracking-wider">Candidate Profile</th>
-                        <th class="px-8 py-4 text-left font-display text-xs font-bold text-ink uppercase tracking-wider">Contact Info</th>
-                        <th class="px-8 py-4 text-left font-display text-xs font-bold text-ink uppercase tracking-wider">Created</th>
+                        <th class="px-8 py-4 text-left font-display text-xs font-bold text-ink uppercase tracking-wider">Completeness</th>
+                        <th class="px-8 py-4 text-left font-display text-xs font-bold text-ink uppercase tracking-wider">Contact</th>
                         <th class="px-8 py-4 text-right font-display text-xs font-bold text-ink uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-line bg-card">
                     {% for resume in resumes %}
+                    {% with report=resume.get_completeness_report %}
                     <tr class="group hover:bg-[#f4f8f1] transition-colors">
                         <td class="px-8 py-5 whitespace-nowrap">
                             <div class="flex items-center">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-ink font-display font-bold text-sm mr-4 border border-ink shadow-sm bg-[#c8b6ff]">
+                                <div class="w-11 h-11 rounded-full flex items-center justify-center text-ink font-display font-bold text-sm mr-4 border border-ink shadow-sm {% if resume.is_master %}bg-lime{% else %}bg-[#c8b6ff]{% endif %}">
                                     {{ resume.full_name.0|upper }}
                                 </div>
                                 <div>
-                                    <div class="text-sm font-bold text-ink group-hover:text-pink transition-colors">{{ resume.full_name }}</div>
-                                    <div class="text-xs text-mut font-semibold">{{ resume.tagline }}</div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm font-bold text-ink group-hover:text-pink transition-colors">{{ resume.full_name }}</span>
+                                        {% if resume.is_master %}
+                                        <span class="stk bg-lime text-ink text-[10px] py-0.5 px-2">
+                                            <span class="ms text-xs mr-0.5">verified</span> Master Profile
+                                        </span>
+                                        {% else %}
+                                        <form method="post" action="{% url 'resumes:make-master' resume.pk %}" class="inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="text-[10px] font-bold text-mut hover:text-ink underline ml-1" title="Set this as your canonical profile">
+                                                Make Master
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-xs text-mut font-semibold">{{ resume.tagline|default:"No headline set" }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-8 py-5 whitespace-nowrap">
+                            <div class="w-36">
+                                <div class="flex justify-between text-[11px] font-bold text-ink mb-1">
+                                    <span>Profile Readiness</span>
+                                    <span>{{ report.score }}%</span>
+                                </div>
+                                <div class="w-full bg-[#eef3ea] border border-line rounded-full h-2.5 overflow-hidden p-0.5">
+                                    <div class="{% if report.score >= 70 %}bg-lime{% elif report.score >= 40 %}bg-sun{% else %}bg-pink{% endif %} h-full rounded-full" style="width: {{ report.score }}%"></div>
                                 </div>
                             </div>
                         </td>
                         <td class="px-8 py-5 whitespace-nowrap">
                             <div class="text-xs font-bold text-ink">{{ resume.email }}</div>
-                            <div class="text-[11px] text-mut font-medium">{{ resume.phone|default:"No phone" }}</div>
-                        </td>
-                        <td class="px-8 py-5 whitespace-nowrap">
-                            <div class="text-xs font-bold text-mut">{{ resume.created_at|date:"M d, Y" }}</div>
+                            <div class="text-[11px] text-mut font-medium">{{ resume.location|default:resume.phone|default:"No location set" }}</div>
                         </td>
                         <td class="px-8 py-5 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex items-center justify-end space-x-2">
                                 <button hx-get="{% url 'resumes:resume-preview' resume.pk %}"
                                         hx-target="#modal-content"
-                                        class="p-2 text-ink hover:bg-[#d6f24a] rounded-full border border-ink transition-all"
-                                        title="Preview">
+                                        class="p-2 text-ink hover:bg-card rounded-xl border border-ink transition-all shadow-sm"
+                                        title="Preview Profile">
                                     <span class="ms text-base">visibility</span>
                                 </button>
                                 <a href="{% url 'resumes:resume-update' resume.pk %}"
-                                   class="p-2 text-ink hover:bg-[#c8b6ff] rounded-full border border-ink transition-all"
-                                   title="Edit">
+                                   class="p-2 text-ink hover:bg-[#c8b6ff] rounded-xl border border-ink transition-all shadow-sm"
+                                   title="Edit Master Profile">
                                     <span class="ms text-base">edit</span>
                                 </a>
-                                <a href="{% url 'resumes:resume-download' resume.pk %}"
-                                   class="p-2 text-ink hover:bg-lime rounded-full border border-ink transition-all"
-                                   title="Download DOCX">
-                                    <span class="ms text-base">download</span>
-                                </a>
+                                <div class="inline-flex rounded-xl border border-ink shadow-sm overflow-hidden">
+                                    <a href="{% url 'resumes:resume-download' resume.pk %}?format=docx"
+                                       class="px-2.5 py-1.5 text-xs font-bold bg-[#eef3ea] hover:bg-lime text-ink border-r border-ink flex items-center gap-1"
+                                       title="Download ATS DOCX">
+                                        <span class="ms text-sm">description</span> DOCX
+                                    </a>
+                                    <a href="{% url 'resumes:resume-download' resume.pk %}?format=pdf"
+                                       class="px-2.5 py-1.5 text-xs font-bold bg-[#eef3ea] hover:bg-pink hover:text-white text-ink flex items-center gap-1"
+                                       title="Download ATS PDF">
+                                        <span class="ms text-sm">picture_as_pdf</span> PDF
+                                    </a>
+                                </div>
                             </div>
                         </td>
                     </tr>
+                    {% endwith %}
                     {% empty %}
                     <tr>
                         <td colspan="4" class="px-8 py-16 text-center">
                             <div class="flex flex-col items-center">
-                                <div class="w-16 h-16 rounded-full bg-[#eef3ea] border border-line flex items-center justify-center mb-4">
-                                    <span class="ms text-3xl text-mut">description</span>
+                                <div class="w-16 h-16 rounded-full bg-[#eef3ea] border-2 border-ink flex items-center justify-center mb-4 shadow-[2px_3px_0_#102a1f]">
+                                    <span class="ms text-3xl text-ink">badge</span>
                                 </div>
-                                <p class="text-ink font-display font-bold text-lg mb-1">No master profile yet</p>
-                                <p class="text-mut text-sm max-w-sm mb-4">Save your career history, skills, and metrics once to power all AI tailoring.</p>
+                                <p class="text-ink font-display font-bold text-xl mb-1">No Master Career Profile Yet</p>
+                                <p class="text-mut text-sm max-w-md mb-5 font-semibold">Enter your career history, accomplishments, and skills once. Huntly uses this authoritative baseline for every tailored job application.</p>
                                 <a href="{% url 'resumes:resume-create' %}" class="btn">
-                                    <i class="ms">add</i>
-                                    Build Master Profile
+                                    <span class="ms text-base">add</span>
+                                    <span>Build Authoritative Profile</span>
                                 </a>
                             </div>
                         </td>
