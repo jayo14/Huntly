@@ -53,6 +53,24 @@ class JobApplication(models.Model):
     recruiter_pitch = models.TextField(blank=True)
     matched_keywords = models.JSONField(default=list, blank=True)
 
+    # Smart intake provenance & grounded research
+    INTAKE_SOURCES = [
+        ('manual', 'Manual Entry'),
+        ('url', 'Fetched from Job URL'),
+        ('pasted', 'Pasted Description'),
+    ]
+    EXTRACTION_STATUSES = [
+        ('none', 'Not Analyzed'),
+        ('extracted', 'Extracted'),
+        ('partial', 'Partial Extraction'),
+        ('failed', 'Extraction Failed'),
+    ]
+    intake_source = models.CharField(max_length=20, choices=INTAKE_SOURCES, default='manual', blank=True)
+    extraction_status = models.CharField(max_length=20, choices=EXTRACTION_STATUSES, default='none', blank=True)
+    employer_research = models.JSONField(default=dict, blank=True)
+    fit_analysis = models.JSONField(default=dict, blank=True)
+    analyzed_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
