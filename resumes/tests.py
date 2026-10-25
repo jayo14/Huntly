@@ -171,3 +171,144 @@ class ResumeTenantIsolationTests(TestCase):
         self.client.force_login(self.user_a)
         res = self.client.get(reverse('resumes:resume-download', args=[self.resume_b.pk]))
         self.assertEqual(res.status_code, 404)
+
+
+class MasterCareerProfileWorkflowTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='careerexpert', password='password123')
+        self.client = Client()
+        self.client.login(username='careerexpert', password='password123')
+        self.job = JobApplication.objects.create(
+            user=self.user,
+            company_name='Acme Cloud',
+            role_title='Staff Backend Engineer',
+            job_description='Seeking an experienced Python and PostgreSQL backend engineer. Docker and Kubernetes preferred.',
+            status='saved'
+        )
+
+    def test_create_master_profile_and_completeness_report(self):
+        profile = Resume.objects.create(
+            user=self.user,
+            full_name='Dr. Katherine Johnson',
+            tagline='Senior Calculations Specialist',
+            email='katherine@nasa.gov',
+            location='Hampton, VA',
+            summary='Pioneered celestial mechanics calculations for early space missions with 100% precision.',
+            technical_skills=[
+                {'name': 'Python, Fortran, Mathematical Modeling', 'category': 'Languages', 'evidence': 'Used across 12 flight trajectories'},
+                {'name': 'PostgreSQL, Linux', 'category': 'Systems'}
+            ],
+            experiences=[
+                {
+                    'role': 'Lead Aerospace Technologist',
+                    'company': 'NASA Langley',
+                    'dates': '1953 - 1986',
+                    'responsibilities': ['Calculated launch windows and rendezvous paths'],
+                    'accomplishments': ['Verified trajectory equations for first crewed spaceflight without error'],
+                    'provenance': 'user_entered'
+                }
+            ],
+            projects=[
+                {
+                    'name': 'Apollo 11 Trajectory Verifier',
+                    'contribution': 'Manual verification of digital computer readouts',
+                    'outcomes': 'Successfully landed Apollo 11 lunar module',
+                    'provenance': 'explicitly_verified'
+                }
+            ],
+            education=[
+                {'degree': 'B.S. in Mathematics', 'institution': 'West Virginia State', 'dates': '1937'}
+            ],
+            is_master=True
+        )
+
+        report = profile.get_completeness_report()
+        self.assertGreaterEqual(report['score'], 80)
+        self.assertTrue(report['is_ready_for_tailoring'])
+        self.assertEqual(len(report['missing']), 0)
+
+    def test_multiple_resumes_master_consolidation(self):
+        res1 = Resume.objects.create(user=self.user, full_name='Profile 1', email='p1@test.com', is_master=True)
+        res2 = Resume.objects.create(user=self.user, full_name='Profile 2', email='p2@test.com', is_master=False)
+
+        # Consolidate res2 as master
+        res2.consolidate_as_master()
+        res1.refresh_from_db()
+        res2.refresh_from_db()
+
+        self.assertFalse(res1.is_master)
+        self.assertTrue(res2.is_master)
+
+    def test_resume_docx_and_pdf_generation_binary_structure(self):
+        profile = Resume.objects.create(
+            user=self.user,
+            full_name='Ada Lovelace',
+            email='ada@analytical.org',
+            summary='Computing pioneer.',
+            technical_skills=[{'name': 'Python, SQL', 'category': 'Languages'}],
+            experiences=[{'role': 'Architect', 'company': 'Analytical Engine', 'accomplishments': ['Wrote first algorithm']}]
+        )
+
+        # 1. Download DOCX
+        res_docx = self.client.get(f"{reverse('resumes:resume-download', args=[profile.pk])}?format=docx")
+        self.assertEqual(res_docx.status_code, 200)
+        self.assertTrue(res_docx.content.startswith(b'PK'), "DOCX must start with valid Office Open XML ZIP signature")
+        self.assertEqual(res_docx['Content-Type'], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+
+        # 2. Download PDF
+        res_pdf = self.client.get(f"{reverse('resumes:resume-download', args=[profile.pk])}?format=pdf")
+        self.assertEqual(res_pdf.status_code, 200)
+        self.assertTrue(res_pdf.content.startswith(b'%PDF-'), "PDF must start with valid %PDF- signature")
+        self.assertEqual(res_pdf['Content-Type'], 'application/pdf')
+
+    def test_tailored_cover_letter_download_pdf_and_docx(self):
+        self.job.cover_letter = "Dear Acme Cloud Team,\nI am thrilled to apply for the Staff Backend Engineer role."
+        self.job.save()
+
+        # Cover letter PDF
+        res_pdf = self.client.get(f"{reverse('resumes:cover-letter-download', args=[self.job.pk])}?format=pdf")
+        self.assertEqual(res_pdf.status_code, 200)
+        self.assertTrue(res_pdf.content.startswith(b'%PDF-'))
+
+        # Cover letter DOCX
+        res_docx = self.client.get(f"{reverse('resumes:cover-letter-download', args=[self.job.pk])}?format=docx")
+        self.assertEqual(res_docx.status_code, 200)
+        self.assertTrue(res_docx.content.startswith(b'PK'))
+
+    def test_application_document_versioning_and_snapshot(self):
+        from resumes.models import ApplicationDocument
+        profile = Resume.objects.create(
+            user=self.user,
+            full_name='Candidate v1',
+            email='cand@test.com',
+            summary='Initial summary',
+            technical_skills=[{'name': 'Python', 'category': 'Languages'}],
+            experiences=[{'role': 'Engineer', 'company': 'StartUp', 'accomplishments': ['Scaled traffic by 50%']}]
+        )
+
+        # Generate tailoring v1
+        self.client.post(reverse('leads:generate-message', args=[self.job.pk]))
+        docs_v1 = ApplicationDocument.objects.filter(job_application=self.job)
+        self.assertEqual(docs_v1.count(), 1)
+        self.assertEqual(docs_v1.first().version, 1)
+
+        # Generate tailoring v2
+        self.client.post(reverse('leads:generate-message', args=[self.job.pk]))
+        docs_v2 = ApplicationDocument.objects.filter(job_application=self.job).order_by('-version')
+        self.assertEqual(docs_v2.count(), 2)
+        self.assertEqual(docs_v2.first().version, 2)
+        self.assertEqual(docs_v2.last().version, 1)
+
+    def test_cross_user_isolation_on_document_downloads(self):
+        other_user = User.objects.create_user(username='adversary', password='password123')
+        other_client = Client()
+        other_client.login(username='adversary', password='password123')
+
+        # Adversary attempts to download self.job's cover letter
+        res_cl = other_client.get(reverse('resumes:cover-letter-download', args=[self.job.pk]))
+        self.assertEqual(res_cl.status_code, 404)
+
+        # Adversary attempts to inspect self.job's document history
+        res_hist = other_client.get(reverse('resumes:document-history', args=[self.job.pk]))
+        self.assertEqual(res_hist.status_code, 404)
+
