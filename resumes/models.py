@@ -68,6 +68,69 @@ class Resume(models.Model):
             self.is_master = True
             self.save(update_fields=['is_master'])
 
+    def get_completion_assessment(self) -> dict:
+        """
+        Evaluate completeness of Master Career Profile facts.
+        Returns score percentage, completed sections, and missing sections checklist.
+        """
+        sections = []
+        # 1. Identity & Contact (20%)
+        has_contact = bool(self.full_name and self.email and (self.phone or self.location))
+        sections.append({
+            'name': 'Contact & Identity',
+            'completed': has_contact,
+            'details': 'Full name, email, and location/phone provided.',
+            'weight': 20,
+        })
+        # 2. Headline & Summary (20%)
+        has_summary = bool(self.tagline and len(self.summary or '') >= 30)
+        sections.append({
+            'name': 'Headline & Summary',
+            'completed': has_summary,
+            'details': 'Professional headline and summary statement of at least 30 characters.',
+            'weight': 20,
+        })
+        # 3. Verified Skills (20%)
+        skills = self.technical_skills if isinstance(self.technical_skills, list) else []
+        has_skills = len(skills) >= 3
+        sections.append({
+            'name': 'Core & Technical Skills',
+            'completed': has_skills,
+            'details': 'At least 3 verified technical skills or competencies recorded.',
+            'weight': 20,
+        })
+        # 4. Work Experience & Accomplishments (25%)
+        exps = self.experiences if isinstance(self.experiences, list) else []
+        has_experiences = len(exps) >= 1 and any(
+            bool(e.get('accomplishments') or e.get('bullets')) for e in exps if isinstance(e, dict)
+        )
+        sections.append({
+            'name': 'Experience & Outcomes',
+            'completed': has_experiences,
+            'details': 'At least one role with measurable accomplishment statements.',
+            'weight': 25,
+        })
+        # 5. Education & Credentials (15%)
+        has_edu = bool(self.education or self.certifications)
+        sections.append({
+            'name': 'Education & Credentials',
+            'completed': has_edu,
+            'details': 'Academic qualification or professional certification listed.',
+            'weight': 15,
+        })
+
+        score = sum(s['weight'] for s in sections if s['completed'])
+        missing = [s for s in sections if not s['completed']]
+        completed = [s for s in sections if s['completed']]
+
+        return {
+            'score': score,
+            'sections': sections,
+            'missing': missing,
+            'completed': completed,
+            'is_complete': score >= 80,
+        }
+
     def get_completeness_report(self):
         """Calculate profile completeness percentage, missing sections, and actionable suggestions."""
         score = 0

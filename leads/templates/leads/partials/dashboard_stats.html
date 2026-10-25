@@ -1,3 +1,110 @@
+<!-- Candidate Mission Control & Next Action Banner -->
+<div class="mb-8 space-y-4">
+    <!-- Next Available Action Hero Banner -->
+    <div class="bg-card border-2 border-ink p-6 lg:p-7 rounded-[28px] shadow-[4px_5px_0_#102a1f] relative overflow-hidden">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+            <div class="space-y-2 max-w-2xl">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-7 h-7 rounded-full bg-lime border border-ink flex items-center justify-center shrink-0">
+                        <span class="ms text-base text-ink">{{ next_action.icon|default:'bolt' }}</span>
+                    </span>
+                    <span class="text-xs font-display font-bold uppercase tracking-wider text-pink">Recommended Next Action</span>
+                    <span class="ch text-[10px] py-0.5 px-2.5 bg-[#f4f8f1] border border-ink text-ink font-bold">
+                        {{ next_action.badge|default:'Ready' }}
+                    </span>
+                </div>
+                <h2 class="text-xl lg:text-2xl font-display font-extrabold text-ink leading-tight">
+                    {{ next_action.title }}
+                </h2>
+                <p class="text-xs text-mut font-medium leading-relaxed">
+                    {{ next_action.description }}
+                </p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                {% if next_action.cta_url %}
+                <a href="{{ next_action.cta_url }}" class="btn text-xs py-3 px-6 shadow-sm">
+                    <span>{{ next_action.cta_text }}</span>
+                    <i class="ms">arrow_forward</i>
+                </a>
+                {% elif next_action.cta_hx_get %}
+                <button hx-get="{{ next_action.cta_hx_get }}" hx-target="#modal-content" class="btn text-xs py-3 px-6 shadow-sm">
+                    <span>{{ next_action.cta_text }}</span>
+                    <i class="ms">arrow_forward</i>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 4-Stage Onboarding Journey Progress -->
+        <div class="mt-6 pt-5 border-t border-line grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <!-- Step 1: Master Profile -->
+            <div class="flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border border-ink {% if profile_assessment.score >= 50 %}bg-lime text-ink{% else %}bg-[#f4f8f1] text-mut{% endif %}">
+                    {% if profile_assessment.score >= 50 %}✓{% else %}1{% endif %}
+                </span>
+                <span class="font-bold {% if profile_assessment.score >= 50 %}text-ink{% else %}text-mut{% endif %}">1. Master Profile</span>
+            </div>
+            <!-- Step 2: Track Job -->
+            <div class="flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border border-ink {% if total_jobs > 0 %}bg-lime text-ink{% else %}bg-[#f4f8f1] text-mut{% endif %}">
+                    {% if total_jobs > 0 %}✓{% else %}2{% endif %}
+                </span>
+                <span class="font-bold {% if total_jobs > 0 %}text-ink{% else %}text-mut{% endif %}">2. Track Target Job</span>
+            </div>
+            <!-- Step 3: AI Tailoring -->
+            <div class="flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border border-ink {% if applied_count > 0 or interviewing_count > 0 or entitlements.tailored_applications_used > 0 %}bg-lime text-ink{% else %}bg-[#f4f8f1] text-mut{% endif %}">
+                    {% if applied_count > 0 or interviewing_count > 0 or entitlements.tailored_applications_used > 0 %}✓{% else %}3{% endif %}
+                </span>
+                <span class="font-bold {% if applied_count > 0 or interviewing_count > 0 or entitlements.tailored_applications_used > 0 %}text-ink{% else %}text-mut{% endif %}">3. AI Tailoring</span>
+            </div>
+            <!-- Step 4: Submission & Outreach -->
+            <div class="flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border border-ink {% if applied_count > 0 or interviewing_count > 0 %}bg-lime text-ink{% else %}bg-[#f4f8f1] text-mut{% endif %}">
+                    {% if applied_count > 0 or interviewing_count > 0 %}✓{% else %}4{% endif %}
+                </span>
+                <span class="font-bold {% if applied_count > 0 or interviewing_count > 0 %}text-ink{% else %}text-mut{% endif %}">4. Submit & Outreach</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Missing Profile Sections Checklist (Shown when profile is incomplete) -->
+    {% if profile_assessment.score < 80 %}
+    <div class="p-4 bg-amber-50 border-[1.5px] border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div class="flex items-start gap-2.5">
+            <span class="ms text-base text-amber-800 shrink-0 mt-0.5">help</span>
+            <div>
+                <span class="font-bold text-amber-950 block">Incomplete Master Career Profile ({{ profile_assessment.score }}% complete):</span>
+                <span class="text-amber-900">
+                    Missing: {% for m in profile_assessment.missing %}{{ m.name }}{% if not forloop.last %}, {% endif %}{% endfor %}.
+                    Huntly tailors applications exclusively from verified profile facts without inventing career history.
+                </span>
+            </div>
+        </div>
+        <a href="{% if resume %}{% url 'resumes:resume-update' resume.pk %}{% else %}{% url 'resumes:resume-create' %}{% endif %}"
+           class="btn o text-[11px] py-1.5 px-3 shrink-0 self-start sm:self-auto">
+            Complete Profile
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Quota & Entitlement Status Bar -->
+    <div class="flex flex-wrap items-center justify-between gap-3 px-1 text-xs">
+        <div class="flex items-center gap-2 text-mut">
+            <span class="font-semibold">Tailoring Quota:</span>
+            <span class="font-bold text-ink">{{ entitlements.tailored_applications_remaining }} / {{ entitlements.tailored_applications_limit }} remaining</span>
+            <span class="text-[10px] text-mut">({{ entitlements.plan.name }})</span>
+        </div>
+        {% if entitlements.plan.id == 'free' and entitlements.tailored_applications_remaining <= 1 %}
+        <a href="{% url 'billing:dashboard' %}" class="text-xs font-bold text-pink hover:underline flex items-center gap-1">
+            <span>Upgrade to Job Sprint for 50 Tailored Applications/wk</span>
+            <span class="ms text-xs">arrow_forward</span>
+        </a>
+        {% endif %}
+    </div>
+</div>
+
 <!-- KPI Cards matching Landing Page Style -->
 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5 mb-8">
     <!-- Saved Roles -->

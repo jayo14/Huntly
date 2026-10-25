@@ -90,6 +90,76 @@ def dashboard(request):
         next_follow_up__lte=timezone.now().date()
     ).order_by('next_follow_up')[:4]
 
+    # Master Career Profile assessment
+    resume = Resume.objects.filter(user=request.user, is_master=True).first() or Resume.objects.filter(user=request.user).first()
+    if resume:
+        profile_assessment = resume.get_completion_assessment()
+    else:
+        profile_assessment = {
+            'score': 0,
+            'is_complete': False,
+            'missing': [{'name': 'Career History', 'details': 'Create your Master Career Profile to anchor tailoring in real facts.'}],
+            'completed': [],
+            'sections': [],
+        }
+
+    # Next Action Engine based on candidate's real database state
+    if not resume or profile_assessment['score'] < 50:
+        next_action = {
+            'title': 'Complete Your Master Career Profile',
+            'description': 'Add your skills, work history, and achievements once. Huntly tailors applications exclusively from these verified facts without fabricating claims.',
+            'cta_text': 'Build Master Profile' if not resume else 'Complete Profile Sections',
+            'cta_url': reverse('resumes:resume-create') if not resume else reverse('resumes:resume-update', args=[resume.pk]),
+            'step': 1,
+            'icon': 'account_circle',
+            'badge': f"{profile_assessment['score']}% Complete",
+        }
+    elif total_jobs == 0:
+        next_action = {
+            'title': 'Track Your First Target Role',
+            'description': 'Paste a job posting from LinkedIn, Indeed, or a careers site. Huntly will extract key skills and build your tailored application.',
+            'cta_text': '+ Track First Job',
+            'cta_hx_get': reverse('leads:lead-create'),
+            'step': 2,
+            'icon': 'add_circle',
+            'badge': 'Ready to Apply',
+        }
+    else:
+        untailored_job = user_jobs.filter(status='saved', tailored_resume_text='').first()
+        if untailored_job:
+            next_action = {
+                'title': f'Tailor Application: {untailored_job.role_title} at {untailored_job.company_name}',
+                'description': 'Generate ATS-friendly resume bullets and a targeted cover letter grounded in your verified career history.',
+                'cta_text': 'Open & Tailor Application',
+                'cta_hx_get': reverse('leads:lead-detail', args=[untailored_job.pk]),
+                'step': 3,
+                'icon': 'auto_fix_high',
+                'badge': 'Tailoring Pending',
+            }
+        elif upcoming_interviews.exists():
+            int_job = upcoming_interviews.first()
+            next_action = {
+                'title': f'Prepare for Interview with {int_job.company_name}',
+                'description': f'Scheduled for {int_job.interview_date.strftime("%A, %b %d at %H:%M")}. Review your evidence breakdown and role notes.',
+                'cta_text': 'Review Application Notes',
+                'cta_hx_get': reverse('leads:lead-detail', args=[int_job.pk]),
+                'step': 4,
+                'icon': 'event',
+                'badge': 'Interview Scheduled',
+            }
+        else:
+            next_action = {
+                'title': 'Expand Your Application Funnel',
+                'description': 'Keep active momentum. Add another target job posting or send outreach pitches for applied roles.',
+                'cta_text': '+ Track New Job',
+                'cta_hx_get': reverse('leads:lead-create'),
+                'step': 2,
+                'icon': 'playlist_add',
+                'badge': f'{total_jobs} Roles Tracked',
+            }
+
+    entitlements = get_user_entitlements(request.user)
+
     context = {
         'total_jobs': total_jobs,
         'total_leads': total_jobs,
@@ -105,6 +175,10 @@ def dashboard(request):
         'follow_ups_due': follow_ups_due,
         'needs_attention': recent_jobs,
         'status_choices': JobApplication.STATUS_CHOICES,
+        'resume': resume,
+        'profile_assessment': profile_assessment,
+        'next_action': next_action,
+        'entitlements': entitlements,
     }
 
     if request.headers.get('HX-Request'):
