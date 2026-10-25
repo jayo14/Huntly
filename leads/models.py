@@ -23,6 +23,18 @@ class JobApplication(models.Model):
     job_description = models.TextField(blank=True)
     contact_name = models.CharField(max_length=255, blank=True)
     contact_email = models.EmailField(blank=True)
+    contact_role = models.CharField(max_length=150, blank=True)
+    contact_source = models.CharField(max_length=255, blank=True)
+    contact_verification_status = models.CharField(
+        max_length=50,
+        choices=[
+            ('unverified', 'Unverified'),
+            ('user_verified', 'Verified by Candidate'),
+            ('authorized_source', 'Direct Job Listing / Official Source'),
+        ],
+        default='unverified',
+        db_index=True
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='saved', db_index=True)
     score = models.IntegerField(default=0, blank=True, db_index=True)
     notes = models.TextField(blank=True)
@@ -121,27 +133,83 @@ class ApplicationActivity(models.Model):
 
 
 class Message(models.Model):
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('queued', 'Queued'),
+        ('accepted_by_provider', 'Accepted by Provider'),
+        ('delivered', 'Delivered (Confirmed)'),
+        ('bounced', 'Bounced'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='outreach_messages', null=True, blank=True)
     job_application = models.ForeignKey(JobApplication, on_delete=models.CASCADE, related_name='messages')
+
+    recipient_email = models.EmailField(blank=True)
+    recipient_name = models.CharField(max_length=255, blank=True)
+    recipient_role = models.CharField(max_length=150, blank=True)
+
     subject = models.CharField(max_length=255)
     body = models.TextField()
-    sent_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='draft', db_index=True)
+    provider_message_id = models.CharField(max_length=255, blank=True)
+    error_message = models.TextField(blank=True)
+
+    sent_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    follow_up_reminder_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    reply_received_at = models.DateTimeField(null=True, blank=True)
+    reply_notes = models.TextField(blank=True)
     is_reply = models.BooleanField(default=False, db_index=True)
+
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     @property
     def lead(self):
         return self.job_application
 
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['job_application', '-created_at']),
+            models.Index(fields=['follow_up_reminder_at']),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.user and self.job_application and self.job_application.user:
+            self.user = self.job_application.user
+        if not self.recipient_email and self.job_application:
+            self.recipient_email = self.job_application.contact_email
+        if not self.recipient_name and self.job_application:
+            self.recipient_name = self.job_application.contact_name
+        if not self.recipient_role and self.job_application:
+            self.recipient_role = getattr(self.job_application, 'contact_role', '')
+        if self.status in ['accepted_by_provider', 'delivered'] and not self.sent_at:
+            self.sent_at = timezone.now()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{'Reply' if self.is_reply else 'Sent'} to {self.job_application.company_name} at {self.sent_at}"
+        return f"{self.get_status_display()}: {self.subject} to {self.recipient_email or 'No recipient'}"
 
 
 class AppSetting(models.Model):
+    PROVIDER_CHOICES = [
+        ('smtp', 'Custom SMTP Server'),
+        ('system', 'System Default / Platform Service'),
+    ]
+
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='app_settings')
+    provider_type = models.CharField(max_length=50, choices=PROVIDER_CHOICES, default='smtp')
+    sender_name = models.CharField(max_length=150, blank=True)
     smtp_host = models.CharField(max_length=255, default='smtp.gmail.com')
     smtp_port = models.IntegerField(default=587)
     email_address = models.EmailField(blank=True)
     email_password = models.CharField(max_length=512, blank=True)
     daily_send_limit = models.IntegerField(default=50)
+    is_verified = models.BooleanField(default=False)
+    last_verified_at = models.DateTimeField(null=True, blank=True)
 
     def set_email_password(self, raw_password: str):
         self.email_password = encrypt_credential(raw_password)
