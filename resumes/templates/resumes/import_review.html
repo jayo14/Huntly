@@ -1,0 +1,410 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Extracted Resume | Huntly{% endblock %}
+{% block header_title %}Review Extracted Resume{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto py-6 space-y-6" x-data="resumeReviewer({{ parsed_data_json|default:'{}' }})">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-lime text-ink text-xs font-bold mb-2 border border-ink">
+                <span class="ms text-sm">verified_user</span>
+                <span>Extraction Draft (Unconfirmed)</span>
+            </div>
+            <h1 class="text-3xl font-display font-bold text-ink tracking-tight">Review Extracted Career Facts</h1>
+            <p class="text-mut text-sm font-semibold mt-1">
+                Verify and correct your details below. Only user-approved information will be saved to your Career Profile.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <form method="post" action="{% url 'resumes:resume-import-cancel' import_obj.pk %}" onsubmit="return confirm('Cancel this import? Any unconfirmed changes will be discarded.');">
+                {% csrf_token %}
+                <button type="submit" class="px-4 py-2 border-2 border-ink rounded-xl text-xs font-bold text-mut hover:text-ink hover:bg-[#eef3ea] transition-colors">
+                    Cancel Import
+                </button>
+            </form>
+
+            <a href="{% url 'resumes:resume-import-file' import_obj.pk %}" class="inline-flex items-center gap-1.5 px-4 py-2 border-2 border-ink rounded-xl text-xs font-bold text-ink bg-card hover:bg-[#f4f8f1] transition-colors shadow-sm" title="Download original uploaded document">
+                <span class="ms text-base">download</span>
+                <span>Original File</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Warnings & Quality Audit Banner -->
+    {% if warnings %}
+    <div class="p-5 bg-amber-50 border-2 border-amber-300 rounded-[22px] text-amber-900 shadow-sm space-y-2">
+        <div class="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-amber-800">
+            <span class="ms text-lg text-amber-600">report_problem</span>
+            <span>Extraction Notices & Suggested Verifications</span>
+        </div>
+        <ul class="text-xs space-y-1 list-disc list-inside text-amber-900 font-medium pl-1">
+            {% for w in warnings %}
+            <li>{{ w }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Existing Profile Merge / Comparison Banner -->
+    {% if existing_master %}
+    <div class="p-5 bg-[#eef3ea] border-2 border-ink rounded-[22px] text-ink shadow-[2px_3px_0_#102a1f] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="space-y-1">
+            <div class="flex items-center gap-2">
+                <span class="ms text-lg text-pink">folder_shared</span>
+                <span class="text-xs font-bold uppercase tracking-wider">Existing Master Profile Detected</span>
+            </div>
+            <p class="text-xs font-semibold text-mut">
+                You already have a Master Career Profile for <strong>{{ existing_master.full_name }}</strong> ({{ existing_master.technical_skills|length }} skills, {{ existing_master.experiences|length }} experiences).
+            </p>
+        </div>
+
+        <div class="flex items-center gap-4 bg-card px-4 py-2 rounded-xl border border-ink text-xs font-bold">
+            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="merge_strategy_choice" value="merge" x-model="mergeStrategy" class="text-pink focus:ring-pink">
+                <span>Update / Merge into Master</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="merge_strategy_choice" value="new" x-model="mergeStrategy" class="text-pink focus:ring-pink">
+                <span>Save as New Profile</span>
+            </label>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Main Review Form -->
+    <form method="post" action="{% url 'resumes:resume-import-confirm' import_obj.pk %}" @submit="prepareSubmission($event)">
+        {% csrf_token %}
+        <input type="hidden" name="approved_data" :value="JSON.stringify(getCleanPayload())">
+        <input type="hidden" name="merge_strategy" :value="mergeStrategy">
+
+        <div class="space-y-6">
+            <!-- 1. Identity & Contact Information -->
+            <div class="bg-card border-2 border-ink rounded-[26px] p-6 shadow-[3px_4px_0_#102a1f] space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-line">
+                    <div class="flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-lime border border-ink flex items-center justify-center font-bold text-xs text-ink">1</span>
+                        <h2 class="text-base font-bold text-ink">Identity & Contact Details</h2>
+                    </div>
+                    <span class="text-[11px] font-semibold text-mut">Verified fields</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-ink mb-1">Full Name</label>
+                        <input type="text" x-model="data.full_name" class="w-full px-3 py-2 text-xs border border-ink rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-lime font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-ink mb-1">Professional Headline / Tagline</label>
+                        <input type="text" x-model="data.tagline" placeholder="e.g. Senior Backend Engineer" class="w-full px-3 py-2 text-xs border border-ink rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-lime font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-ink mb-1">Email Address</label>
+                        <input type="email" x-model="data.email" class="w-full px-3 py-2 text-xs border border-ink rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-lime font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-ink mb-1">Phone Number</label>
+                        <input type="text" x-model="data.phone" class="w-full px-3 py-2 text-xs border border-ink rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-lime font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-ink mb-1">Location (City, State / Country)</label>
+                        <input type="text" x-model="data.location" class="w-full px-3 py-2 text-xs border border-ink rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-lime font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-ink mb-1">LinkedIn URL</label>
+                        <input type="url" x-model="data.linkedin" placeholder="https://linkedin.com/in/username" class="w-full px-3 py-2 text-xs border border-ink rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-lime font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-ink mb-1">GitHub URL</label>
+                        <input type="url" x-model="data.github" placeholder="https://github.com/username" class="w-full px-3 py-2 text-xs border border-ink rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-lime font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-ink mb-1">Portfolio / Website</label>
+                        <input type="url" x-model="data.portfolio" placeholder="https://yoursite.com" class="w-full px-3 py-2 text-xs border border-ink rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-lime font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-ink mb-1">Professional Summary</label>
+                    <textarea x-model="data.summary" rows="3" class="w-full px-3 py-2 text-xs border border-ink rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-lime font-medium" placeholder="Concise career summary..."></textarea>
+                </div>
+            </div>
+
+            <!-- 2. Work Experiences & Accomplishments -->
+            <div class="bg-card border-2 border-ink rounded-[26px] p-6 shadow-[3px_4px_0_#102a1f] space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-line">
+                    <div class="flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-lime border border-ink flex items-center justify-center font-bold text-xs text-ink">2</span>
+                        <h2 class="text-base font-bold text-ink">Work History & Accomplishments (<span x-text="data.experiences.length"></span>)</h2>
+                    </div>
+                    <button type="button" @click="addExperience()" class="inline-flex items-center gap-1 px-3 py-1 bg-[#eef3ea] hover:bg-card border border-ink rounded-lg text-xs font-bold text-ink transition-colors">
+                        <span class="ms text-sm">add</span>
+                        <span>Add Role</span>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <template x-for="(exp, index) in data.experiences" :key="index">
+                        <div class="p-4 rounded-2xl border-2 transition-all space-y-3"
+                             :class="exp._included !== false ? 'border-ink bg-white shadow-sm' : 'border-line bg-gray-50 opacity-60'">
+                            <div class="flex items-center justify-between gap-2">
+                                <label class="inline-flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" x-model="exp._included" class="rounded text-pink focus:ring-pink">
+                                    <span class="text-xs font-bold text-ink">Include in Career Profile</span>
+                                </label>
+                                <button type="button" @click="removeExperience(index)" class="text-rose-500 hover:text-rose-700 text-xs font-bold flex items-center gap-0.5">
+                                    <span class="ms text-sm">delete</span>
+                                    <span>Remove</span>
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-mut mb-0.5">Job Title / Role</label>
+                                    <input type="text" x-model="exp.role" class="w-full px-2.5 py-1.5 text-xs border border-ink rounded-lg font-medium">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-mut mb-0.5">Company / Organization</label>
+                                    <input type="text" x-model="exp.company" class="w-full px-2.5 py-1.5 text-xs border border-ink rounded-lg font-medium">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-mut mb-0.5">Dates / Period</label>
+                                    <input type="text" x-model="exp.dates" placeholder="e.g. Jan 2021 - Present" class="w-full px-2.5 py-1.5 text-xs border border-ink rounded-lg font-medium">
+                                </div>
+                            </div>
+
+                            <!-- Accomplishments with metrics -->
+                            <div>
+                                <label class="block text-[11px] font-bold text-mut mb-0.5">Accomplishments & Key Outcomes (one per line, preserve metrics)</label>
+                                <textarea rows="3"
+                                          :value="(exp.accomplishments || exp.responsibilities || []).join('\n')"
+                                          @input="updateExpBullets(exp, $event.target.value)"
+                                          class="w-full px-2.5 py-1.5 text-xs border border-ink rounded-lg font-mono text-[11px] leading-relaxed"
+                                          placeholder="• Engineered resilient pipeline handling 5M daily events&#10;• Reduced latency by 45%"></textarea>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- 3. Skills & Technologies -->
+            <div class="bg-card border-2 border-ink rounded-[26px] p-6 shadow-[3px_4px_0_#102a1f] space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-line">
+                    <div class="flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-lime border border-ink flex items-center justify-center font-bold text-xs text-ink">3</span>
+                        <h2 class="text-base font-bold text-ink">Core & Technical Skills (<span x-text="data.technical_skills.length"></span>)</h2>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                    <template x-for="(skill, index) in data.technical_skills" :key="index">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all"
+                              :class="skill._included !== false ? 'bg-[#eef3ea] border-ink text-ink shadow-sm' : 'bg-gray-100 border-line text-gray-400 line-through'">
+                            <input type="checkbox" x-model="skill._included" class="rounded text-pink focus:ring-pink w-3.5 h-3.5">
+                            <span x-text="skill.name"></span>
+                            <button type="button" @click="removeSkill(index)" class="text-mut hover:text-rose-600 ml-1">
+                                <span class="ms text-xs">close</span>
+                            </button>
+                        </span>
+                    </template>
+                </div>
+
+                <!-- Add custom skill -->
+                <div class="pt-2 flex items-center gap-2">
+                    <input type="text" x-model="newSkillName" @keydown.enter.prevent="addSkill()" placeholder="Add another skill (e.g. Docker, PostgreSQL)..." class="px-3 py-2 text-xs border border-ink rounded-xl w-72 bg-card">
+                    <button type="button" @click="addSkill()" class="btn py-2 px-3 text-xs">
+                        <span>+ Add Skill</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4. Projects -->
+            <div class="bg-card border-2 border-ink rounded-[26px] p-6 shadow-[3px_4px_0_#102a1f] space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-line">
+                    <div class="flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-lime border border-ink flex items-center justify-center font-bold text-xs text-ink">4</span>
+                        <h2 class="text-base font-bold text-ink">Projects & Deliverables (<span x-text="data.projects.length"></span>)</h2>
+                    </div>
+                    <button type="button" @click="addProject()" class="inline-flex items-center gap-1 px-3 py-1 bg-[#eef3ea] hover:bg-card border border-ink rounded-lg text-xs font-bold text-ink transition-colors">
+                        <span class="ms text-sm">add</span>
+                        <span>Add Project</span>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <template x-for="(proj, index) in data.projects" :key="index">
+                        <div class="p-4 rounded-2xl border-2 transition-all space-y-3"
+                             :class="proj._included !== false ? 'border-ink bg-white shadow-sm' : 'border-line bg-gray-50 opacity-60'">
+                            <div class="flex items-center justify-between gap-2">
+                                <label class="inline-flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" x-model="proj._included" class="rounded text-pink focus:ring-pink">
+                                    <span class="text-xs font-bold text-ink">Include Project</span>
+                                </label>
+                                <button type="button" @click="removeProject(index)" class="text-rose-500 hover:text-rose-700 text-xs font-bold">
+                                    Remove
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-mut mb-0.5">Project Name</label>
+                                    <input type="text" x-model="proj.name" class="w-full px-2.5 py-1.5 text-xs border border-ink rounded-lg font-medium">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-mut mb-0.5">Project Link / URL</label>
+                                    <input type="url" x-model="proj.link" placeholder="https://..." class="w-full px-2.5 py-1.5 text-xs border border-ink rounded-lg font-medium">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-mut mb-0.5">Description & Measurable Outcomes</label>
+                                <textarea rows="2" x-model="proj.outcomes" class="w-full px-2.5 py-1.5 text-xs border border-ink rounded-lg font-medium" placeholder="What you built, technologies used, and outcomes..."></textarea>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- 5. Education & Certifications -->
+            <div class="bg-card border-2 border-ink rounded-[26px] p-6 shadow-[3px_4px_0_#102a1f] space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-line">
+                    <div class="flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-lime border border-ink flex items-center justify-center font-bold text-xs text-ink">5</span>
+                        <h2 class="text-base font-bold text-ink">Education & Credentials</h2>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <template x-for="(edu, index) in data.education" :key="index">
+                        <div class="p-4 rounded-2xl border-2 transition-all space-y-3"
+                             :class="edu._included !== false ? 'border-ink bg-white shadow-sm' : 'border-line bg-gray-50 opacity-60'">
+                            <div class="flex items-center justify-between gap-2">
+                                <label class="inline-flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" x-model="edu._included" class="rounded text-pink focus:ring-pink">
+                                    <span class="text-xs font-bold text-ink">Include Education</span>
+                                </label>
+                                <button type="button" @click="removeEducation(index)" class="text-rose-500 hover:text-rose-700 text-xs font-bold">Remove</button>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-mut mb-0.5">Degree / Qualification</label>
+                                    <input type="text" x-model="edu.degree" class="w-full px-2.5 py-1.5 text-xs border border-ink rounded-lg font-medium">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-mut mb-0.5">Institution / School</label>
+                                    <input type="text" x-model="edu.institution" class="w-full px-2.5 py-1.5 text-xs border border-ink rounded-lg font-medium">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-mut mb-0.5">Dates / Graduation Year</label>
+                                    <input type="text" x-model="edu.dates" class="w-full px-2.5 py-1.5 text-xs border border-ink rounded-lg font-medium">
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Action Toolbar (Fixed Bottom / Final Confirmation) -->
+            <div class="sticky bottom-4 z-20 bg-card border-2 border-ink rounded-[24px] p-5 shadow-[4px_6px_0_#102a1f] flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="text-xs text-mut font-medium">
+                    <span class="font-bold text-ink">Ready to save?</span>
+                    Approved information will be consolidated into your Career Profile and immediately available for AI tailoring.
+                </div>
+
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <button type="submit" class="btn w-full sm:w-auto px-8 py-3 font-bold text-sm">
+                        <span class="ms text-base">check_circle</span>
+                        <span>Approve & Save to Career Profile</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function resumeReviewer(initialData) {
+    // Ensure lists exist and default _included is true
+    const parsed = initialData || {};
+    parsed.experiences = (parsed.experiences || []).map(e => ({ ...e, _included: true }));
+    parsed.technical_skills = (parsed.technical_skills || []).map(s => ({ ...s, _included: true }));
+    parsed.projects = (parsed.projects || []).map(p => ({ ...p, _included: true }));
+    parsed.education = (parsed.education || []).map(ed => ({ ...ed, _included: true }));
+    parsed.certifications = (parsed.certifications || []).map(c => ({ ...c, _included: true }));
+    parsed.languages = parsed.languages || [];
+    parsed.awards = parsed.awards || [];
+
+    return {
+        data: parsed,
+        newSkillName: '',
+        mergeStrategy: 'merge',
+
+        addExperience() {
+            this.data.experiences.push({
+                role: 'New Role',
+                company: 'Company',
+                dates: '2023 - Present',
+                responsibilities: [],
+                accomplishments: ['Key achievement statement'],
+                _included: true,
+            });
+        },
+        removeExperience(index) {
+            this.data.experiences.splice(index, 1);
+        },
+        updateExpBullets(exp, text) {
+            const lines = text.split('\n').map(l => l.replace(/^[•\-\*–—·\d\.]+\s*/, '').trim()).filter(Boolean);
+            exp.accomplishments = lines;
+        },
+
+        addSkill() {
+            const name = this.newSkillName.trim();
+            if (name) {
+                this.data.technical_skills.push({
+                    name: name,
+                    category: 'General',
+                    proficiency: 'Proficient',
+                    _included: true,
+                });
+                this.newSkillName = '';
+            }
+        },
+        removeSkill(index) {
+            this.data.technical_skills.splice(index, 1);
+        },
+
+        addProject() {
+            this.data.projects.push({
+                name: 'New Project',
+                role: 'Contributor',
+                link: '',
+                outcomes: 'Project outcomes and accomplishments',
+                _included: true,
+            });
+        },
+        removeProject(index) {
+            this.data.projects.splice(index, 1);
+        },
+
+        removeEducation(index) {
+            this.data.education.splice(index, 1);
+        },
+
+        getCleanPayload() {
+            const payload = { ...this.data };
+            // Filter only included items
+            payload.experiences = payload.experiences.filter(e => e._included !== false);
+            payload.technical_skills = payload.technical_skills.filter(s => s._included !== false);
+            payload.projects = payload.projects.filter(p => p._included !== false);
+            payload.education = payload.education.filter(ed => ed._included !== false);
+            payload.certifications = payload.certifications.filter(c => c._included !== false);
+            return payload;
+        },
+
+        prepareSubmission(e) {
+            // Handled via hidden input binding
+        }
+    };
+}
+</script>
+{% endblock %}

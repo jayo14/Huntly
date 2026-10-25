@@ -2,19 +2,27 @@ import json
 import os
 import re
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.conf import settings
 
-from .models import Resume, ApplicationDocument
+from .models import Resume, ApplicationDocument, ResumeImport
 from .document_generator import (
     generate_docx,
     generate_pdf,
     generate_cover_letter_docx,
     generate_cover_letter_pdf,
     DocumentGenerationError
+)
+from .services.importer import process_resume_import_file
+from .services.merger import apply_import_to_profile
+from .services.extractor import (
+    DocumentExtractionError,
+    DocumentFormatError,
+    DocumentOversizedError,
+    get_max_upload_size,
 )
 from huntly.storage import local_file
 
@@ -308,3 +316,146 @@ def document_history(request, job_id):
         'job': job,
         'documents': docs,
     })
+
+
+@login_required
+def resume_import_upload(request):
+    """Upload an existing resume (PDF/DOCX) and launch the extraction pipeline."""
+    max_size_mb = get_max_upload_size() // (1024 * 1024)
+
+    if request.method == 'POST':
+        uploaded_file = request.FILES.get('resume_file')
+        if not uploaded_file:
+            messages.error(request, "Please choose a PDF or DOCX resume file to upload.")
+            return render(request, 'resumes/import_upload.html', {'max_size_mb': max_size_mb})
+
+        # Pre-check size
+        if uploaded_file.size > get_max_upload_size():
+            messages.error(
+                request,
+                f"The uploaded file ({uploaded_file.size / (1024 * 1024):.1f} MB) exceeds the {max_size_mb} MB limit."
+            )
+            return render(request, 'resumes/import_upload.html', {'max_size_mb': max_size_mb})
+
+        # Pre-check extension
+        ext = os.path.splitext(uploaded_file.name)[1].lower()
+        if ext not in ('.pdf', '.docx'):
+            messages.error(request, f"Unsupported file type '{ext}'. Please upload a PDF or Microsoft Word (.docx) file.")
+            return render(request, 'resumes/import_upload.html', {'max_size_mb': max_size_mb})
+
+        # Sanitize filename (prevent path traversal or malformed names)
+        safe_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', os.path.basename(uploaded_file.name))
+
+        # Create unconfirmed import draft
+        import_obj = ResumeImport.objects.create(
+            user=request.user,
+            file=uploaded_file,
+            file_name=safe_filename,
+            file_type='pdf' if ext == '.pdf' else 'docx',
+            file_size=uploaded_file.size,
+            status='uploaded',
+        )
+
+        # Process through extraction and parsing pipeline
+        import_obj = process_resume_import_file(import_obj)
+
+        if import_obj.status == 'failed':
+            messages.error(request, import_obj.error_message or "Failed to extract information from resume.")
+            return render(request, 'resumes/import_upload.html', {
+                'max_size_mb': max_size_mb,
+                'import_error': import_obj.error_message,
+                'is_scanned': import_obj.is_scanned,
+            })
+
+        return redirect('resumes:resume-import-review', import_id=import_obj.pk)
+
+    return render(request, 'resumes/import_upload.html', {'max_size_mb': max_size_mb})
+
+
+@login_required
+def resume_import_review(request, import_id):
+    """Interactive review interface for extracted resume candidate information."""
+    import_obj = get_object_or_404(ResumeImport, pk=import_id, user=request.user)
+
+    if import_obj.status == 'completed':
+        messages.info(request, "This resume import has already been reviewed and saved to your Career Profile.")
+        return redirect('resumes:resume-list')
+
+    existing_master = Resume.objects.filter(user=request.user, is_master=True).first()
+    parsed_data = import_obj.parsed_data or {}
+
+    return render(request, 'resumes/import_review.html', {
+        'import_obj': import_obj,
+        'parsed_data': parsed_data,
+        'parsed_data_json': json.dumps(parsed_data),
+        'existing_master': existing_master,
+        'warnings': import_obj.warnings or [],
+    })
+
+
+@login_required
+@require_POST
+def resume_import_confirm(request, import_id):
+    """Save user-approved information into canonical Career Profile."""
+    import_obj = get_object_or_404(ResumeImport, pk=import_id, user=request.user)
+
+    if import_obj.status == 'completed':
+        messages.info(request, "This import draft was already applied.")
+        return redirect('resumes:resume-list')
+
+    # Read submitted approved data
+    approved_json = request.POST.get('approved_data')
+    if approved_json:
+        try:
+            approved_data = json.loads(approved_json)
+        except Exception:
+            approved_data = import_obj.parsed_data
+    elif request.content_type == 'application/json':
+        try:
+            approved_data = json.loads(request.body)
+        except Exception:
+            approved_data = import_obj.parsed_data
+    else:
+        # Fallback to current parsed data
+        approved_data = import_obj.parsed_data
+
+    merge_strategy = request.POST.get('merge_strategy', 'merge')
+
+    # Apply approved data to user's Career Profile
+    saved_profile = apply_import_to_profile(
+        user=request.user,
+        import_obj=import_obj,
+        approved_data=approved_data,
+        merge_strategy=merge_strategy
+    )
+
+    messages.success(
+        request,
+        f"Verified resume data saved! '{saved_profile.full_name}' is ready for tailoring."
+    )
+    return redirect('resumes:resume-update', pk=saved_profile.pk)
+
+
+@login_required
+@require_POST
+def resume_import_cancel(request, import_id):
+    """Cancel and delete an unconfirmed resume import draft and its private file."""
+    import_obj = get_object_or_404(ResumeImport, pk=import_id, user=request.user)
+    import_obj.delete()
+    messages.info(request, "Resume import cancelled.")
+    return redirect('resumes:resume-list')
+
+
+@login_required
+def resume_import_download(request, import_id):
+    """Privately stream original uploaded resume document with ownership enforcement."""
+    import_obj = get_object_or_404(ResumeImport, pk=import_id, user=request.user)
+    if not import_obj.file:
+        messages.error(request, "Original document file is no longer available.")
+        return redirect('resumes:resume-list')
+
+    # Stream file securely with generic octet-stream and attachment header
+    response = FileResponse(import_obj.file.open('rb'), content_type='application/octet-stream')
+    response['Content-Disposition'] = f'attachment; filename="{import_obj.file_name}"'
+    return response
+

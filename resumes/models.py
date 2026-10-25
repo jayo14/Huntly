@@ -1,7 +1,5 @@
-from django.conf import settings
-from django.db import models
-
-
+import os
+import uuid
 from django.conf import settings
 from django.db import models, transaction
 
@@ -42,6 +40,8 @@ class Resume(models.Model):
     certifications = models.JSONField(default=list, blank=True)
     # education: [{degree: '', institution: '', location: '', dates: '', details: '', provenance: 'user_entered'}]
     education = models.JSONField(default=list, blank=True)
+    languages = models.JSONField(default=list, blank=True)
+    awards = models.JSONField(default=list, blank=True)
 
     include_branding = models.BooleanField(default=False)
     accent_color = models.CharField(max_length=7, default="#4F46E5")
@@ -250,4 +250,67 @@ class ApplicationDocument(models.Model):
 
     def __str__(self):
         return f"{self.title} (v{self.version}) for {self.job_application.company_name}"
+
+
+def resume_import_upload_to(instance, filename):
+    """Generate a collision-resistant, private per-user upload path."""
+    import uuid
+    ext = os.path.splitext(filename)[1].lower()
+    clean_ext = ext if ext in ('.pdf', '.docx') else '.bin'
+    unique_id = uuid.uuid4().hex[:16]
+    return f"resumes/imports/user_{instance.user_id}/{unique_id}{clean_ext}"
+
+
+class ResumeImport(models.Model):
+    """Tracks an uploaded resume document, its parsing lifecycle, and unconfirmed review draft.
+
+    Ensures documents remain private and separated from canonical profiles until
+    explicitly confirmed and approved by the candidate.
+    """
+    STATUS_CHOICES = [
+        ('uploaded', 'Uploaded'),
+        ('processing', 'Processing'),
+        ('review_required', 'Review Required'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='resume_imports')
+    file = models.FileField(upload_to=resume_import_upload_to)
+    file_name = models.CharField(max_length=255)
+    file_type = models.CharField(max_length=10, choices=[('pdf', 'PDF'), ('docx', 'Word (DOCX)')])
+    file_size = models.PositiveIntegerField(default=0)
+
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='uploaded', db_index=True)
+    error_message = models.TextField(blank=True)
+    warnings = models.JSONField(default=list, blank=True)
+
+    extracted_text = models.TextField(blank=True)
+    parsed_data = models.JSONField(default=dict, blank=True)
+
+    is_scanned = models.BooleanField(default=False)
+    ocr_recommended = models.BooleanField(default=False)
+
+    # Reference to the profile updated or created upon confirmation
+    target_resume = models.ForeignKey('Resume', null=True, blank=True, on_delete=models.SET_NULL, related_name='source_imports')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['user', 'status']),
+        ]
+
+    def __str__(self):
+        return f"Import '{self.file_name}' ({self.status}) for {self.user.username}"
+
+    def delete(self, *args, **kwargs):
+        """Clean up private storage asset when record is deleted."""
+        if self.file:
+            self.file.delete(save=False)
+        super().delete(*args, **kwargs)
+
 

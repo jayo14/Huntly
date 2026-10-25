@@ -10,10 +10,16 @@
             <h1 class="text-3xl font-display font-bold text-ink tracking-tight">Master Career Profiles</h1>
             <p class="text-mut text-sm font-semibold mt-1">Your single authoritative source-of-truth. All job applications derive role-specific resumes and cover letters without overwriting original facts.</p>
         </div>
-        <a href="{% url 'resumes:resume-create' %}" class="btn">
-            <span class="ms text-lg">add</span>
-            <span>Create Profile</span>
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'resumes:resume-import' %}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-ink bg-lime text-ink font-bold text-xs shadow-[2px_3px_0_#102a1f] hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
+                <span class="ms text-lg">upload_file</span>
+                <span>Import Resume</span>
+            </a>
+            <a href="{% url 'resumes:resume-create' %}" class="btn">
+                <span class="ms text-lg">add</span>
+                <span>Create Profile</span>
+            </a>
+        </div>
     </div>
 
     <div class="bg-card border-2 border-ink rounded-[28px] overflow-hidden shadow-[4px_5px_0_#102a1f]">

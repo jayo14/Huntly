@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+
+{% block title %}Import Existing Resume | Huntly{% endblock %}
+{% block header_title %}Resume Import{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-6 space-y-6" x-data="resumeUploader()">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-lime text-ink text-xs font-bold mb-2 border border-ink">
+                <span class="ms text-sm">auto_awesome</span>
+                <span>Automated Career Extraction</span>
+            </div>
+            <h1 class="text-3xl font-display font-bold text-ink tracking-tight">Import an existing resume</h1>
+            <p class="text-mut text-sm font-semibold mt-1 max-w-2xl">
+                Upload your resume. Huntly will extract your experience, skills, education, and achievements so you don't have to enter everything manually.
+            </p>
+        </div>
+        <a href="{% url 'resumes:resume-list' %}" class="inline-flex items-center gap-1.5 px-4 py-2 border-2 border-ink rounded-xl text-xs font-bold text-ink hover:bg-[#eef3ea] transition-colors shadow-sm self-start">
+            <span class="ms text-base">arrow_back</span>
+            <span>Back to Profiles</span>
+        </a>
+    </div>
+
+    <!-- Error Banner (if any) -->
+    {% if import_error %}
+    <div class="p-5 bg-rose-50 border-2 border-rose-300 rounded-[20px] text-rose-900 shadow-sm flex items-start gap-3">
+        <span class="ms text-2xl text-rose-600 shrink-0">error</span>
+        <div class="text-xs space-y-1">
+            <p class="font-bold text-sm">Resume Extraction Notice</p>
+            <p class="font-medium text-rose-800">{{ import_error }}</p>
+            {% if is_scanned %}
+            <p class="mt-2 text-rose-700 bg-rose-100/70 p-2.5 rounded-lg border border-rose-200">
+                <strong>Tip:</strong> If you saved your resume from Google Docs, Canva, or Word, use <em>File &rarr; Download as PDF</em> (digital text) or export as a <code>.docx</code> document. Avoid uploading photos or flattened scans.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Upload Card -->
+    <div class="bg-card border-2 border-ink rounded-[28px] p-8 shadow-[4px_5px_0_#102a1f] space-y-6">
+        <form method="post" enctype="multipart/form-data" @submit="handleSubmit($event)">
+            {% csrf_token %}
+
+            <!-- Dropzone -->
+            <div class="border-2 border-dashed rounded-[22px] p-8 text-center transition-all cursor-pointer select-none"
+                 :class="isDragging ? 'border-pink bg-pink/5 scale-[1.01]' : 'border-line hover:border-ink hover:bg-[#f4f8f1]'"
+                 @dragover.prevent="isDragging = true"
+                 @dragleave.prevent="isDragging = false"
+                 @drop.prevent="handleDrop($event)"
+                 @click="$refs.fileInput.click()">
+
+                <input type="file"
+                       name="resume_file"
+                       x-ref="fileInput"
+                       class="hidden"
+                       accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                       @change="handleFileSelect($event)">
+
+                <div class="w-16 h-16 rounded-2xl bg-lime border-2 border-ink shadow-[2px_3px_0_#102a1f] mx-auto flex items-center justify-center text-ink mb-4">
+                    <span class="ms text-3xl">cloud_upload</span>
+                </div>
+
+                <template x-if="!selectedFile">
+                    <div class="space-y-2">
+                        <p class="text-base font-bold text-ink">
+                            Click to select a file or drag and drop your resume here
+                        </p>
+                        <p class="text-xs text-mut font-medium">
+                            Supported formats: <strong class="text-ink">PDF (.pdf)</strong> with selectable text, or <strong class="text-ink">Word (.docx)</strong> up to {{ max_size_mb }}MB.
+                        </p>
+                    </div>
+                </template>
+
+                <template x-if="selectedFile">
+                    <div class="space-y-3">
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#eef3ea] border border-ink text-sm font-bold text-ink">
+                            <span class="ms text-base text-pink" x-text="fileExtension === 'pdf' ? 'picture_as_pdf' : 'description'"></span>
+                            <span x-text="selectedFile.name"></span>
+                            <span class="text-xs text-mut font-normal" x-text="'(' + (selectedFile.size / (1024 * 1024)).toFixed(2) + ' MB)'"></span>
+                            <button type="button" class="ml-2 text-rose-500 hover:text-rose-700" @click.stop="clearFile()">
+                                <span class="ms text-base">close</span>
+                            </button>
+                        </div>
+                        <p class="text-xs text-mut">Click "Extract & Review Resume" below to begin parsing.</p>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Client validation error -->
+            <div x-show="errorMessage" x-cloak class="mt-4 p-3 bg-rose-50 border border-rose-300 rounded-xl text-xs text-rose-900 font-semibold flex items-center gap-2">
+                <span class="ms text-base text-rose-600">warning</span>
+                <span x-text="errorMessage"></span>
+            </div>
+
+            <!-- Submit Button / Progress Indicator -->
+            <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-line">
+                <div class="text-xs text-mut font-medium flex items-center gap-2">
+                    <span class="ms text-base text-emerald-600">lock</span>
+                    <span>Your document is stored privately and processed exclusively for your Career Profile.</span>
+                </div>
+
+                <button type="submit"
+                        :disabled="!selectedFile || isUploading"
+                        class="btn w-full sm:w-auto px-6 py-3 font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    <template x-if="!isUploading">
+                        <span class="inline-flex items-center gap-2">
+                            <span class="ms text-base">manage_search</span>
+                            <span>Extract & Review Resume</span>
+                        </span>
+                    </template>
+                    <template x-if="isUploading">
+                        <span class="inline-flex items-center gap-2">
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-ink" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                            <span>Extracting Career Details...</span>
+                        </span>
+                    </template>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Extraction Pipeline Safeguards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-card border-2 border-ink rounded-[20px] p-5 shadow-[2px_3px_0_#102a1f]">
+            <div class="w-8 h-8 rounded-lg bg-lime border border-ink flex items-center justify-center text-ink mb-2">
+                <span class="ms text-sm">fact_check</span>
+            </div>
+            <h4 class="font-bold text-xs text-ink">Zero Hallucination</h4>
+            <p class="text-[11px] text-mut mt-1">Huntly never invents employers, dates, qualifications, or numbers. Missing information stays missing.</p>
+        </div>
+
+        <div class="bg-card border-2 border-ink rounded-[20px] p-5 shadow-[2px_3px_0_#102a1f]">
+            <div class="w-8 h-8 rounded-lg bg-[#c8b6ff] border border-ink flex items-center justify-center text-ink mb-2">
+                <span class="ms text-sm">tune</span>
+            </div>
+            <h4 class="font-bold text-xs text-ink">Full Human Review</h4>
+            <p class="text-[11px] text-mut mt-1">Review, correct, and cherry-pick every extracted role, skill, and bullet point before saving to your profile.</p>
+        </div>
+
+        <div class="bg-card border-2 border-ink rounded-[20px] p-5 shadow-[2px_3px_0_#102a1f]">
+            <div class="w-8 h-8 rounded-lg bg-sun border border-ink flex items-center justify-center text-ink mb-2">
+                <span class="ms text-sm">shield</span>
+            </div>
+            <h4 class="font-bold text-xs text-ink">Safe Profile Merging</h4>
+            <p class="text-[11px] text-mut mt-1">If you already have a profile, Huntly lets you merge without overwriting your existing verified data.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function resumeUploader() {
+    return {
+        isDragging: false,
+        selectedFile: null,
+        fileExtension: '',
+        errorMessage: '',
+        isUploading: false,
+        maxBytes: {{ max_size_mb }} * 1024 * 1024,
+
+        handleFileSelect(event) {
+            const files = event.target.files;
+            if (files && files.length > 0) {
+                this.validateAndSetFile(files[0]);
+            }
+        },
+
+        handleDrop(event) {
+            this.isDragging = false;
+            const files = event.dataTransfer.files;
+            if (files && files.length > 0) {
+                this.validateAndSetFile(files[0]);
+                this.$refs.fileInput.files = files;
+            }
+        },
+
+        validateAndSetFile(file) {
+            this.errorMessage = '';
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext !== 'pdf' && ext !== 'docx') {
+                this.errorMessage = `Unsupported format '.${ext}'. Please upload a PDF or Microsoft Word (.docx) file.`;
+                this.clearFile();
+                return;
+            }
+            if (file.size > this.maxBytes) {
+                this.errorMessage = `File size (${(file.size / (1024 * 1024)).toFixed(1)} MB) exceeds the {{ max_size_mb }} MB limit.`;
+                this.clearFile();
+                return;
+            }
+            if (file.size === 0) {
+                this.errorMessage = 'The selected file is empty (0 bytes). Please choose a valid resume.';
+                this.clearFile();
+                return;
+            }
+
+            this.selectedFile = file;
+            this.fileExtension = ext;
+        },
+
+        clearFile() {
+            this.selectedFile = null;
+            this.fileExtension = '';
+            if (this.$refs.fileInput) {
+                this.$refs.fileInput.value = '';
+            }
+        },
+
+        handleSubmit(e) {
+            if (!this.selectedFile) {
+                e.preventDefault();
+                this.errorMessage = 'Please select a resume file before continuing.';
+                return;
+            }
+            this.isUploading = true;
+        }
+    };
+}
+</script>
+{% endblock %}

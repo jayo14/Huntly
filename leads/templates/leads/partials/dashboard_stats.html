@@ -22,6 +22,12 @@
             </div>
 
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                {% if next_action.secondary_cta_url %}
+                <a href="{{ next_action.secondary_cta_url }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border-2 border-ink bg-lime text-ink font-bold text-xs shadow-[2px_2px_0_#102a1f] hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
+                    <span class="ms text-base">upload_file</span>
+                    <span>{{ next_action.secondary_cta_text }}</span>
+                </a>
+                {% endif %}
                 {% if next_action.cta_url %}
                 <a href="{{ next_action.cta_url }}" class="btn text-xs py-3 px-6 shadow-sm">
                     <span>{{ next_action.cta_text }}</span>

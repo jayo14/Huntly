@@ -107,9 +107,11 @@ def dashboard(request):
     if not resume or profile_assessment['score'] < 50:
         next_action = {
             'title': 'Complete Your Master Career Profile',
-            'description': 'Add your skills, work history, and achievements once. Huntly tailors applications exclusively from these verified facts without fabricating claims.',
-            'cta_text': 'Build Master Profile' if not resume else 'Complete Profile Sections',
+            'description': 'Upload an existing resume or enter your skills and achievements. Huntly extracts your real facts and tailors applications without fabricating claims.',
+            'cta_text': 'Build Manually' if not resume else 'Complete Profile',
             'cta_url': reverse('resumes:resume-create') if not resume else reverse('resumes:resume-update', args=[resume.pk]),
+            'secondary_cta_text': 'Import Resume',
+            'secondary_cta_url': reverse('resumes:resume-import'),
             'step': 1,
             'icon': 'account_circle',
             'badge': f"{profile_assessment['score']}% Complete",

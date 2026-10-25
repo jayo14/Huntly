@@ -5,6 +5,23 @@
 {% block content %}
 {{ resume_data|json_script:"resume-initial-data" }}
 <div class="max-w-5xl mx-auto py-8 px-4" x-data="resumeForm()">
+    <!-- Import shortcut banner -->
+    <div class="mb-6 p-4 rounded-2xl border-2 border-ink bg-lime/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[2px_3px_0_#102a1f]">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-lime border border-ink flex items-center justify-center text-ink shrink-0">
+                <span class="ms text-lg">upload_file</span>
+            </span>
+            <div class="text-xs">
+                <p class="font-bold text-ink">Have an existing resume?</p>
+                <p class="text-mut font-medium">Upload your PDF or Word document to auto-extract your work history, skills, and education without entering everything manually.</p>
+            </div>
+        </div>
+        <a href="{% url 'resumes:resume-import' %}" class="btn px-4 py-2 text-xs font-bold shrink-0 self-start sm:self-auto">
+            <span class="ms text-sm">auto_awesome</span>
+            <span>Import Resume</span>
+        </a>
+    </div>
+
     <!-- Multi-step Progress Bar -->
     <div class="mb-12">
         <div class="flex items-center justify-between mb-4">
