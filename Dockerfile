@@ -32,8 +32,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Collect static files into /app/staticfiles for WhiteNoise
+# collectstatic does not touch the database; placeholder values only satisfy
+# production settings validation at image build time.
 RUN SECRET_KEY="build-time-secret-key-placeholder" \
     ALLOWED_HOSTS="localhost" \
+    DATABASE_URL="postgres://build:build@localhost:5432/build" \
     python3 manage.py collectstatic --noinput
 
 # Run as non-root user for security
