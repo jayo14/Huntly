@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "core.apps.CoreConfig",
     "leads.apps.LeadsConfig",
     "resumes.apps.ResumesConfig",
+    "billing.apps.BillingConfig",
 ]
 
 MIDDLEWARE = [
@@ -157,5 +158,14 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5 MB
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Payment & Subscription Configuration
+HUNTLY_PAYMENT_PROVIDER = env.str("HUNTLY_PAYMENT_PROVIDER", default="mock")
+PAYSTACK_SECRET_KEY = env.str("PAYSTACK_SECRET_KEY", default="")
+PAYSTACK_PUBLIC_KEY = env.str("PAYSTACK_PUBLIC_KEY", default="")
+STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY", default="")
+STRIPE_PUBLISHABLE_KEY = env.str("STRIPE_PUBLISHABLE_KEY", default="")
+STRIPE_WEBHOOK_SECRET = env.str("STRIPE_WEBHOOK_SECRET", default="")
+
 
 
