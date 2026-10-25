@@ -379,7 +379,8 @@
             if (icon) {
                 const text = (icon.textContent || '').trim().toLowerCase();
                 const lucideName = (icon.getAttribute('data-lucide') || '').toLowerCase();
-                const cls = (icon.className || '').toLowerCase();
+                const rawCls = typeof icon.className === 'string' ? icon.className : (icon.className?.baseVal || icon.getAttribute('class') || '');
+                const cls = rawCls.toLowerCase();
                 const combined = `${text} ${lucideName} ${cls}`;
 
                 if (combined.includes('arrow') || combined.includes('east') || combined.includes('forward') || combined.includes('chevron') || combined.includes('next')) {

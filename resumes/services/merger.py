@@ -155,7 +155,7 @@ def apply_import_to_profile(
         resume.location = approved_data.get('location', '')
         resume.linkedin = approved_data.get('linkedin', '')
         resume.github = approved_data.get('github', '')
-        resume.portfolio = approved_data.get('portfolio', '')
+        resume.portfolio = approved_data.get('portfolio', '') or approved_data.get('behance', '')
         resume.website = approved_data.get('website', '')
         resume.summary = approved_data.get('summary', '')
 
@@ -210,8 +210,8 @@ def apply_import_to_profile(
             resume.linkedin = approved_data['linkedin']
         if not resume.github and approved_data.get('github'):
             resume.github = approved_data['github']
-        if not resume.portfolio and approved_data.get('portfolio'):
-            resume.portfolio = approved_data['portfolio']
+        if not resume.portfolio and (approved_data.get('portfolio') or approved_data.get('behance')):
+            resume.portfolio = approved_data.get('portfolio') or approved_data.get('behance')
 
         # Merge collection fields cleanly without duplicate data
         resume.technical_skills = merge_skills(resume.technical_skills, approved_data.get('technical_skills', []))

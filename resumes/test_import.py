@@ -209,6 +209,55 @@ class ResumeImportServiceTests(TestCase):
         warning_str = " ".join(parsed['warnings'])
         self.assertIn("No work experiences", warning_str)
 
+    def test_spacing_normalization_and_fused_dates(self):
+        fused_text = (
+            "John Samuel\n"
+            "sayojami2007@gmail.com | +2348067954912 | Lagos, Nigeria\n"
+            "github.com/jayo14 | linkedin.com/in/john-samuel-cgx | samueljohn.vercel.app\n\n"
+            "SUMMARY\n"
+            "Full stack engineer building complete products with React/Next.js and Python.\n\n"
+            "WORK EXPERIENCE\n"
+            "Full Stack Engineer|NeXaEsports Jul2025–Sep2025\n"
+            "• Engineered resilient pipeline handling 5M daily events\n"
+            "Full Stack Developer | Freelance&Contract 2024–Present\n"
+            "• Reduced latency by 45%\n\n"
+            "EDUCATION\n"
+            "B.Sc. Computer Science, Lagos State University of Science and Technology (LASUSTECH), Ikorodu, Lagos (expected) 2024–2028\n"
+        )
+        parsed = parse_resume_text_deterministic(fused_text)
+
+        # Contact & Links
+        self.assertEqual(parsed['full_name'], 'John Samuel')
+        self.assertEqual(parsed['email'], 'sayojami2007@gmail.com')
+        self.assertEqual(parsed['phone'], '+2348067954912')
+        self.assertEqual(parsed['linkedin'], 'https://linkedin.com/in/john-samuel-cgx')
+        self.assertEqual(parsed['github'], 'https://github.com/jayo14')
+        self.assertEqual(parsed['portfolio'], 'https://samueljohn.vercel.app')
+        # Tagline must NOT be the links line
+        self.assertNotIn('github.com', parsed['tagline'])
+        self.assertNotIn('linkedin.com', parsed['tagline'])
+
+        # Work Experiences correctly segmented
+        self.assertEqual(len(parsed['experiences']), 2)
+        exp1 = parsed['experiences'][0]
+        self.assertEqual(exp1['role'], 'Full Stack Engineer')
+        self.assertEqual(exp1['company'], 'NeXaEsports')
+        self.assertIn('Jul 2025', exp1['dates'])
+        self.assertIn('Sep 2025', exp1['dates'])
+
+        exp2 = parsed['experiences'][1]
+        self.assertEqual(exp2['role'], 'Full Stack Developer')
+        self.assertEqual(exp2['company'], 'Freelance & Contract')
+        self.assertIn('2024', exp2['dates'])
+
+        # Education degree and institution properly separated
+        self.assertEqual(len(parsed['education']), 1)
+        edu = parsed['education'][0]
+        self.assertEqual(edu['degree'], 'B.Sc. Computer Science')
+        self.assertIn('Lagos State University of Science and Technology', edu['institution'])
+        self.assertIn('2024', edu['dates'])
+        self.assertIn('2028', edu['dates'])
+
 
 class ResumeImportViewAndWorkflowTests(TestCase):
     """End-to-end integration tests for views, ownership, review, and tailoring."""

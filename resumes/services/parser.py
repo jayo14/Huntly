@@ -16,11 +16,11 @@ logger = logging.getLogger(__name__)
 
 # Common section headers in resumes
 SECTION_PATTERNS = {
-    'summary': re.compile(r'^(?:professional\s+summary|summary|profile|about\s+me|executive\s+summary|objective|career\s+objective)\b', re.IGNORECASE),
-    'experience': re.compile(r'^(?:work\s+experience|professional\s+experience|experience|employment\s+history|work\s+history|career\s+history)\b', re.IGNORECASE),
-    'education': re.compile(r'^(?:education|academic\s+background|academic\s+history|qualifications)\b', re.IGNORECASE),
-    'skills': re.compile(r'^(?:technical\s+skills|core\s+competencies|skills\s*(?:&|and)\s*technologies|skills|technologies|tools)\b', re.IGNORECASE),
-    'projects': re.compile(r'^(?:projects|key\s+projects|personal\s+projects|technical\s+projects)\b', re.IGNORECASE),
+    'summary': re.compile(r'^(?:professional\s+summary|summary|profile|about\s+me|executive\s+summary|objective|career\s+objective|professional\s+profile)\b', re.IGNORECASE),
+    'experience': re.compile(r'^(?:work\s+experience|professional\s+experience|experience|employment\s+history|work\s+history|career\s+history|relevant\s+experience)\b', re.IGNORECASE),
+    'education': re.compile(r'^(?:education|academic\s+background|academic\s+history|qualifications|academic\s+roots)\b', re.IGNORECASE),
+    'skills': re.compile(r'^(?:technical\s+skills|core\s+competencies|skills\s*(?:&|and|\/)\s*technologies|skills|technologies|tools|technical\s+arsenal|stack)\b', re.IGNORECASE),
+    'projects': re.compile(r'^(?:(?:key|personal|technical|featured|selected|strategic|relevant|notable)\s+)?projects\b|^(?:recent\s+work|open\s+source|deliverables|portfolio)\b', re.IGNORECASE),
     'certifications': re.compile(r'^(?:certifications|licenses\s*(?:&|and)\s*certifications|certificates|credentials)\b', re.IGNORECASE),
     'languages': re.compile(r'^(?:languages|language\s+proficiency)\b', re.IGNORECASE),
     'awards': re.compile(r'^(?:awards|honors|publications|awards\s*(?:&|and)\s*honors|achievements)\b', re.IGNORECASE),
@@ -28,15 +28,22 @@ SECTION_PATTERNS = {
 
 EMAIL_REGEX = re.compile(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+')
 PHONE_REGEX = re.compile(r'(?:(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}|\+\d{10,14})')
-LINKEDIN_REGEX = re.compile(r'(?:https?://)?(?:www\.)?linkedin\.com/in/[a-zA-Z0-9_-]+/?', re.IGNORECASE)
-GITHUB_REGEX = re.compile(r'(?:https?://)?(?:www\.)?github\.com/[a-zA-Z0-9_-]+/?', re.IGNORECASE)
+LINKEDIN_REGEX = re.compile(r'(?:https?://)?(?:www\.)?linkedin\.com/in/([a-zA-Z0-9_\-\.%]+)/?', re.IGNORECASE)
+GITHUB_REGEX = re.compile(r'(?:https?://)?(?:www\.)?github\.com/([a-zA-Z0-9_\-\.%]+)/?', re.IGNORECASE)
+BEHANCE_REGEX = re.compile(r'(?:https?://)?(?:www\.)?behance\.net/([a-zA-Z0-9_\-\.%]+)/?', re.IGNORECASE)
+DRIBBBLE_REGEX = re.compile(r'(?:https?://)?(?:www\.)?dribbble\.com/([a-zA-Z0-9_\-\.%]+)/?', re.IGNORECASE)
+TWITTER_REGEX = re.compile(r'(?:https?://)?(?:www\.)?(?:twitter\.com|x\.com)/([a-zA-Z0-9_\-\.%]+)/?', re.IGNORECASE)
+PORTFOLIO_DOMAINS_REGEX = re.compile(
+    r'(?:https?://)?(?:[a-zA-Z0-9-]+\.)+(?:vercel\.app|netlify\.app|pages\.dev|github\.io|gitlab\.io|dev|me|io|design|tech|site|org|com|app)(?:/[^\s|,]*)?',
+    re.IGNORECASE
+)
 URL_REGEX = re.compile(r'https?://[^\s/$.?#].[^\s]*', re.IGNORECASE)
 
-MONTH_NAME = r'(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)'
-DATE_TOKEN = rf'(?:{MONTH_NAME}\s+\d{{4}}|\d{{1,2}}/\d{{2,4}}|\d{{4}})'
-END_DATE_TOKEN = rf'(?:Present|Current|Now|{MONTH_NAME}\s+\d{{4}}|\d{{1,2}}/\d{{2,4}}|\d{{4}})'
+MONTH_NAME = r'(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?|Summer|Fall|Winter|Spring)'
+DATE_TOKEN = rf'(?:{MONTH_NAME}\s*\d{{4}}|\d{{1,2}}/\d{{2,4}}|\d{{4}})'
+END_DATE_TOKEN = rf'(?:Present|Current|Now|{MONTH_NAME}\s*\d{{4}}|\d{{1,2}}/\d{{2,4}}|\d{{4}})'
 DATE_RANGE_REGEX = re.compile(
-    rf'\b({DATE_TOKEN}\s*[-–—to]+\s*{END_DATE_TOKEN})\b',
+    rf'({DATE_TOKEN}\s*[-–—to]+\s*{END_DATE_TOKEN})',
     re.IGNORECASE
 )
 
@@ -50,8 +57,8 @@ METRIC_INDICATORS = [
 ]
 
 DEGREE_PATTERNS = [
-    r'\b(?:B\.?S\.?|Bachelor(?:\'s)?\s+of\s+[A-Za-z\s]+|B\.?A\.?|B\.?Eng\.?|B\.?Tech\.?)\b',
-    r'\b(?:M\.?S\.?|Master(?:\'s)?\s+of\s+[A-Za-z\s]+|M\.?A\.?|M\.?B\.?A\.?|M\.?Eng\.?)\b',
+    r'\b(?:B\.?S\.?c?|Bachelor(?:\'s)?\s+of\s+[A-Za-z\s]+|B\.?A\.?|B\.?Eng\.?|B\.?Tech\.?)\b',
+    r'\b(?:M\.?S\.?c?|Master(?:\'s)?\s+of\s+[A-Za-z\s]+|M\.?A\.?|M\.?B\.?A\.?|M\.?Eng\.?)\b',
     r'\b(?:Ph\.?D\.?|Doctor\s+of\s+[A-Za-z\s]+)\b',
     r'\b(?:Associate(?:\'s)?\s+Degree|Diploma)\b',
 ]
@@ -65,13 +72,15 @@ US_STATES = {
 }
 
 
-def extract_contact_info(text: str, header_lines: Optional[List[str]] = None) -> Dict[str, str]:
-    """Extract candidate name, email, phone, location, and web profiles."""
+def extract_contact_info(text: str, header_lines: Optional[List[str]] = None) -> Dict[str, Any]:
+    """Extract candidate name, email, phone, location, and web profiles with handle extraction."""
     lines = [line.strip() for line in text.split('\n') if line.strip()]
     if header_lines is None:
         header_lines = []
         for line in lines:
-            if any(p.match(re.sub(r'[:_\-]+$', '', line).strip()) for p in SECTION_PATTERNS.values()):
+            clean_check = re.sub(r'^(?:[0-9IVXLCDM]+\.|\(?\d+\)|[#•\-\*–—\s])+\s*', '', line).strip()
+            clean_check = re.sub(r'[:_\-]+$', '', clean_check).strip()
+            if any(p.match(clean_check) for p in SECTION_PATTERNS.values()):
                 break
             header_lines.append(line)
 
@@ -81,7 +90,13 @@ def extract_contact_info(text: str, header_lines: Optional[List[str]] = None) ->
         'phone': '',
         'location': '',
         'linkedin': '',
+        'linkedin_username': '',
         'github': '',
+        'github_username': '',
+        'behance': '',
+        'behance_username': '',
+        'dribbble': '',
+        'twitter': '',
         'portfolio': '',
         'website': '',
     }
@@ -98,18 +113,49 @@ def extract_contact_info(text: str, header_lines: Optional[List[str]] = None) ->
 
     # 3. Social & Portfolio links
     for match in LINKEDIN_REGEX.finditer(text):
-        url = match.group(0)
+        url = match.group(0).rstrip('/')
         contact['linkedin'] = url if url.startswith('http') else f"https://{url}"
+        contact['linkedin_username'] = match.group(1).strip()
         break
 
     for match in GITHUB_REGEX.finditer(text):
-        url = match.group(0)
+        url = match.group(0).rstrip('/')
         contact['github'] = url if url.startswith('http') else f"https://{url}"
+        contact['github_username'] = match.group(1).strip()
         break
+
+    for match in BEHANCE_REGEX.finditer(text):
+        url = match.group(0).rstrip('/')
+        contact['behance'] = url if url.startswith('http') else f"https://{url}"
+        contact['behance_username'] = match.group(1).strip()
+        break
+
+    for match in DRIBBBLE_REGEX.finditer(text):
+        url = match.group(0).rstrip('/')
+        contact['dribbble'] = url if url.startswith('http') else f"https://{url}"
+        break
+
+    for match in TWITTER_REGEX.finditer(text):
+        url = match.group(0).rstrip('/')
+        contact['twitter'] = url if url.startswith('http') else f"https://{url}"
+        break
+
+    # Portfolio domain search (excluding major social networks and generic webmail)
+    webmail_domains = {'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'mail.com'}
+    for match in PORTFOLIO_DOMAINS_REGEX.finditer(text):
+        domain_str = match.group(0).strip(' |–—-,()')
+        domain_lower = domain_str.lower()
+        if any(skip in domain_lower for skip in ['linkedin.com', 'github.com', 'behance.net', 'dribbble.com', 'twitter.com', 'x.com']):
+            continue
+        if any(w in domain_lower for w in webmail_domains):
+            continue
+        if not contact['portfolio']:
+            contact['portfolio'] = domain_str if domain_str.startswith('http') else f"https://{domain_str}"
+            break
 
     # 4. Name extraction heuristic (first prominent non-header line in header block)
     for line in header_lines[:4]:
-        if EMAIL_REGEX.search(line) or PHONE_REGEX.search(line) or 'http' in line.lower() or '.com' in line.lower():
+        if EMAIL_REGEX.search(line) or PHONE_REGEX.search(line) or 'http' in line.lower() or '.com' in line.lower() or '.app' in line.lower() or '|' in line:
             continue
         clean_line = re.sub(r'[^a-zA-Z\s\.\'-]', '', line).strip()
         words = clean_line.split()
@@ -130,7 +176,7 @@ def extract_contact_info(text: str, header_lines: Optional[List[str]] = None) ->
                         contact['location'] = f"{city}, {region.upper()}"
                         break
                     elif len(city.split()) <= 3 and len(region.split()) <= 2:
-                        if not any(k in p.lower() for k in ['developer', 'engineer', 'lead', 'manager', 'architect', 'skills', 'python']):
+                        if not any(k in p.lower() for k in ['developer', 'engineer', 'lead', 'manager', 'architect', 'skills', 'python', 'http', '.com', '.app']):
                             contact['location'] = f"{city}, {region}"
                             break
         if contact['location']:
@@ -163,15 +209,18 @@ def segment_sections(text: str) -> Dict[str, List[str]]:
 
         # Check if line matches a known section header
         matched_section = None
-        # Headers are short lines (< 45 chars) and do not contain key: value content on the same line
+        # Headers are short lines (< 55 chars) and do not contain key: value content on the same line
         is_kv_line = False
         if ':' in line:
             parts = line.split(':', 1)
             if parts[1].strip():
                 is_kv_line = True
 
-        if len(line) < 45 and not is_kv_line:
-            clean_header = re.sub(r'[:_\-]+$', '', line).strip()
+        # Strip leading numbers/hashes/bullets: e.g. "1. Summary" or "## Experience" or "• Projects"
+        clean_line = re.sub(r'^(?:[0-9IVXLCDM]+\.|\(?\d+\)|[#•\-\*–—\s])+\s*', '', line).strip()
+        clean_header = re.sub(r'[:_\-]+$', '', clean_line).strip()
+
+        if len(clean_header) < 55 and not is_kv_line:
             for sec_name, pattern in SECTION_PATTERNS.items():
                 if pattern.match(clean_header):
                     matched_section = sec_name
@@ -216,7 +265,6 @@ def parse_experiences(lines: List[str]) -> Tuple[List[Dict[str, Any]], List[str]
         experiences.append(exp)
 
     for line in lines:
-        # Check if this line introduces a new role (contains a date range or bold-like title/company)
         date_match = DATE_RANGE_REGEX.search(line)
         is_bullet = line.startswith(('•', '-', '*', '–', '—', '·')) or re.match(r'^\d+\.', line)
 
@@ -245,15 +293,28 @@ def parse_experiences(lines: List[str]) -> Tuple[List[Dict[str, Any]], List[str]
                 'source_snippet': line,
             }
         elif current_exp is not None:
-            clean_bullet = re.sub(r'^[•\-\*–—·\d\.]+\s*', '', line).strip()
-            if clean_bullet:
-                current_exp['responsibilities'].append(clean_bullet)
+            # If current_exp is missing dates and this line is a date range
+            if not current_exp.get('dates') and date_match and not is_bullet:
+                current_exp['dates'] = date_match.group(0).strip()
+                rest = line.replace(current_exp['dates'], '').strip(' |–—-,')
+                if rest and not current_exp['company']:
+                    current_exp['company'] = rest
+            elif not is_bullet and not current_exp.get('company') and len(line) < 55 and not current_exp.get('responsibilities'):
+                # Line between role and bullets is likely the company name
+                current_exp['company'] = line
+            else:
+                clean_bullet = re.sub(r'^[•\-\*–—·\d\.]+\s*', '', line).strip()
+                if clean_bullet:
+                    current_exp['responsibilities'].append(clean_bullet)
         else:
-            # Orphan line before first date match; check if company/role header
+            # Header line before first bullet or date
             if not is_bullet and len(line) < 80:
+                parts = [p.strip() for p in re.split(r'\||–|—|-| at |,| @ ', line) if p.strip()]
+                role = parts[0] if parts else line
+                company = parts[1] if len(parts) > 1 else ""
                 current_exp = {
-                    'role': line,
-                    'company': '',
+                    'role': role,
+                    'company': company,
                     'dates': '',
                     'location': '',
                     'responsibilities': [],
@@ -261,7 +322,7 @@ def parse_experiences(lines: List[str]) -> Tuple[List[Dict[str, Any]], List[str]
                     'technologies': [],
                     'provenance': 'imported_from_resume',
                     'review_status': 'unconfirmed',
-                    'confidence': 'low',
+                    'confidence': 'medium' if company else 'low',
                     'source_snippet': line,
                 }
 
@@ -288,7 +349,7 @@ def parse_education(lines: List[str]) -> List[Dict[str, Any]]:
             education.append(edu)
 
     for line in lines:
-        date_match = DATE_RANGE_REGEX.search(line) or re.search(r'\b(19\d{2}|20\d{2})\b', line)
+        date_match = DATE_RANGE_REGEX.search(line) or re.search(r'\b(19\d{2}|20\d{2})\s*[-–—to]+\s*(?:Present|Current|19\d{2}|20\d{2})\b|\b(19\d{2}|20\d{2})\b', line)
         degree_match = None
         for deg_pat in DEGREE_PATTERNS:
             match = re.search(deg_pat, line, re.IGNORECASE)
@@ -301,25 +362,27 @@ def parse_education(lines: List[str]) -> List[Dict[str, Any]]:
             dates = date_match.group(0) if date_match else ''
             line_no_date = line.replace(dates, '').strip(' |–—-,') if dates else line
 
-            parts = [p.strip() for p in re.split(r'\||–|—', line_no_date) if p.strip()]
-            if len(parts) >= 2:
-                deg_part = None
-                inst_part = None
-                for p in parts:
-                    if degree_match and degree_match.lower() in p.lower():
-                        deg_part = p
-                    elif not inst_part:
-                        inst_part = p
-                degree = deg_part or parts[0]
-                institution = inst_part or (parts[1] if len(parts) > 1 else '')
-            else:
-                degree = line_no_date
-                institution = ''
+            parts = [p.strip() for p in re.split(r'\||–|—|,| at | from ', line_no_date) if p.strip()]
+            deg_part = None
+            inst_part = None
+            loc_parts = []
+            for p in parts:
+                p_lower = p.lower()
+                if not deg_part and (degree_match and degree_match.lower() in p_lower or any(re.search(pat, p, re.I) for pat in DEGREE_PATTERNS)):
+                    deg_part = p
+                elif not inst_part and any(k in p_lower for k in ['university', 'college', 'institute', 'school', 'polytechnic', 'lasustech', 'academy', 'foundation', 'hackathon']):
+                    inst_part = p
+                else:
+                    loc_parts.append(p)
+
+            degree = deg_part or (parts[0] if parts else line_no_date)
+            institution = inst_part or (parts[1] if len(parts) > 1 and parts[1] != degree else '')
+            location = ", ".join(loc_parts[:2]) if loc_parts else ''
 
             current_edu = {
                 'degree': degree,
                 'institution': institution or 'University / College',
-                'location': '',
+                'location': location,
                 'dates': dates,
                 'details': '',
                 'provenance': 'imported_from_resume',
@@ -376,7 +439,7 @@ def parse_skills(lines: List[str]) -> List[Dict[str, Any]]:
 
 
 def parse_projects(lines: List[str]) -> List[Dict[str, Any]]:
-    """Parse technical projects, links, and outcomes."""
+    """Parse technical projects, links, tech stack, and outcomes."""
     projects = []
     if not lines:
         return projects
@@ -389,19 +452,29 @@ def parse_projects(lines: List[str]) -> List[Dict[str, Any]]:
 
     for line in lines:
         is_bullet = line.startswith(('•', '-', '*', '–', '—', '·'))
-        if not is_bullet and len(line) < 70 and not line.endswith('.'):
+        if not is_bullet and len(line) < 100 and not line.endswith('.'):
             finalize_proj(current_proj)
-            # Find URLs if present
-            url_match = URL_REGEX.search(line)
-            link = url_match.group(0) if url_match else ''
-            clean_name = line.replace(link, '').strip(' |–—-,')
+            # Find URLs or repository links if present
+            url_match = URL_REGEX.search(line) or re.search(r'(?:github\.com/[^\s|]+|[a-zA-Z0-9-]+\.vercel\.app|[a-zA-Z0-9-]+\.dev)', line)
+            raw_url = url_match.group(0) if url_match else ''
+            link = raw_url
+            if link and not link.startswith('http'):
+                link = f"https://{link}"
+
+            clean_name = line.replace(raw_url, '').strip(' |–—-,')
+            parts = [p.strip() for p in clean_name.split('|') if p.strip()]
+
+            name = parts[0] if parts else "Project"
+            stack = parts[1] if len(parts) > 1 else ""
+            technologies = [t.strip() for t in stack.split(',') if t.strip()] if stack else []
 
             current_proj = {
-                'name': clean_name or "Project",
+                'name': name or "Project",
                 'role': 'Creator / Contributor',
                 'contribution': '',
                 'link': link,
-                'technologies': [],
+                'stack': stack,
+                'technologies': technologies,
                 'outcomes': '',
                 'bullets': [],
                 'provenance': 'imported_from_resume',
@@ -492,6 +565,8 @@ def validate_parsed_candidate_schema(data: Dict[str, Any]) -> Tuple[bool, List[s
 
 def parse_resume_text_deterministic(text: str) -> Dict[str, Any]:
     """Pure deterministic parsing pipeline with high accuracy and zero hallucination risk."""
+    from resumes.services.extractor import normalize_extracted_text_spacing
+    text = normalize_extracted_text_spacing(text)
     sections = segment_sections(text)
     contact = extract_contact_info(text, sections.get('header', []))
 
@@ -508,10 +583,16 @@ def parse_resume_text_deterministic(text: str) -> Dict[str, Any]:
                 summary = line
                 break
 
-    # Tagline heuristic: line following full name if short
+    # Tagline heuristic: line following full name if short and not a link/contact block
     if sections.get('header'):
         for line in sections['header'][:4]:
-            if line != contact['full_name'] and 3 <= len(line.split()) <= 7 and not EMAIL_REGEX.search(line):
+            if line == contact['full_name']:
+                continue
+            line_lower = line.lower()
+            if any(link_kw in line_lower for link_kw in ['github.com', 'linkedin.com', 'behance.net', '.vercel.app', '.app', '.com', '.dev', '.io', 'http', '@', '+', 'tel:']):
+                continue
+            words = line.split()
+            if 1 <= len(words) <= 8 and not EMAIL_REGEX.search(line):
                 tagline = line
                 break
 
@@ -540,7 +621,11 @@ def parse_resume_text_deterministic(text: str) -> Dict[str, Any]:
         'location': contact['location'],
         'tagline': tagline,
         'linkedin': contact['linkedin'],
+        'linkedin_username': contact.get('linkedin_username', ''),
         'github': contact['github'],
+        'github_username': contact.get('github_username', ''),
+        'behance': contact.get('behance', ''),
+        'behance_username': contact.get('behance_username', ''),
         'portfolio': contact['portfolio'],
         'website': contact['website'],
         'summary': summary,

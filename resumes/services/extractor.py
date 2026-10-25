@@ -115,6 +115,45 @@ def validate_file_bytes(file_bytes: bytes, filename: str) -> str:
     raise DocumentFormatError("Unsupported file type.")
 
 
+def normalize_extracted_text_spacing(text: str) -> str:
+    """Normalize whitespace and separate glued words across punctuation and date tokens."""
+    if not text:
+        return ""
+
+    # 1. Pipe without space: Role|Company -> Role | Company
+    text = re.sub(r'([a-zA-Z0-9])\|([a-zA-Z0-9])', r'\1 | \2', text)
+
+    # 2. Ampersand without space: Freelance&Contract -> Freelance & Contract
+    text = re.sub(r'([a-zA-Z0-9])&([a-zA-Z0-9])', r'\1 & \2', text)
+
+    # 3. Comma without space: Science,Lagos -> Science, Lagos
+    text = re.sub(r'([a-zA-Z0-9\)])\,([a-zA-Z0-9])', r'\1, \2', text)
+
+    # 4. Month immediately followed by year: Jul2025 -> Jul 2025
+    text = re.sub(
+        r'(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)(20\d\d|19\d\d)',
+        r'\1 \2',
+        text,
+        flags=re.IGNORECASE
+    )
+
+    # 5. Year immediately followed by dash or en-dash: 2025–Sep -> 2025 – Sep
+    text = re.sub(r'(\d{4})[–—\-]([A-Za-z0-9])', r'\1 – \2', text)
+
+    # 6. Dash immediately followed by month or Present: –Sep2025 -> – Sep 2025
+    text = re.sub(
+        r'[–—\-](Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?|Present|Current)',
+        r' – \1',
+        text,
+        flags=re.IGNORECASE
+    )
+
+    # 7. Colon without space (excluding http/https): Stack:Python -> Stack: Python
+    text = re.sub(r'(?<!https)(?<!http):([A-Za-z0-9])', r': \1', text)
+
+    return text.strip()
+
+
 def extract_text_from_pdf(file_bytes: bytes) -> Tuple[str, Dict[str, Any]]:
     """Extract selectable text from PDF using pypdf.
 
@@ -135,9 +174,22 @@ def extract_text_from_pdf(file_bytes: bytes) -> Tuple[str, Dict[str, Any]]:
 
     for idx, page in enumerate(reader.pages):
         try:
-            text = page.extract_text() or ""
-            # Normalize whitespace while preserving paragraphs
-            clean_page = text.strip()
+            # In pypdf, layout extraction preserves character positions & spacing between words
+            layout_text = ""
+            try:
+                layout_text = page.extract_text(extraction_mode="layout") or ""
+            except Exception:
+                layout_text = ""
+
+            plain_text = ""
+            try:
+                plain_text = page.extract_text() or ""
+            except Exception:
+                plain_text = ""
+
+            # Pick layout mode if it extracted rich structured text, else fallback to plain
+            chosen = layout_text if (len(layout_text.split()) >= len(plain_text.split()) and len(layout_text.strip()) > 20) else plain_text
+            clean_page = normalize_extracted_text_spacing(chosen)
             pages_text.append(clean_page)
             total_chars += len(clean_page)
         except Exception as e:
@@ -184,14 +236,14 @@ def extract_text_from_docx(file_bytes: bytes) -> Tuple[str, Dict[str, Any]]:
     parts = []
     # 1. Paragraphs
     for p in doc.paragraphs:
-        txt = p.text.strip()
+        txt = normalize_extracted_text_spacing(p.text)
         if txt:
             parts.append(txt)
 
     # 2. Tables (frequently used for resume columns, contact headers, or skill grids)
     for table in doc.tables:
         for row in table.rows:
-            row_cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+            row_cells = [normalize_extracted_text_spacing(cell.text) for cell in row.cells if cell.text.strip()]
             if row_cells:
                 # Deduplicate identical adjacent cells caused by merged table cells
                 deduped = []
