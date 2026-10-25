@@ -19,6 +19,7 @@ yarn-error.log
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # Other
 .DS_Store
