@@ -51,6 +51,9 @@ def sanitize_untrusted_job_text(text: str, max_chars: int = 15000) -> str:
     # Strip null bytes and non-printable control characters
     cleaned = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', cleaned)
 
+    # Strip dangerous XML/instruction tags attempting to escape delimiter blocks
+    cleaned = re.sub(r'</?(?:JOB_DESCRIPTION|SYSTEM_OVERRIDE|SYSTEM|PROMPT|INSTRUCTION)[^>]*>', '[filtered_tag]', cleaned, flags=re.IGNORECASE)
+
     # Defang common injection phrases by wrapping in neutralization markers
     for pattern in PROMPT_INJECTION_PATTERNS:
         cleaned = pattern.sub('[filtered_untrusted_directive]', cleaned)

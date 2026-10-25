@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from django.test import TestCase, Client
 from django.urls import reverse
+from .test_adversarial import *
+from .test_performance import *
 
 
 class CoreViewTests(TestCase):
