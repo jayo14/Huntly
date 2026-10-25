@@ -241,7 +241,7 @@ def resume_download(request, pk):
             response['Content-Disposition'] = f'attachment; filename="Huntly_Resume_{clean_name}{company_suffix}.docx"'
             return response
     except Exception as e:
-        messages.error(request, f"Document generation failed: {e}")
+        messages.error(request, f"Failed to generate resume document. {e}")
         return redirect('resumes:resume-list')
 
 
