@@ -26,18 +26,18 @@
     <div class="mb-12">
         <div class="flex items-center justify-between mb-4">
             <template x-for="i in 9" :key="i">
-                <div class="flex flex-col items-center flex-1">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border-2"
+                <div class="flex flex-col items-center flex-1 cursor-pointer group select-none" @click="goToStep(i)" :title="'Go to ' + stepTitleShort(i)">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border-2 group-hover:scale-105"
                          :class="{
                             'bg-ink border-ink text-white ring-4 ring-pink/30': step === i,
                             'bg-lime border-ink text-ink font-bold': step > i,
-                            'bg-card border-line text-mut': step < i
+                            'bg-card border-line text-mut hover:border-ink': step < i
                          }">
                         <template x-if="step > i"><span class="ms text-base font-bold">check</span></template>
                         <template x-if="step <= i"><span class="text-sm font-bold font-display" x-text="i"></span></template>
                     </div>
-                    <span class="mt-2 text-[10px] font-bold uppercase tracking-wider hidden md:block"
-                          :class="step === i ? 'text-pink font-extrabold' : 'text-mut'"
+                    <span class="mt-2 text-[10px] font-bold uppercase tracking-wider hidden md:block transition-colors"
+                          :class="step === i ? 'text-pink font-extrabold' : 'text-mut group-hover:text-ink'"
                           x-text="stepTitleShort(i)"></span>
                 </div>
             </template>
@@ -49,17 +49,42 @@
 
     <div class="bg-card rounded-[32px] shadow-[4px_6px_0_#102a1f] border-2 border-ink overflow-hidden transition-all duration-300">
         <!-- Form Content -->
-        <form @submit.prevent="submitForm" enctype="multipart/form-data" class="divide-y-2 divide-line">
+        <form @submit.prevent="submitForm" @input="onFormInput" @change="onFormInput" enctype="multipart/form-data" class="divide-y-2 divide-line">
             {% csrf_token %}
 
-            <div class="px-8 py-6 bg-[#f4f8f1] border-b-2 border-ink flex items-center justify-between">
+            <div class="px-8 py-6 bg-[#f4f8f1] border-b-2 border-ink flex items-center justify-between flex-wrap gap-4">
                 <div>
                     <h2 class="text-2xl font-display font-bold text-ink tracking-tight" x-text="stepTitle()"></h2>
                     <p class="text-sm text-mut font-semibold" x-text="stepDescription()"></p>
                 </div>
-                <div class="hidden sm:flex items-center space-x-2 text-ink bg-card px-3.5 py-1.5 rounded-full border border-ink shadow-sm">
-                   <span class="ms text-base">info</span>
-                   <span class="text-[11px] font-bold uppercase tracking-wider">Step <span x-text="step"></span> of 9</span>
+                <div class="flex items-center gap-3">
+                    <!-- Real-time Auto-Save Status Indicator -->
+                    <template x-if="saveStatus === 'saving'">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300 shadow-sm animate-pulse">
+                            <svg class="animate-spin h-3 w-3 text-amber-600" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                            <span>Saving draft...</span>
+                        </span>
+                    </template>
+                    <template x-if="saveStatus === 'saved'">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-sm">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span x-text="'Saved ' + lastSavedTime"></span>
+                        </span>
+                    </template>
+                    <template x-if="saveStatus === 'error'">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-800 border border-rose-300 shadow-sm cursor-pointer" @click="saveDraft()">
+                            <span class="ms text-xs text-rose-600">sync_problem</span>
+                            <span>Unsaved (click to retry)</span>
+                        </span>
+                    </template>
+
+                    <div class="hidden sm:flex items-center space-x-2 text-ink bg-card px-3.5 py-1.5 rounded-full border border-ink shadow-sm">
+                       <span class="ms text-base">info</span>
+                       <span class="text-[11px] font-bold uppercase tracking-wider">Step <span x-text="step"></span> of 9</span>
+                    </div>
                 </div>
             </div>
 
@@ -344,14 +369,14 @@
 
             <!-- Footer Buttons -->
             <div class="bg-[#f4f8f1] px-8 py-6 border-t-2 border-ink flex justify-between items-center">
-                <button type="button" x-show="step > 1" @click="step--" class="btn o text-xs py-2 px-5">
+                <button type="button" x-show="step > 1" @click="prevStep()" class="btn o text-xs py-2 px-5">
                     <span class="ms text-sm mr-1">arrow_back</span>
                     Back
                 </button>
                 <div x-show="step === 1"></div> <!-- Spacer -->
 
                 <div class="flex items-center space-x-4">
-                    <button type="button" x-show="step < 9" @click="step++" class="btn text-xs py-2.5 px-6">
+                    <button type="button" x-show="step < 9" @click="nextStep()" class="btn text-xs py-2.5 px-6">
                         <span>Next</span>
                         <span class="ms text-sm">arrow_forward</span>
                     </button>
@@ -398,6 +423,12 @@ function resumeForm() {
         step: 1,
         progress: 11,
         isSubmitting: false,
+        isSavingDraft: false,
+        saveStatus: 'idle', // 'idle' | 'saving' | 'saved' | 'error'
+        lastSavedTime: '',
+        autoSaveTimer: null,
+        hasUnsavedChanges: false,
+        autosaveUrl: '{% url "resumes:resume-autosave" %}',
         photoPreview: null,
         colors: [
             { name: 'Indigo', hex: '#4F46E5' },
@@ -474,33 +505,175 @@ function resumeForm() {
             return descriptions[this.step];
         },
         init() {
+            this.syncBullets();
             this.$watch('step', value => {
                 this.progress = Math.round((value / 9) * 100);
             });
             if (this.formData.passport_photo_url) {
                 this.photoPreview = this.formData.passport_photo_url;
             }
+            // Deep watch formData for auto-saving on any user edit
+            this.$watch('formData', () => {
+                this.onFormInput();
+            });
+            // Warn if user attempts to leave while draft save is in flight
+            window.addEventListener('beforeunload', (e) => {
+                if (this.hasUnsavedChanges || this.saveStatus === 'saving') {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
         },
-        addSkill() { this.formData.technical_skills.push({category: '', skills: ''}); },
-        removeSkill(index) { this.formData.technical_skills.splice(index, 1); },
 
-        addExperience() { this.formData.experiences.push({role: '', company: '', dates: '', bulletsText: '', bullets: []}); },
-        removeExperience(index) { this.formData.experiences.splice(index, 1); },
+        onFormInput() {
+            this.hasUnsavedChanges = true;
+            this.triggerDebouncedAutoSave();
+        },
+
+        triggerDebouncedAutoSave() {
+            if (this.autoSaveTimer) {
+                clearTimeout(this.autoSaveTimer);
+            }
+            this.autoSaveTimer = setTimeout(() => {
+                this.saveDraft();
+            }, 1000);
+        },
+
+        syncBullets() {
+            if (Array.isArray(this.formData.experiences)) {
+                this.formData.experiences.forEach(e => {
+                    if (typeof e.bulletsText === 'string') {
+                        e.bullets = e.bulletsText.split('\n').map(b => b.trim()).filter(Boolean);
+                    } else if (Array.isArray(e.bullets) && !e.bulletsText) {
+                        e.bulletsText = e.bullets.join('\n');
+                    }
+                });
+            }
+            if (Array.isArray(this.formData.projects)) {
+                this.formData.projects.forEach(p => {
+                    if (typeof p.bulletsText === 'string') {
+                        p.bullets = p.bulletsText.split('\n').map(b => b.trim()).filter(Boolean);
+                    } else if (Array.isArray(p.bullets) && !p.bulletsText) {
+                        p.bulletsText = p.bullets.join('\n');
+                    }
+                });
+            }
+        },
+
+        async saveDraft() {
+            if (this.autoSaveTimer) {
+                clearTimeout(this.autoSaveTimer);
+                this.autoSaveTimer = null;
+            }
+            if (this.isSavingDraft) return;
+            this.isSavingDraft = true;
+            this.saveStatus = 'saving';
+
+            try {
+                this.syncBullets();
+
+                // Build a clean, serializable payload (omitting File objects)
+                const cleanData = JSON.parse(JSON.stringify(this.formData));
+                delete cleanData.passport_photo;
+
+                const csrfEl = document.querySelector('[name=csrfmiddlewaretoken]');
+                const csrfToken = csrfEl ? csrfEl.value : '';
+
+                const response = await fetch(this.autosaveUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        data: cleanData,
+                        resume_id: this.formData.id || null
+                    })
+                });
+
+                if (response.ok) {
+                    const res = await response.json();
+                    if (res.status === 'saved') {
+                        this.saveStatus = 'saved';
+                        this.lastSavedTime = res.updated_at || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        this.hasUnsavedChanges = false;
+
+                        // On new profile creation, record id and update URL seamlessly
+                        if (res.resume_id && !this.formData.id) {
+                            this.formData.id = res.resume_id;
+                            const path = window.location.pathname;
+                            if (path.includes('/create/')) {
+                                const newUrl = path.replace('/create/', `/${res.resume_id}/update/`);
+                                window.history.replaceState({ id: res.resume_id }, '', newUrl);
+                            }
+                        }
+                    } else {
+                        this.saveStatus = 'error';
+                    }
+                } else {
+                    this.saveStatus = 'error';
+                }
+            } catch (err) {
+                console.error('Auto-save error:', err);
+                this.saveStatus = 'error';
+            } finally {
+                this.isSavingDraft = false;
+            }
+        },
+
+        async goToStep(targetStep) {
+            if (targetStep === this.step || targetStep < 1 || targetStep > 9) return;
+            if (this.hasUnsavedChanges || this.autoSaveTimer) {
+                await this.saveDraft();
+            }
+            this.step = targetStep;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+
+        async nextStep() {
+            if (this.step < 9) {
+                await this.saveDraft();
+                this.step++;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        },
+
+        async prevStep() {
+            if (this.step > 1) {
+                await this.saveDraft();
+                this.step--;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        },
+
+        addSkill() { this.formData.technical_skills.push({category: '', skills: ''}); this.onFormInput(); },
+        removeSkill(index) { this.formData.technical_skills.splice(index, 1); this.onFormInput(); },
+
+        addExperience() { this.formData.experiences.push({role: '', company: '', dates: '', bulletsText: '', bullets: []}); this.onFormInput(); },
+        removeExperience(index) { this.formData.experiences.splice(index, 1); this.onFormInput(); },
         updateExpBullets(index) {
-            this.formData.experiences[index].bullets = this.formData.experiences[index].bulletsText.split('\n').filter(b => b.trim() !== '');
+            const exp = this.formData.experiences[index];
+            if (exp && typeof exp.bulletsText === 'string') {
+                exp.bullets = exp.bulletsText.split('\n').map(b => b.trim()).filter(Boolean);
+            }
+            this.onFormInput();
         },
 
-        addProject() { this.formData.projects.push({name: '', link: '', stack: '', bulletsText: '', bullets: []}); },
-        removeProject(index) { this.formData.projects.splice(index, 1); },
+        addProject() { this.formData.projects.push({name: '', link: '', stack: '', bulletsText: '', bullets: []}); this.onFormInput(); },
+        removeProject(index) { this.formData.projects.splice(index, 1); this.onFormInput(); },
         updateProjBullets(index) {
-            this.formData.projects[index].bullets = this.formData.projects[index].bulletsText.split('\n').filter(b => b.trim() !== '');
+            const proj = this.formData.projects[index];
+            if (proj && typeof proj.bulletsText === 'string') {
+                proj.bullets = proj.bulletsText.split('\n').map(b => b.trim()).filter(Boolean);
+            }
+            this.onFormInput();
         },
 
-        addCertification() { this.formData.certifications.push({name: '', issuer: '', date: ''}); },
-        removeCertification(index) { this.formData.certifications.splice(index, 1); },
+        addCertification() { this.formData.certifications.push({name: '', issuer: '', date: ''}); this.onFormInput(); },
+        removeCertification(index) { this.formData.certifications.splice(index, 1); this.onFormInput(); },
 
-        addEducation() { this.formData.education.push({degree: '', institution: '', location: '', dates: ''}); },
-        removeEducation(index) { this.formData.education.splice(index, 1); },
+        addEducation() { this.formData.education.push({degree: '', institution: '', location: '', dates: ''}); this.onFormInput(); },
+        removeEducation(index) { this.formData.education.splice(index, 1); this.onFormInput(); },
 
         handlePhotoUpload(e) {
             const file = e.target.files[0];
@@ -511,20 +684,11 @@ function resumeForm() {
                     this.photoPreview = e.target.result;
                 };
                 reader.readAsDataURL(file);
+                this.onFormInput();
             }
         },
 
         async openLargePreview() {
-            // Since the resume isn't saved yet, we use a trick:
-            // We'll use a hidden iframe or just render the data in a modal client-side
-            // For now, let's trigger a specialized "preview" request or show a detailed Alpine component
-            // To keep it simple and consistent with requirement "opens in a dialog - yes, same dialog"
-            // we will temporarily save it or just use Alpine to show a full-size version.
-
-            // Actually, the requirement says "add preview resume, where the resume is shown in a component to preview it."
-            // AND "add an eye icon button to the Resume table to preview the resume in a dialog"
-            // To make it reusable, let's create an Alpine component for the preview.
-
             window.dispatchEvent(new CustomEvent('open-preview', { detail: this.formData }));
         },
 
@@ -532,32 +696,42 @@ function resumeForm() {
             if (this.isSubmitting) return;
             this.isSubmitting = true;
             try {
+                this.syncBullets();
+                await this.saveDraft();
+
                 const formPayload = new FormData();
                 formPayload.append('data', JSON.stringify(this.formData));
                 if (this.formData.passport_photo instanceof File) {
                     formPayload.append('passport_photo', this.formData.passport_photo);
                 }
 
-                const response = await fetch('', {
+                const postUrl = this.formData.id ? `/resumes/${this.formData.id}/update/` : window.location.pathname;
+                const csrfEl = document.querySelector('[name=csrfmiddlewaretoken]');
+                const csrfToken = csrfEl ? csrfEl.value : '';
+
+                const response = await fetch(postUrl, {
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        'X-CSRFToken': csrfToken
                     },
                     body: formPayload
                 });
 
                 if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = this.formData.full_name.replace(/ /g, '_') + "--_by_Huntly.docx";
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/vnd.openxmlformats-officedocument') || contentType.includes('application/octet-stream')) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = (this.formData.full_name || 'Resume').replace(/ /g, '_') + "--_by_Huntly.docx";
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                    }
                     window.location.href = '{% url "resumes:resume-list" %}';
                 } else {
-                    alert('Failed to save resume');
+                    alert('Failed to save resume. Please check your information and try again.');
                 }
             } catch (err) {
                 console.error(err);

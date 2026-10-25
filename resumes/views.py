@@ -39,10 +39,18 @@ def save_resume_data(resume, data, files, user=None):
     if user is not None:
         resume.user = user
 
-    resume.full_name = data.get('full_name', '')
+    full_name = data.get('full_name', '').strip()
+    if not full_name and user is not None:
+        full_name = getattr(user, 'get_full_name', lambda: '')() or user.username
+    resume.full_name = full_name or 'Candidate'
+
+    email = data.get('email', '').strip()
+    if not email and user is not None:
+        email = getattr(user, 'email', '') or f"{user.username}@huntly.app"
+    resume.email = email or 'candidate@huntly.app'
+
     resume.tagline = data.get('tagline', '')
     resume.location = data.get('location', '')
-    resume.email = data.get('email', '')
     resume.phone = data.get('phone', '')
     resume.linkedin = data.get('linkedin', '')
     resume.github = data.get('github', '')
@@ -50,13 +58,35 @@ def save_resume_data(resume, data, files, user=None):
     resume.website = data.get('website', '')
     resume.summary = data.get('summary', '')
 
+    # Synchronize bullet lists and accomplishments
+    exps = data.get('experiences', [])
+    if isinstance(exps, list):
+        for exp in exps:
+            if isinstance(exp, dict):
+                bullets = exp.get('bullets') or exp.get('accomplishments') or []
+                if isinstance(bullets, str):
+                    bullets = [b.strip() for b in bullets.split('\n') if b.strip()]
+                exp['bullets'] = bullets
+                exp['accomplishments'] = bullets
+
+    projs = data.get('projects', [])
+    if isinstance(projs, list):
+        for proj in projs:
+            if isinstance(proj, dict):
+                bullets = proj.get('bullets') or []
+                if isinstance(bullets, str):
+                    bullets = [b.strip() for b in bullets.split('\n') if b.strip()]
+                proj['bullets'] = bullets
+
     resume.target_roles = data.get('target_roles', [])
     resume.work_preferences = data.get('work_preferences', {})
     resume.technical_skills = data.get('technical_skills', [])
-    resume.experiences = data.get('experiences', [])
-    resume.projects = data.get('projects', [])
+    resume.experiences = exps
+    resume.projects = projs
     resume.certifications = data.get('certifications', [])
     resume.education = data.get('education', [])
+    resume.languages = data.get('languages', getattr(resume, 'languages', []))
+    resume.awards = data.get('awards', getattr(resume, 'awards', []))
     resume.include_branding = data.get('include_branding', False)
     resume.accent_color = data.get('accent_color', '#102a1f')
 
@@ -73,6 +103,39 @@ def save_resume_data(resume, data, files, user=None):
         resume.consolidate_as_master()
 
     return resume
+
+
+@login_required
+@require_POST
+def resume_autosave(request):
+    """Asynchronously auto-save Master Career Profile draft changes in real time.
+
+    Accepts JSON payload with form state and optional resume_id.
+    Returns status, updated timestamp, completeness score, and assigned resume_id.
+    """
+    try:
+        payload = json.loads(request.body)
+    except Exception:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON payload'}, status=400)
+
+    data = payload.get('data', payload)
+    resume_id = data.get('id') or payload.get('resume_id')
+
+    if resume_id:
+        resume = get_object_or_404(Resume, pk=resume_id, user=request.user)
+    else:
+        resume = Resume(user=request.user)
+
+    resume = save_resume_data(resume, data, files={}, user=request.user)
+    assessment = resume.get_completion_assessment()
+
+    return JsonResponse({
+        'status': 'saved',
+        'resume_id': resume.id,
+        'updated_at': resume.updated_at.strftime('%H:%M:%S'),
+        'score': assessment['score'],
+        'is_complete': assessment['is_complete'],
+    })
 
 
 @login_required

@@ -314,3 +314,93 @@ class MasterCareerProfileWorkflowTests(TestCase):
         res_hist = other_client.get(reverse('resumes:document-history', args=[self.job.pk]))
         self.assertEqual(res_hist.status_code, 404)
 
+    def test_resume_autosave_creates_draft_with_defaults(self):
+        payload = {
+            'data': {
+                'tagline': 'Lead Cloud Architect',
+                'location': 'San Francisco, CA',
+                'summary': 'Architecting distributed resilience.',
+            }
+        }
+        response = self.client.post(
+            reverse('resumes:resume-autosave'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'saved')
+        self.assertIn('resume_id', data)
+        self.assertIn('score', data)
+        self.assertIn('updated_at', data)
+
+        resume = Resume.objects.get(pk=data['resume_id'])
+        self.assertEqual(resume.user, self.user)
+        self.assertEqual(resume.tagline, 'Lead Cloud Architect')
+        self.assertEqual(resume.full_name, self.user.username)  # Default fallback to username when full name is empty
+        self.assertTrue(resume.is_master)
+
+    def test_resume_autosave_updates_existing_draft(self):
+        resume = Resume.objects.create(
+            user=self.user,
+            full_name='Initial Name',
+            email='initial@test.com',
+            is_master=True
+        )
+        payload = {
+            'data': {
+                'id': resume.id,
+                'full_name': 'Updated Name',
+                'tagline': 'Staff Engineer',
+                'experiences': [
+                    {
+                        'role': 'Senior Backend Dev',
+                        'company': 'Stripe',
+                        'dates': '2022 - Present',
+                        'bullets': ['Engineered payments gateway', 'Decreased latency by 35%']
+                    }
+                ],
+                'technical_skills': [{'category': 'Core', 'skills': 'Python, PostgreSQL'}]
+            }
+        }
+        response = self.client.post(
+            reverse('resumes:resume-autosave'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'saved')
+        self.assertEqual(data['resume_id'], resume.id)
+
+        resume.refresh_from_db()
+        self.assertEqual(resume.full_name, 'Updated Name')
+        self.assertEqual(resume.tagline, 'Staff Engineer')
+        self.assertEqual(len(resume.experiences), 1)
+        self.assertEqual(resume.experiences[0]['accomplishments'], ['Engineered payments gateway', 'Decreased latency by 35%'])
+        self.assertGreater(data['score'], 0)
+
+    def test_resume_autosave_ownership_defense(self):
+        other_user = User.objects.create_user(username='victim', password='password123')
+        other_resume = Resume.objects.create(
+            user=other_user,
+            full_name='Victim Candidate',
+            email='victim@test.com'
+        )
+
+        # Attacker tries to overwrite other_user's resume via autosave
+        payload = {
+            'data': {
+                'id': other_resume.id,
+                'full_name': 'Malicious Overwrite'
+            }
+        }
+        response = self.client.post(
+            reverse('resumes:resume-autosave'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 404)
+        other_resume.refresh_from_db()
+        self.assertEqual(other_resume.full_name, 'Victim Candidate')
+

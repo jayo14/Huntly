@@ -6,6 +6,7 @@ app_name = 'resumes'
 urlpatterns = [
     path('', views.resume_list, name='resume-list'),
     path('create/', views.resume_create, name='resume-create'),
+    path('autosave/', views.resume_autosave, name='resume-autosave'),
     path('import/', views.resume_import_upload, name='resume-import'),
     path('import/<int:import_id>/review/', views.resume_import_review, name='resume-import-review'),
     path('import/<int:import_id>/confirm/', views.resume_import_confirm, name='resume-import-confirm'),
