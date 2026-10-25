@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib.messages import get_messages
 from .models import Resume
 from leads.models import JobApplication
+from billing.models import Subscription
 from .docx_generator import generate_docx, DocxGenerationError
 
 
@@ -178,6 +179,7 @@ class MasterCareerProfileWorkflowTests(TestCase):
         self.user = User.objects.create_user(username='careerexpert', password='password123')
         self.client = Client()
         self.client.login(username='careerexpert', password='password123')
+        Subscription.objects.create(user=self.user, plan_id='job_sprint', status='active')
         self.job = JobApplication.objects.create(
             user=self.user,
             company_name='Acme Cloud',

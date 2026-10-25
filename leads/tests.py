@@ -4,6 +4,7 @@ from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 from unittest.mock import patch
+from billing.models import Subscription
 from .models import JobApplication, Message, AppSetting
 from resumes.models import Resume
 
@@ -130,8 +131,10 @@ class TailoringAndOutreachTests(TestCase):
             user=self.user,
             full_name="Jane Developer",
             tagline="Lead Software Engineer",
-            summary="10 years building distributed Python and Django backends."
+            summary="10 years building distributed Python and Django backends with AWS, Docker, and Kubernetes microservices.",
+            technical_skills=[{"name": "Python, Django, AWS, Docker, Kubernetes, Microservices", "category": "Languages & Cloud"}]
         )
+        Subscription.objects.create(user=self.user, plan_id='job_sprint', status='active')
         self.job = JobApplication.objects.create(
             user=self.user,
             company_name="Netflix",
@@ -154,10 +157,16 @@ class TailoringAndOutreachTests(TestCase):
         self.assertGreater(self.job.score, 50)
 
     def test_send_pitch_email(self):
-        response = self.client.post(reverse('leads:send-message', args=[self.job.pk]), {
-            'subject': 'Jane Developer - Application for Senior Backend Engineer',
-            'body': 'Hi, I saw your open role at Netflix. I have 10 years of Python experience.'
-        })
+        response = self.client.post(
+            reverse('leads:send-message', args=[self.job.pk]),
+            {
+                'subject': 'Jane Developer - Application for Senior Backend Engineer',
+                'body': 'Hi, I saw your open role at Netflix. I have 10 years of Python experience.',
+                'recipient_email': 'hiring@netflix.com',
+                'confirm_send': '1',
+            },
+            HTTP_HX_REQUEST='true',
+        )
         self.assertEqual(response.status_code, 204)
         self.job.refresh_from_db()
         self.assertEqual(self.job.status, 'applied')
@@ -452,6 +461,7 @@ class RecruiterOutreachWorkflowTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='applicant', password='password123')
         self.other_user = User.objects.create_user(username='rival', password='password123')
+        Subscription.objects.create(user=self.user, plan_id='job_sprint', status='active')
         self.job = JobApplication.objects.create(
             user=self.user,
             company_name='Stripe',

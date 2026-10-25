@@ -284,9 +284,8 @@ def send_approved_outreach(
         job = message.job_application
         if job.status == 'saved':
             job.transition_to_status('applied', notes=f"Outreach pitch sent to {recipient}")
-        else:
-            job.last_contacted = now
-            job.save(update_fields=['last_contacted', 'updated_at'])
+        job.last_contacted = now
+        job.save(update_fields=['last_contacted', 'updated_at'])
 
         # Record activity
         job.record_activity(

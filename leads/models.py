@@ -33,6 +33,7 @@ class JobApplication(models.Model):
             ('authorized_source', 'Direct Job Listing / Official Source'),
         ],
         default='unverified',
+        blank=True,
         db_index=True
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='saved', db_index=True)
@@ -201,7 +202,7 @@ class AppSetting(models.Model):
     ]
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='app_settings')
-    provider_type = models.CharField(max_length=50, choices=PROVIDER_CHOICES, default='smtp')
+    provider_type = models.CharField(max_length=50, choices=PROVIDER_CHOICES, default='smtp', blank=True)
     sender_name = models.CharField(max_length=150, blank=True)
     smtp_host = models.CharField(max_length=255, default='smtp.gmail.com')
     smtp_port = models.IntegerField(default=587)
