@@ -6,7 +6,7 @@
   "scripts": {
     "build": "bash ./build.sh",
     "migrate": "python3 manage.py migrate --noinput",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo '{\"full_name\":\"Test Candidate\",\"email\":\"test@example.com\"}' | node scripts/resume_generator.js > /dev/null && echo 'JavaScript resume generator test passed.'"
   },
   "repository": {
     "type": "git",
