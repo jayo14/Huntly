@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
+from unittest.mock import patch
 from .models import JobApplication, Message, AppSetting
 from resumes.models import Resume
 
@@ -445,5 +446,215 @@ class PipelineWorkflowTests(TestCase):
         self.assertEqual(res_populated.context['interviewing_count'], 1)
         self.assertEqual(res_populated.context['offer_count'], 1)
         self.assertEqual(res_populated.context['callback_rate'], 66.7)
+
+
+class RecruiterOutreachWorkflowTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='applicant', password='password123')
+        self.other_user = User.objects.create_user(username='rival', password='password123')
+        self.job = JobApplication.objects.create(
+            user=self.user,
+            company_name='Stripe',
+            role_title='Staff Infrastructure Engineer',
+            contact_name='Sarah Jenkins',
+            contact_role='Engineering Talent Lead',
+            contact_email='sarah.jenkins@stripe.com',
+            status='saved'
+        )
+        self.other_job = JobApplication.objects.create(
+            user=self.other_user,
+            company_name='Vercel',
+            role_title='Frontend Specialist',
+            contact_email='recruiter@vercel.com',
+            status='saved'
+        )
+        self.client.force_login(self.user)
+        mail.outbox.clear()
+
+    def test_save_pitch_draft_does_not_send_email(self):
+        response = self.client.post(reverse('leads:send-message', args=[self.job.pk]), {
+            'subject': 'Application: Staff Infrastructure Engineer - John Doe',
+            'body': 'Dear Sarah Jenkins, I would love to connect about infrastructure at Stripe.',
+            'recipient_email': 'sarah.jenkins@stripe.com',
+            'is_draft': '1',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 0)
+
+        message = Message.objects.get(job_application=self.job)
+        self.assertEqual(message.status, 'draft')
+        self.assertEqual(message.user, self.user)
+        self.assertIsNone(message.sent_at)
+        self.assertEqual(self.job.status, 'saved')
+
+    def test_send_without_explicit_confirmation_rejected(self):
+        response = self.client.post(reverse('leads:send-message', args=[self.job.pk]), {
+            'subject': 'Application: Staff Infrastructure Engineer',
+            'body': 'Pitch body content here.',
+            'recipient_email': 'sarah.jenkins@stripe.com',
+            # confirm_send is omitted
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Explicit user confirmation is required", response.content.decode())
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_send_with_placeholder_or_invalid_email_rejected(self):
+        response = self.client.post(reverse('leads:send-message', args=[self.job.pk]), {
+            'subject': 'Application: Staff Infrastructure Engineer',
+            'body': 'Pitch body content here.',
+            'recipient_email': 'recruiter@example.com',
+            'confirm_send': '1',
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("placeholder", response.content.decode().lower())
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_send_approved_outreach_success_and_state_tracking(self):
+        response = self.client.post(reverse('leads:send-message', args=[self.job.pk]), {
+            'subject': 'Application: Staff Infrastructure Engineer - Candidate',
+            'body': 'Dear Sarah Jenkins, I would welcome a conversation regarding Stripe infrastructure.',
+            'recipient_email': 'sarah.jenkins@stripe.com',
+            'confirm_send': '1',
+            'schedule_follow_up': '2026-11-01',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+
+        sent_mail = mail.outbox[0]
+        self.assertIn('sarah.jenkins@stripe.com', sent_mail.to)
+        self.assertEqual(sent_mail.subject, 'Application: Staff Infrastructure Engineer - Candidate')
+
+        message = Message.objects.get(job_application=self.job)
+        self.assertEqual(message.status, 'accepted_by_provider')
+        self.assertIsNotNone(message.sent_at)
+        self.assertEqual(message.recipient_email, 'sarah.jenkins@stripe.com')
+
+        # Application state transitioned to applied
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.status, 'applied')
+        self.assertIsNotNone(self.job.applied_at)
+        self.assertIsNotNone(self.job.next_follow_up)
+
+        # Timeline activity recorded
+        email_activity = self.job.activities.filter(activity_type='email_sent').first()
+        self.assertIsNotNone(email_activity)
+        self.assertIn('Accepted by provider', email_activity.description)
+
+    def test_quota_exceeded_blocks_send(self):
+        # Set daily limit to 1
+        AppSetting.objects.create(user=self.user, daily_send_limit=1)
+
+        # Send 1 message
+        self.client.post(reverse('leads:send-message', args=[self.job.pk]), {
+            'subject': 'First Application',
+            'body': 'First outreach pitch.',
+            'recipient_email': 'recruiter1@stripe.com',
+            'confirm_send': '1',
+        })
+        self.assertEqual(len(mail.outbox), 1)
+
+        # Create another job to attempt second send
+        second_job = JobApplication.objects.create(
+            user=self.user,
+            company_name='OpenAI',
+            role_title='AI Engineer',
+            contact_email='recruiter@openai.com',
+            status='saved'
+        )
+
+        response = self.client.post(reverse('leads:send-message', args=[second_job.pk]), {
+            'subject': 'Second Application',
+            'body': 'Second outreach pitch.',
+            'recipient_email': 'recruiter@openai.com',
+            'confirm_send': '1',
+        })
+        self.assertEqual(response.status_code, 429)
+        self.assertIn("Daily outreach quota reached", response.content.decode())
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_duplicate_send_protection(self):
+        # Send first message
+        self.client.post(reverse('leads:send-message', args=[self.job.pk]), {
+            'subject': 'Identical Pitch',
+            'body': 'Same body message.',
+            'recipient_email': 'sarah.jenkins@stripe.com',
+            'confirm_send': '1',
+        })
+        self.assertEqual(len(mail.outbox), 1)
+
+        # Attempt sending identical message immediately
+        response = self.client.post(reverse('leads:send-message', args=[self.job.pk]), {
+            'subject': 'Identical Pitch',
+            'body': 'Same body message.',
+            'recipient_email': 'sarah.jenkins@stripe.com',
+            'confirm_send': '1',
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("identical message was already sent", response.content.decode())
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_user_cannot_send_outreach_for_other_users_job(self):
+        response = self.client.post(reverse('leads:send-message', args=[self.other_job.pk]), {
+            'subject': 'Infiltrate other job',
+            'body': 'Hacked message.',
+            'recipient_email': 'target@company.com',
+            'confirm_send': '1',
+        })
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_record_recruiter_reply_and_notes(self):
+        message = Message.objects.create(
+            user=self.user,
+            job_application=self.job,
+            recipient_email='sarah.jenkins@stripe.com',
+            subject='Initial Outreach',
+            body='Pitch body',
+            status='accepted_by_provider'
+        )
+
+        response = self.client.post(reverse('leads:message-reply', args=[message.pk]), {
+            'reply_notes': 'Invited for recruiter screen next Monday at 2pm.'
+        })
+        self.assertEqual(response.status_code, 302)
+
+        message.refresh_from_db()
+        self.assertTrue(message.is_reply)
+        self.assertIsNotNone(message.reply_received_at)
+        self.assertIn('recruiter screen', message.reply_notes)
+
+        # Status promoted to interviewing
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.status, 'interviewing')
+
+    def test_cancel_reminder_or_draft(self):
+        message = Message.objects.create(
+            user=self.user,
+            job_application=self.job,
+            subject='Pending Draft',
+            body='Draft body',
+            status='draft'
+        )
+        response = self.client.post(reverse('leads:message-cancel', args=[message.pk]))
+        self.assertEqual(response.status_code, 302)
+        message.refresh_from_db()
+        self.assertEqual(message.status, 'cancelled')
+
+    @patch('leads.services.outreach_service.EmailMessage.send')
+    def test_provider_failure_records_failed_status_without_secret_leak(self, mock_send):
+        mock_send.side_effect = Exception("SMTP auth failed: password=supersecretpass connection timed out")
+        response = self.client.post(reverse('leads:send-message', args=[self.job.pk]), {
+            'subject': 'Outreach Pitch',
+            'body': 'Pitch content',
+            'recipient_email': 'sarah.jenkins@stripe.com',
+            'confirm_send': '1',
+        })
+        self.assertEqual(response.status_code, 502)
+
+        message = Message.objects.get(job_application=self.job)
+        self.assertEqual(message.status, 'failed')
+        self.assertNotIn('supersecretpass', message.error_message)
+        self.assertIn('***', message.error_message)
+
 
 
