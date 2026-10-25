@@ -29,13 +29,28 @@
                     </h3>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {{ form.provider_type|as_crispy_field }}
+                    {{ form.sender_name|as_crispy_field }}
                     {{ form.smtp_host|as_crispy_field }}
                     {{ form.smtp_port|as_crispy_field }}
                     {{ form.email_address|as_crispy_field }}
                     {{ form.email_password|as_crispy_field }}
                 </div>
-                <div class="mt-6 max-w-xs">
-                    {{ form.daily_send_limit|as_crispy_field }}
+                <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+                    <div class="w-full sm:w-64">
+                        {{ form.daily_send_limit|as_crispy_field }}
+                    </div>
+                    <div class="pt-2">
+                        <button type="button"
+                                hx-post="{% url 'leads:verify-smtp' %}"
+                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                hx-swap="none"
+                                hx-on::after-request="const res = JSON.parse(event.detail.xhr.responseText); alert(res.message);"
+                                class="btn o text-xs py-2.5 px-4">
+                            <span class="ms text-sm">network_check</span>
+                            <span>Verify SMTP Connection</span>
+                        </button>
+                    </div>
                 </div>
             </section>
 

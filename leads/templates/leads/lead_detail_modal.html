@@ -187,36 +187,187 @@
                 </div>
 
                 <!-- Tab: Recruiter Outreach Email -->
-                <div x-show="tab === 'outreach'" x-cloak>
+                <div x-show="tab === 'outreach'" x-cloak class="space-y-6">
+                    <!-- Daily Quota & Provider Transmission Info -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 p-3 bg-[#f4f8f1] border border-line rounded-xl">
+                        <div class="flex items-center gap-2">
+                            <span class="ms text-base text-ink">mark_email_read</span>
+                            <span class="text-xs font-bold text-ink">Daily Send Quota:</span>
+                            <span class="text-xs font-bold {% if remaining_quota > 5 %}text-emerald-700{% else %}text-amber-700{% endif %}">
+                                {{ remaining_quota|default:50 }} / {{ quota_limit|default:50 }} remaining today
+                            </span>
+                        </div>
+                        <span class="text-[11px] text-mut font-medium">Uses configured SMTP provider</span>
+                    </div>
+
+                    <!-- Outreach Pitch Form -->
                     <form hx-post="{% url 'leads:send-message' lead.pk %}" hx-swap="none" @htmx:after-request="if(event.detail.successful) { $dispatch('close-modal'); }">
                         {% csrf_token %}
                         <div class="space-y-4">
-                            <div>
-                                <label class="block text-xs font-display font-bold text-ink mb-1 uppercase tracking-wider">Recipient (Recruiter / Hiring Manager)</label>
-                                <input type="email" value="{{ lead.contact_email|default:'recruiter@example.com' }}" readonly
-                                       class="w-full bg-[#f4f8f1] border-[1.5px] border-line rounded-xl text-xs py-2.5 px-3 text-mut font-semibold focus:outline-none">
+                            <!-- Recruiter Contact Header & Verification Status -->
+                            <div class="p-3.5 bg-white border border-line rounded-xl space-y-2.5">
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-xs font-display font-bold text-ink uppercase tracking-wider">Recipient Contact</label>
+                                    {% if lead.contact_verification_status == 'authorized_source' %}
+                                    <span class="ch text-[10px] py-0.5 px-2 bg-emerald-100 text-emerald-900 border border-emerald-400">
+                                        <span class="ms text-xs">verified</span> Official Source
+                                    </span>
+                                    {% elif lead.contact_verification_status == 'user_verified' %}
+                                    <span class="ch text-[10px] py-0.5 px-2 bg-blue-100 text-blue-900 border border-blue-400">
+                                        <span class="ms text-xs">check_circle</span> Verified by Candidate
+                                    </span>
+                                    {% else %}
+                                    <span class="ch text-[10px] py-0.5 px-2 bg-amber-100 text-amber-900 border border-amber-400">
+                                        <span class="ms text-xs">help_outline</span> Unverified / Generic Pitch
+                                    </span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div>
+                                        <span class="text-[10px] font-bold text-mut uppercase block">Recruiter / Manager Email</span>
+                                        <input type="email" name="recipient_email" id="recipient-email"
+                                               value="{{ lead.contact_email|default:'' }}"
+                                               placeholder="e.g. hiring.lead@company.com"
+                                               class="w-full bg-[#f4f8f1] border border-line rounded-lg text-xs py-2 px-2.5 text-ink font-semibold focus:outline-none focus:ring-1 focus:ring-pink">
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] font-bold text-mut uppercase block">Recipient Name & Title</span>
+                                        <input type="text" name="recipient_name" id="recipient-name"
+                                               value="{{ lead.contact_name|default:'' }}"
+                                               placeholder="e.g. Sarah Jenkins (Recruiter)"
+                                               class="w-full bg-[#f4f8f1] border border-line rounded-lg text-xs py-2 px-2.5 text-ink focus:outline-none focus:ring-1 focus:ring-pink">
+                                    </div>
+                                </div>
+                                {% if not lead.contact_email %}
+                                <p class="text-[11px] text-amber-800 bg-amber-50 p-2 rounded-lg leading-tight">
+                                    <span class="font-bold">Generic Pitch Mode:</span> No contact email is assigned. You can copy the grounded pitch below to use in an external portal or add a verified email address to dispatch directly.
+                                </p>
+                                {% endif %}
                             </div>
+
+                            <!-- Subject Line -->
                             <div>
                                 <label class="block text-xs font-display font-bold text-ink mb-1 uppercase tracking-wider">Subject Line</label>
                                 <input type="text" name="subject" id="message-subject"
                                        value="Application: {{ lead.role_title }} - {{ request.user.get_full_name|default:request.user.username }}"
                                        class="w-full bg-card border-[1.5px] border-ink rounded-xl text-xs py-2.5 px-3 text-ink font-semibold focus:outline-none focus:ring-2 focus:ring-pink/40">
                             </div>
+
+                            <!-- Pitch Body -->
                             <div>
-                                <label class="block text-xs font-display font-bold text-ink mb-1 uppercase tracking-wider">Pitch Body (4-Sentence Cold Email)</label>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-xs font-display font-bold text-ink uppercase tracking-wider">Personalized Pitch Body</label>
+                                    <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('message-body').value); alert('Pitch copied to clipboard!');"
+                                            class="text-xs font-bold text-pink hover:underline flex items-center gap-1">
+                                        <span class="ms text-xs">content_copy</span> Copy Pitch
+                                    </button>
+                                </div>
                                 <textarea name="body" id="message-body" rows="7"
-                                          placeholder="Cold email pitch to the hiring manager will appear here..."
+                                          placeholder="Evidence-grounded cold email pitch will appear here after clicking Generate..."
                                           class="w-full bg-card border-[1.5px] border-ink rounded-xl text-xs py-3 px-3.5 text-ink focus:outline-none focus:ring-2 focus:ring-pink/40 resize-none font-sans leading-relaxed">{{ lead.recruiter_pitch }}</textarea>
                             </div>
-                            <div class="flex items-center justify-between pt-2">
-                                <span class="text-[11px] text-mut font-semibold">Uses your SMTP outreach credentials from Settings.</span>
+
+                            <!-- Follow-up Scheduling Date -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                <div>
+                                    <label class="block text-xs font-display font-bold text-ink mb-1 uppercase tracking-wider">Schedule Follow-up Reminder</label>
+                                    <input type="date" name="schedule_follow_up"
+                                           value="{{ lead.next_follow_up|date:'Y-m-d'|default:'' }}"
+                                           class="w-full bg-white border border-line rounded-xl text-xs py-2 px-3 text-ink">
+                                </div>
+                                <div class="flex flex-col justify-end">
+                                    <label class="flex items-start gap-2 cursor-pointer pt-2">
+                                        <input type="checkbox" name="confirm_send" value="1"
+                                               class="mt-0.5 rounded border-2 border-ink text-pink focus:ring-pink">
+                                        <span class="text-[11px] font-bold text-ink leading-tight">
+                                            I explicitly review and approve sending this recruiter outreach pitch.
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Send Controls -->
+                            <div class="flex items-center justify-between pt-3 border-t border-line">
+                                <button type="submit" name="is_draft" value="1" class="btn o text-xs py-2 px-4">
+                                    <span class="ms text-sm">bookmark</span>
+                                    <span>Save as Draft</span>
+                                </button>
                                 <button type="submit" class="btn text-xs py-2 px-5">
-                                    <span>Send Pitch</span>
-                                    <i class="ms">arrow_forward</i>
+                                    <span>Approve & Send Pitch</span>
+                                    <i class="ms">send</i>
                                 </button>
                             </div>
                         </div>
                     </form>
+
+                    <!-- Message History & Audit Trail -->
+                    <div class="pt-4 border-t border-line">
+                        <span class="text-xs font-display font-bold text-ink uppercase tracking-wider block mb-3">Outreach Message History & Status</span>
+                        <div class="space-y-3">
+                            {% for msg in messages %}
+                            <div class="p-3.5 bg-white border border-line rounded-xl shadow-sm space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        {% if msg.status == 'accepted_by_provider' or msg.status == 'delivered' %}
+                                        <span class="ch text-[10px] py-0.5 px-2 bg-emerald-100 text-emerald-900 border border-emerald-400">
+                                            <span class="ms text-xs">check</span> Accepted by Provider
+                                        </span>
+                                        {% elif msg.status == 'failed' %}
+                                        <span class="ch text-[10px] py-0.5 px-2 bg-rose-100 text-rose-900 border border-rose-400">
+                                            <span class="ms text-xs">error</span> Send Failed
+                                        </span>
+                                        {% elif msg.status == 'draft' %}
+                                        <span class="ch text-[10px] py-0.5 px-2 bg-gray-100 text-gray-800 border border-gray-400">
+                                            <span class="ms text-xs">edit_note</span> Draft
+                                        </span>
+                                        {% else %}
+                                        <span class="ch text-[10px] py-0.5 px-2 bg-sun text-ink border border-ink">
+                                            {{ msg.get_status_display }}
+                                        </span>
+                                        {% endif %}
+
+                                        <span class="text-xs font-bold text-ink">{{ msg.subject }}</span>
+                                    </div>
+                                    <span class="text-[10px] text-mut font-semibold">{{ msg.sent_at|default:msg.created_at|date:"M d, Y H:i" }}</span>
+                                </div>
+
+                                <p class="text-xs text-mut whitespace-pre-line line-clamp-2 bg-[#f4f8f1] p-2 rounded-lg font-mono">{{ msg.body }}</p>
+
+                                <div class="flex flex-wrap items-center justify-between text-[11px] text-mut pt-1">
+                                    <span>Recipient: <strong class="text-ink">{{ msg.recipient_email|default:lead.contact_email|default:"Not specified" }}</strong></span>
+                                    {% if msg.is_reply %}
+                                    <span class="text-emerald-700 font-bold flex items-center gap-1">
+                                        <span class="ms text-xs">reply</span> Response Logged: {{ msg.reply_notes|truncatechars:35 }}
+                                    </span>
+                                    {% elif msg.status == 'accepted_by_provider' %}
+                                    <!-- Record Reply Trigger -->
+                                    <div x-data="{ openReply: false }" class="inline-block">
+                                        <button type="button" @click="openReply = !openReply" class="text-xs font-bold text-pink hover:underline">
+                                            + Record Recruiter Reply
+                                        </button>
+                                        <form x-show="openReply" @click.away="openReply = false" hx-post="{% url 'leads:message-reply' msg.pk %}" class="mt-2 flex gap-2">
+                                            {% csrf_token %}
+                                            <input type="text" name="reply_notes" placeholder="e.g. Screen invited for next Tuesday"
+                                                   class="px-2 py-1 text-xs border border-ink rounded-lg bg-white text-ink">
+                                            <button type="submit" class="btn text-[10px] py-1 px-2.5">Save</button>
+                                        </form>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                {% if msg.error_message %}
+                                <p class="text-[11px] text-rose-700 bg-rose-50 p-2 rounded-lg font-mono">{{ msg.error_message }}</p>
+                                {% endif %}
+                            </div>
+                            {% empty %}
+                            <p class="text-xs text-mut italic">No outreach messages recorded yet for this job application.</p>
+                            {% endfor %}
+                        </div>
+                        <p class="text-[10px] text-mut italic pt-3">
+                            * Provider acceptance confirms message transmission to outgoing mail servers. Huntly never describes provider acceptance as guaranteed inbox delivery.
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Tab: Timeline History & Notes -->

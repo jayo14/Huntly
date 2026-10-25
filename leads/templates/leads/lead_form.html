@@ -69,15 +69,42 @@
                        class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all">
             </div>
 
-            <!-- Recruiter Contact -->
+            <!-- Recruiter Contact & Source Verification -->
+            <div class="col-span-full pt-2">
+                <span class="text-xs font-display font-bold uppercase tracking-wider text-ink block mb-1">Recruiter & Outreach Contact Information</span>
+                <p class="text-xs text-mut mb-3">Provide legitimate contact details from authorized job postings or company listings. Huntly never invents recipient identities.</p>
+            </div>
+
             <div class="space-y-2">
-                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Contact Person</label>
-                <input type="text" name="contact_name" value="{{ lead.contact_name|default:'' }}" placeholder="e.g. Sarah Connor (Recruiter)"
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Contact Person Name</label>
+                <input type="text" name="contact_name" value="{{ lead.contact_name|default:'' }}" placeholder="e.g. Sarah Jenkins"
                        class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all">
             </div>
             <div class="space-y-2">
-                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Contact Email</label>
-                <input type="email" name="contact_email" value="{{ lead.contact_email|default:'' }}" placeholder="recruiter@company.com"
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Professional Role / Title</label>
+                <input type="text" name="contact_role" value="{{ lead.contact_role|default:'' }}" placeholder="e.g. Senior Technical Recruiter / Hiring Lead"
+                       class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all">
+            </div>
+            <div class="space-y-2">
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Verified Email Address</label>
+                <input type="email" name="contact_email" value="{{ lead.contact_email|default:'' }}" placeholder="e.g. sarah.jenkins@company.com"
+                       class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all">
+            </div>
+            <div class="space-y-2">
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Contact Source & Verification State</label>
+                <div class="relative">
+                    <select name="contact_verification_status"
+                            class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm font-semibold text-ink appearance-none focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all pr-10">
+                        <option value="unverified" {% if lead.contact_verification_status == 'unverified' %}selected{% endif %}>Unverified Contact</option>
+                        <option value="user_verified" {% if lead.contact_verification_status == 'user_verified' %}selected{% endif %}>Verified by Candidate</option>
+                        <option value="authorized_source" {% if lead.contact_verification_status == 'authorized_source' %}selected{% endif %}>Direct Job Listing / Official Source</option>
+                    </select>
+                    <span class="ms text-base absolute right-4 top-1/2 -translate-y-1/2 text-ink pointer-events-none">expand_more</span>
+                </div>
+            </div>
+            <div class="col-span-full space-y-2">
+                <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Source URL or Origin (Optional)</label>
+                <input type="text" name="contact_source" value="{{ lead.contact_source|default:'' }}" placeholder="e.g. Official careers page, LinkedIn job post, Employee referral"
                        class="w-full bg-white border-[1.5px] border-ink rounded-2xl px-4 py-3 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all">
             </div>
 
