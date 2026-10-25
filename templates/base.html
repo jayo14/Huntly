@@ -395,6 +395,15 @@
                           :class="sidebarCollapsed ? 'mr-0' : 'mr-3'">settings</span>
                     <span x-show="!sidebarCollapsed" x-transition>Settings</span>
                 </a>
+
+                <!-- Billing & Plans -->
+                <a href="{% url 'billing:dashboard' %}"
+                   class="flex items-center px-4 py-3 text-sm font-bold rounded-full transition-all group {% if 'billing' in request.path %}bg-ink text-white shadow-[2px_3px_0_#ff3d8b]{% else %}text-mut hover:text-ink hover:bg-[#eef3ea]{% endif %}"
+                   :title="sidebarCollapsed ? 'Billing & Plans' : ''">
+                    <span class="ms text-xl shrink-0 {% if 'billing' in request.path %}text-lime{% else %}text-mut group-hover:text-ink{% endif %}"
+                          :class="sidebarCollapsed ? 'mr-0' : 'mr-3'">credit_card</span>
+                    <span x-show="!sidebarCollapsed" x-transition>Billing & Plans</span>
+                </a>
             </nav>
 
             <!-- Quick Action in Sidebar -->

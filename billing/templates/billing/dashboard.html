@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Billing & Subscription | Huntly{% endblock %}
+{% block header_title %}Billing & Usage{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-8">
+    <!-- Header Intro -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-display font-extrabold text-ink tracking-tight">Subscription & Quota Management</h1>
+            <p class="text-sm text-mut mt-1">Track your AI tailoring quota, managed plan entitlements, and payment history.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="ch text-xs py-1 px-3 bg-white border border-ink shadow-sm">
+                <span class="ms text-sm text-ink">verified_user</span>
+                <span>Active Tier: <strong>{{ current_plan.name }}</strong></span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Overview Grid: Current Plan & Real-time Usage Meters -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Current Plan Summary Card -->
+        <div class="card p-6 flex flex-col justify-between border-2 border-ink shadow-[4px_4px_0_#102a1f]">
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-display font-bold uppercase tracking-wider text-mut">Current Plan</span>
+                    {% if subscription.status == 'active' %}
+                    <span class="ch text-xs py-0.5 px-2.5 bg-lime text-ink">Active</span>
+                    {% elif subscription.status == 'canceled' %}
+                    <span class="ch text-xs py-0.5 px-2.5 bg-amber-100 text-amber-900 border border-amber-400">Cancels at Period End</span>
+                    {% elif subscription.status == 'past_due' %}
+                    <span class="ch text-xs py-0.5 px-2.5 bg-rose-100 text-rose-900 border border-rose-400">Past Due</span>
+                    {% else %}
+                    <span class="ch text-xs py-0.5 px-2.5 bg-card text-ink">{{ subscription.get_status_display }}</span>
+                    {% endif %}
+                </div>
+                <h3 class="text-2xl font-display font-bold text-ink">{{ current_plan.name }}</h3>
+                <p class="text-xs text-mut mt-1 leading-relaxed">{{ current_plan.tagline }}</p>
+
+                <div class="mt-6 pt-4 border-t border-line space-y-2">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-mut font-medium">Billing Term:</span>
+                        <span class="font-bold text-ink capitalize">{{ current_plan.billing_interval }}</span>
+                    </div>
+                    {% if subscription.current_period_end %}
+                    <div class="flex justify-between text-xs">
+                        <span class="text-mut font-medium">{% if subscription.cancel_at_period_end %}Access Ends:{% else %}Next Renewal:{% endif %}</span>
+                        <span class="font-bold text-ink">{{ subscription.current_period_end|date:"F d, Y" }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="flex justify-between text-xs">
+                        <span class="text-mut font-medium">Rate:</span>
+                        <span class="font-bold text-ink">${{ current_plan.price_usd|floatformat:2 }} / {{ current_plan.billing_interval }}</span>
+                    </div>
+                </div>
+            </div>
+
+            {% if subscription.is_valid_active and current_plan.id != 'free' and not subscription.cancel_at_period_end %}
+            <div class="mt-6 pt-4 border-t border-line">
+                <form action="{% url 'billing:cancel-subscription' %}" method="post" onsubmit="return confirm('Your subscription will remain active until the end of your billing cycle. No further recurring charges will occur. Proceed?');">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full text-xs font-bold text-rose-600 hover:text-rose-800 hover:underline py-1 text-center">
+                        Cancel Recurring Subscription
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Usage Meters Card (Spans 2 cols on lg) -->
+        <div class="lg:col-span-2 card p-6 border-2 border-ink shadow-[4px_4px_0_#102a1f] space-y-6">
+            <h3 class="text-xs font-display font-bold uppercase tracking-wider text-ink flex items-center gap-2">
+                <span class="ms text-sm text-pink">data_usage</span>
+                <span>Quota Usage & Plan Limits</span>
+            </h3>
+
+            <div class="space-y-5">
+                <!-- Tailored Applications Meter -->
+                <div>
+                    <div class="flex justify-between text-xs font-bold mb-1.5">
+                        <span class="text-ink flex items-center gap-1.5">
+                            <span class="ms text-sm text-ink">description</span> Tailored Applications
+                        </span>
+                        <span class="text-ink">
+                            {{ entitlements.tailored_applications_used }} / {{ entitlements.tailored_applications_limit }} used
+                            {% if current_plan.id == 'free' %}<span class="text-[10px] text-mut">(Lifetime quota)</span>{% endif %}
+                        </span>
+                    </div>
+                    <div class="w-full h-3 bg-[#e3ece0] rounded-full overflow-hidden border border-ink">
+                        <div class="h-full bg-pink transition-all duration-500"
+                             style="width: {% widthratio entitlements.tailored_applications_used entitlements.tailored_applications_limit 100 %}%;"></div>
+                    </div>
+                </div>
+
+                <!-- Tracked Pipeline Jobs Meter -->
+                <div>
+                    <div class="flex justify-between text-xs font-bold mb-1.5">
+                        <span class="text-ink flex items-center gap-1.5">
+                            <span class="ms text-sm text-ink">view_kanban</span> Tracked Jobs in Pipeline
+                        </span>
+                        <span class="text-ink">
+                            {{ entitlements.tracked_jobs_count }} / {{ entitlements.tracked_jobs_limit }} tracked
+                        </span>
+                    </div>
+                    <div class="w-full h-3 bg-[#e3ece0] rounded-full overflow-hidden border border-ink">
+                        <div class="h-full bg-lime transition-all duration-500"
+                             style="width: {% widthratio entitlements.tracked_jobs_count entitlements.tracked_jobs_limit 100 %}%;"></div>
+                    </div>
+                </div>
+
+                <!-- Recruiter Outreach Pitches Meter -->
+                <div>
+                    <div class="flex justify-between text-xs font-bold mb-1.5">
+                        <span class="text-ink flex items-center gap-1.5">
+                            <span class="ms text-sm text-ink">mail</span> Direct Recruiter Outreach Pitches
+                        </span>
+                        <span class="text-ink">
+                            {{ entitlements.pitches_used }} / {{ entitlements.pitches_limit }} used
+                        </span>
+                    </div>
+                    <div class="w-full h-3 bg-[#e3ece0] rounded-full overflow-hidden border border-ink">
+                        <div class="h-full bg-sun transition-all duration-500"
+                             style="width: {% if entitlements.pitches_limit > 0 %}{% widthratio entitlements.pitches_used entitlements.pitches_limit 100 %}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Checklist Badges -->
+            <div class="pt-4 border-t border-line flex flex-wrap gap-2 text-xs">
+                <span class="ch text-[11px] py-1 px-3 bg-white border border-line">
+                    <span class="ms text-xs {% if entitlements.can_export_docx %}text-green-700{% else %}text-mut{% endif %}">
+                        {% if entitlements.can_export_docx %}check{% else %}close{% endif %}
+                    </span>
+                    ATS DOCX Export
+                </span>
+                <span class="ch text-[11px] py-1 px-3 bg-white border border-line">
+                    <span class="ms text-xs {% if entitlements.can_export_pdf %}text-green-700{% else %}text-mut{% endif %}">
+                        {% if entitlements.can_export_pdf %}check{% else %}close{% endif %}
+                    </span>
+                    Vector PDF Export
+                </span>
+                <span class="ch text-[11px] py-1 px-3 bg-white border border-line">
+                    <span class="ms text-xs {% if entitlements.has_ats_gap_analysis %}text-green-700{% else %}text-mut{% endif %}">
+                        {% if entitlements.has_ats_gap_analysis %}check{% else %}close{% endif %}
+                    </span>
+                    ATS Keyword Gap Analysis
+                </span>
+                <span class="ch text-[11px] py-1 px-3 bg-white border border-line">
+                    <span class="ms text-xs {% if entitlements.has_recruiter_pitch %}text-green-700{% else %}text-mut{% endif %}">
+                        {% if entitlements.has_recruiter_pitch %}check{% else %}close{% endif %}
+                    </span>
+                    Direct Recruiter Outreach
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upgrade / Plan Tier Cards -->
+    <div class="space-y-4">
+        <div>
+            <h2 class="text-2xl font-display font-bold text-ink">Upgrade Your Huntly Plan</h2>
+            <p class="text-xs text-mut font-medium">Choose a short-cycle plan matching your job-search campaign duration. No long annual commitments.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Free Card -->
+            <div class="card p-6 border-2 border-ink flex flex-col justify-between {% if current_plan.id == 'free' %}ring-2 ring-ink shadow-[4px_4px_0_#102a1f]{% endif %}">
+                <div>
+                    <span class="text-xs font-display font-bold uppercase tracking-wider text-mut block mb-1">Free Tier</span>
+                    <h3 class="text-xl font-display font-bold text-ink">Test Drive</h3>
+                    <div class="mt-4 mb-6">
+                        <span class="text-4xl font-display font-extrabold text-ink">$0</span>
+                        <span class="text-xs text-mut font-semibold">forever</span>
+                    </div>
+                    <ul class="space-y-2.5 text-xs text-ink mb-6">
+                        <li class="flex items-center gap-2"><span class="ms text-sm text-green-700">check</span> 1 Master Career Profile</li>
+                        <li class="flex items-center gap-2"><span class="ms text-sm text-green-700">check</span> 3 tailored resume runs</li>
+                        <li class="flex items-center gap-2"><span class="ms text-sm text-green-700">check</span> Track up to 25 jobs</li>
+                        <li class="flex items-center gap-2"><span class="ms text-sm text-green-700">check</span> ATS DOCX export</li>
+                        <li class="flex items-center gap-2 text-mut"><span class="ms text-sm text-mut">close</span> Direct cold email outreach</li>
+                    </ul>
+                </div>
+                <div>
+                    {% if current_plan.id == 'free' %}
+                    <button type="button" disabled class="btn o w-full text-xs py-2.5 opacity-60 cursor-not-allowed">
+                        <span>Current Plan</span>
+                    </button>
+                    {% else %}
+                    <span class="text-[11px] text-mut text-center block font-semibold">Included baseline</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Job Sprint Card -->
+            <div class="card p-6 border-2 border-ink flex flex-col justify-between {% if current_plan.id == 'job_sprint' %}ring-2 ring-pink shadow-[4px_4px_0_#ff3d8b]{% endif %}">
+                <div>
+                    <span class="text-xs font-display font-bold uppercase tracking-wider text-pink block mb-1">Weekly Sprint</span>
+                    <h3 class="text-xl font-display font-bold text-ink">Job Sprint</h3>
+                    <div class="mt-4 mb-6">
+                        <span class="text-4xl font-display font-extrabold text-ink">$9</span>
+                        <span class="text-xs text-mut font-semibold">/ week</span>
+                    </div>
+                    <ul class="space-y-2.5 text-xs text-ink mb-6">
+                        <li class="flex items-center gap-2"><span class="ms text-sm text-green-700">check</span> 50 tailored applications / wk</li>
+                        <li class="flex items-center gap-2"><span class="ms text-sm text-green-700">check</span> Unlimited job tracker</li>
+                        <li class="flex items-center gap-2"><span class="ms text-sm text-green-700">check</span> 10 cold recruiter pitches / wk</li>
+                        <li class="flex items-center gap-2"><span class="ms text-sm text-green-700">check</span> DOCX & Vector PDF export</li>
+                        <li class="flex items-center gap-2 text-mut"><span class="ms text-sm text-mut">close</span> Advanced ATS keyword gap audit</li>
+                    </ul>
+                </div>
+                <div>
+                    {% if current_plan.id == 'job_sprint' %}
+                    <button type="button" disabled class="btn o w-full text-xs py-2.5 opacity-60 cursor-not-allowed">
+                        <span>Current Plan</span>
+                    </button>
+                    {% else %}
+                    <form action="{% url 'billing:checkout' 'job_sprint' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn w-full text-xs py-2.5">
+                            <span>Get Job Sprint</span>
+                            <i class="ms">arrow_forward</i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Pro Hunter Card (Popular) -->
+            <div class="card p-6 border-2 border-ink relative flex flex-col justify-between bg-[#f4f8f1] shadow-[6px_6px_0_#102a1f]">
+                <div class="absolute -top-3.5 right-6">
+                    <span class="ch text-[10px] py-1 px-3 bg-pink text-white font-extrabold shadow-sm">
+                        MOST POPULAR
+                    </span>
+                </div>
+                <div>
+                    <span class="text-xs font-display font-bold uppercase tracking-wider text-ink block mb-1">Full Campaign</span>
+                    <h3 class="text-xl font-display font-bold text-ink">Pro Hunter</h3>
+                    <div class="mt-4 mb-6">
+                        <span class="text-4xl font-display font-extrabold text-ink">$19</span>
+                        <span class="text-xs text-mut font-semibold">/ month</span>
+                    </div>
+                    <ul class="space-y-2.5 text-xs text-ink mb-6">
+                        <li class="flex items-center gap-2"><span class="ms text-sm text-green-700">check</span> 200 tailored applications / mo</li>
+                        <li class="flex items-center gap-2"><span class="ms text-sm text-green-700">check</span> Unlimited job tracker</li>
+                        <li class="flex items-center gap-2"><span class="ms text-sm text-green-700">check</span> 50 recruiter pitches / mo</li>
+                        <li class="flex items-center gap-2"><span class="ms text-sm text-green-700">check</span> Complete ATS keyword gap audit</li>
+                        <li class="flex items-center gap-2"><span class="ms text-sm text-green-700">check</span> Multi-version document history</li>
+                    </ul>
+                </div>
+                <div>
+                    {% if current_plan.id == 'pro_hunter' %}
+                    <button type="button" disabled class="btn o w-full text-xs py-2.5 opacity-60 cursor-not-allowed">
+                        <span>Current Plan</span>
+                    </button>
+                    {% else %}
+                    <form action="{% url 'billing:checkout' 'pro_hunter' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn lime w-full text-xs py-2.5">
+                            <span>Get Pro Hunter</span>
+                            <i class="ms">arrow_forward</i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction History Table -->
+    <div class="space-y-4 pt-6 border-t border-line">
+        <h3 class="text-xs font-display font-bold uppercase tracking-wider text-ink">Payment History & Invoices</h3>
+        <div class="card overflow-hidden border-2 border-ink">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-ink">
+                    <thead class="bg-[#f4f8f1] border-b border-line text-mut font-bold uppercase tracking-wider text-[10px]">
+                        <tr>
+                            <th class="py-3 px-4">Date</th>
+                            <th class="py-3 px-4">Reference</th>
+                            <th class="py-3 px-4">Amount</th>
+                            <th class="py-3 px-4">Plan</th>
+                            <th class="py-3 px-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line">
+                        {% for tx in transactions %}
+                        <tr>
+                            <td class="py-3 px-4 font-semibold">{{ tx.created_at|date:"M d, Y H:i" }}</td>
+                            <td class="py-3 px-4 font-mono text-[11px]">{{ tx.transaction_reference|truncatechars:24 }}</td>
+                            <td class="py-3 px-4 font-bold">{{ tx.currency }} {{ tx.amount|floatformat:2 }}</td>
+                            <td class="py-3 px-4 capitalize font-semibold">{{ tx.plan_id }}</td>
+                            <td class="py-3 px-4">
+                                <span class="ch text-[10px] py-0.5 px-2 {% if tx.status == 'success' %}bg-lime text-ink{% elif tx.status == 'refunded' %}bg-amber-100 text-amber-900{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ tx.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="py-6 px-4 text-center text-mut italic">No payment transactions recorded yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

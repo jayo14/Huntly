@@ -18,6 +18,12 @@ from .models import JobApplication, Lead, Message, AppSetting, ApplicationActivi
 from resumes.models import Resume, ApplicationDocument
 from .forms import JobApplicationForm, LeadForm, AppSettingForm, UserProfileForm, OutreachPitchForm, OutreachReplyForm
 from .services.llm_tailor import tailor_application
+from billing.services import (
+    check_and_consume_tailored_application,
+    check_tracked_job_limit,
+    check_and_consume_outreach_pitch,
+    get_user_entitlements,
+)
 from .services.outreach_service import (
     generate_grounded_pitch,
     create_or_update_draft,
@@ -175,6 +181,11 @@ def lead_list_partial(request):
 @login_required
 def lead_create(request):
     """Add a new job application manually without forcing immediate resume tailoring."""
+    allowed, limit_msg = check_tracked_job_limit(request.user)
+    if not allowed and request.method == 'POST':
+        messages.error(request, limit_msg)
+        return redirect('leads:lead-list')
+
     if request.method == 'POST':
         form = JobApplicationForm(request.POST)
         if form.is_valid():
@@ -358,6 +369,19 @@ def generate_message(request, pk):
     job = get_object_or_404(JobApplication, pk=pk, user=request.user)
     resume = Resume.objects.filter(user=request.user, is_master=True).first() or Resume.objects.filter(user=request.user).first()
 
+    # Determine version snapshot and check plan entitlements
+    last_doc = ApplicationDocument.objects.filter(job_application=job).order_by('-version').first()
+    next_version = (last_doc.version + 1) if last_doc else 1
+
+    credit_ok, credit_msg = check_and_consume_tailored_application(request.user, job.pk, next_version)
+    if not credit_ok:
+        billing_url = reverse('billing:dashboard')
+        return HttpResponse(
+            f'<div class="p-4 bg-rose-50 border border-rose-300 rounded-2xl text-xs text-rose-900 font-semibold">'
+            f'{credit_msg} <a href="{billing_url}" class="underline text-pink font-bold ml-1">Upgrade Plan</a></div>',
+            status=403
+        )
+
     tailored = tailor_application(
         resume=resume,
         company_name=job.company_name,
@@ -499,6 +523,12 @@ def send_message(request, pk):
             "Explicit user confirmation is required before sending recruiter outreach. "
             "Please check the confirmation box to approve sending."
         )
+
+    # Check subscription entitlement for cold recruiter pitches
+    pitch_ok, pitch_msg = check_and_consume_outreach_pitch(request.user, job.pk, recipient_email)
+    if not pitch_ok:
+        messages.error(request, pitch_msg)
+        return HttpResponseBadRequest(pitch_msg)
 
     # First ensure draft is recorded
     draft = create_or_update_draft(

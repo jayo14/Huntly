@@ -226,6 +226,13 @@ def resume_download(request, pk):
     company_suffix = f"_{re.sub(r'[^a-zA-Z0-9_-]', '_', job.company_name)}" if job else ""
 
     fmt = request.GET.get('format', 'docx').lower()
+    if fmt == 'pdf':
+        from billing.services import get_or_create_subscription
+        sub = get_or_create_subscription(request.user)
+        if not sub.can_access_feature('can_export_pdf'):
+            fmt = 'docx'
+            messages.info(request, "PDF export is a premium feature on Job Sprint & Pro Hunter. Downloaded your ATS-friendly DOCX resume instead.")
+
     try:
         if fmt == 'pdf':
             pdf_bytes = generate_pdf(data)
