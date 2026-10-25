@@ -116,6 +116,36 @@
                           class="w-full bg-white border-[1.5px] border-ink rounded-2xl p-4 text-sm text-ink placeholder:text-mut focus:outline-none focus:ring-2 focus:ring-pink/40 transition-all font-sans leading-relaxed resize-y">{{ lead.job_description|default:'' }}</textarea>
             </div>
 
+            {% if not lead %}
+            <!-- Smart Intake -->
+            <div class="col-span-full rounded-3xl border-[1.5px] border-dashed border-ink bg-[#f2f8ee] p-5">
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div class="flex items-start gap-2">
+                        <span class="ms text-xl text-pink">auto_awesome</span>
+                        <div>
+                            <p class="text-xs font-display font-bold uppercase tracking-wider text-ink">Smart intake</p>
+                            <p class="text-[11px] text-mut font-medium leading-relaxed mt-1">Paste a job URL above or a description below, then extract the role details, employer brief, and a profile-fit preview. Uses no AI credits and fills only empty fields.</p>
+                        </div>
+                    </div>
+                    <button type="button"
+                            hx-post="{% url 'leads:intake-analyze' %}"
+                            hx-include="closest form"
+                            hx-target="#intake-preview"
+                            hx-swap="innerHTML"
+                            hx-indicator="#intake-spinner"
+                            class="btn text-xs py-2.5 px-5 shrink-0">
+                        <span class="ms text-sm">travel_explore</span>
+                        <span>Analyze Posting</span>
+                        <span id="intake-spinner" class="htmx-indicator ml-1">
+                            <span class="ms animate-spin text-sm">progress_activity</span>
+                        </span>
+                    </button>
+                </div>
+                <div id="intake-preview" class="mt-4 empty:hidden"></div>
+                <input type="hidden" name="intake_source" value="manual">
+            </div>
+            {% endif %}
+
             <!-- Notes -->
             <div class="col-span-full space-y-2">
                 <label class="block text-xs font-display font-bold uppercase tracking-wider text-ink">Candidate Notes & Observations</label>

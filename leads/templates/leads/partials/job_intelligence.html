@@ -1,0 +1,111 @@
+<div id="job-intelligence" class="space-y-3">
+    <div class="flex items-center justify-between">
+        <h3 class="text-xs font-display font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
+            <span class="ms text-sm text-ink">travel_explore</span> Job Intelligence
+        </h3>
+        <button type="button"
+                hx-post="{% url 'leads:lead-reanalyze' job.pk %}"
+                hx-target="#job-intelligence"
+                hx-swap="outerHTML"
+                hx-indicator="#intel-spinner"
+                class="text-[10px] font-bold text-mut hover:text-ink flex items-center gap-1 transition-colors">
+            <span class="ms text-sm">refresh</span> Re-analyze
+            <span id="intel-spinner" class="htmx-indicator">
+                <span class="ms animate-spin text-sm">progress_activity</span>
+            </span>
+        </button>
+    </div>
+
+    {% if error %}
+    <div class="rounded-2xl border-[1.5px] border-red-700 bg-red-50 p-3 text-[11px] font-semibold text-red-800">{{ error }}</div>
+    {% endif %}
+
+    {% if warnings %}
+    <div class="rounded-2xl border-[1.5px] border-sun bg-[#fff8e6] p-3 text-[10px] font-medium text-ink space-y-1">
+        {% for warning in warnings %}
+        <p class="flex items-start gap-1.5"><span class="ms text-xs text-[#8a5a00]">info</span><span>{{ warning }}</span></p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if job.employer_research.summary or job.employer_research.tech_stack or job.employer_research.benefits %}
+    <div class="rounded-2xl border-[1.5px] border-ink bg-white p-4 space-y-2">
+        <div class="flex items-center justify-between">
+            <span class="text-[10px] font-display font-bold uppercase tracking-wider text-ink flex items-center gap-1">
+                <span class="ms text-sm">business_center</span> Employer Research
+            </span>
+            {% if job.analyzed_at %}
+            <span class="text-[9px] text-mut font-semibold">{{ job.analyzed_at|date:"M j, Y" }}</span>
+            {% endif %}
+        </div>
+        {% if job.employer_research.summary %}
+        <p class="text-[11px] text-mut leading-relaxed">{{ job.employer_research.summary|truncatechars:420 }}</p>
+        {% endif %}
+        {% if job.employer_research.tech_stack %}
+        <div class="flex flex-wrap gap-1">
+            {% for tech in job.employer_research.tech_stack|slice:":10" %}
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef3ea] border border-line text-ink">{{ tech }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if job.employer_research.benefits %}
+        <p class="text-[10px] text-mut leading-snug"><span class="font-bold text-ink">Benefits mentioned:</span> {{ job.employer_research.benefits|join:"; "|truncatechars:240 }}</p>
+        {% endif %}
+        <p class="text-[10px] text-mut">
+            <span class="font-bold text-ink">Comp:</span> {{ job.employer_research.compensation_note|default:"Not disclosed." }}
+            {% if job.employer_research.work_arrangement %}&middot; {{ job.employer_research.work_arrangement|join:", " }}{% endif %}
+        </p>
+        {% if job.employer_research.red_flags %}
+        <p class="text-[10px] font-semibold text-red-800">{{ job.employer_research.red_flags|join:" " }}</p>
+        {% endif %}
+        {% if job.employer_research.unavailable %}
+        <p class="text-[9px] text-mut leading-snug border-t border-line pt-2">
+            <span class="font-bold">Not in posting:</span> {{ job.employer_research.unavailable|join:", " }}. Huntly does not infer these.
+        </p>
+        {% endif %}
+        {% if job.employer_research.sources %}
+        <p class="text-[9px] text-mut truncate"><span class="font-bold">Source:</span> {{ job.employer_research.sources|join:", " }}</p>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="rounded-2xl border-[1.5px] border-dashed border-line bg-[#f4f8f1] p-4">
+        <p class="text-[11px] text-mut leading-relaxed">No employer notes yet. Re-analyze the posting to extract grounded research and a profile-fit preview. This uses no AI credits.</p>
+    </div>
+    {% endif %}
+
+    {% if job.fit_analysis %}
+    <div class="rounded-2xl border-[1.5px] border-ink bg-[#fbfdf9] p-4 space-y-2">
+        <div class="flex items-center justify-between">
+            <span class="text-[10px] font-display font-bold uppercase tracking-wider text-ink flex items-center gap-1">
+                <span class="ms text-sm">insights</span> Profile Fit
+            </span>
+            <span class="text-xs font-bold px-2 py-0.5 rounded-full border border-ink {% if job.fit_analysis.fit_heuristic_score >= 80 %}bg-lime{% elif job.fit_analysis.fit_heuristic_score >= 50 %}bg-sun{% else %}bg-card{% endif %}">
+                {{ job.fit_analysis.fit_heuristic_score }}%
+            </span>
+        </div>
+        <div class="grid grid-cols-1 gap-2">
+            <div>
+                <p class="text-[9px] font-bold uppercase tracking-wide text-mut mb-1">Strengths</p>
+                <div class="flex flex-wrap gap-1">
+                    {% for item in job.fit_analysis.strengths|slice:":5" %}
+                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-lime/40 border border-line text-ink">{{ item|truncatechars:48 }}</span>
+                    {% empty %}
+                    <span class="text-[10px] text-mut italic">No direct overlaps detected.</span>
+                    {% endfor %}
+                </div>
+            </div>
+            <div>
+                <p class="text-[9px] font-bold uppercase tracking-wide text-mut mb-1">Gaps to address</p>
+                <div class="flex flex-wrap gap-1">
+                    {% for item in job.fit_analysis.gaps|slice:":5" %}
+                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#ffeeda] border border-line text-ink">{{ item|truncatechars:48 }}</span>
+                    {% empty %}
+                    <span class="text-[10px] text-mut italic">No gaps detected.</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <p class="text-[9px] text-mut leading-snug">{{ job.fit_analysis.score_disclaimer }}</p>
+    </div>
+    {% endif %}
+</div>
