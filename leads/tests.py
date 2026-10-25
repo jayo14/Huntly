@@ -668,3 +668,196 @@ class RecruiterOutreachWorkflowTests(TestCase):
 
 
 
+
+
+class JobIntakeServiceTests(TestCase):
+    def test_private_and_local_targets_are_rejected(self):
+        from .services.job_intake import JobIntakeError, _validate_url
+
+        for url in (
+            'http://127.0.0.1/job',
+            'http://localhost:8000/job',
+            'http://169.254.169.254/latest/meta-data/',
+            'http://10.0.0.5/job',
+            'file:///etc/passwd',
+            'http://user:pass@example.com/job',
+        ):
+            with self.subTest(url=url), self.assertRaises(JobIntakeError):
+                _validate_url(url)
+
+    def test_redirect_hop_is_revalidated(self):
+        from .services.job_intake import JobIntakeError, fetch_job_posting
+
+        class RedirectResponse:
+            status_code = 302
+            headers = {'Location': 'http://127.0.0.1/internal'}
+            encoding = 'utf-8'
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        with patch('leads.services.job_intake._resolve_public_host', return_value='93.184.216.34'), \
+                patch('leads.services.job_intake.requests.get', return_value=RedirectResponse()):
+            with self.assertRaises(JobIntakeError):
+                fetch_job_posting('https://example.com/job')
+
+    def test_oversized_and_binary_responses_are_rejected(self):
+        from .services.job_intake import JobIntakeError, fetch_job_posting
+
+        class FakeResponse:
+            def __init__(self, headers, status_code=200):
+                self.status_code = status_code
+                self.headers = headers
+                self.encoding = 'utf-8'
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def iter_content(self, chunk_size):
+                return iter([])
+
+        with patch('leads.services.job_intake._resolve_public_host', return_value='93.184.216.34'):
+            with patch('leads.services.job_intake.requests.get', return_value=FakeResponse({
+                'Content-Type': 'text/html',
+                'Content-Length': str(3_000_000),
+            })):
+                with self.assertRaises(JobIntakeError):
+                    fetch_job_posting('https://example.com/job')
+
+            with patch('leads.services.job_intake.requests.get', return_value=FakeResponse({
+                'Content-Type': 'application/pdf',
+            })):
+                with self.assertRaises(JobIntakeError):
+                    fetch_job_posting('https://example.com/job')
+
+    @patch('leads.services.job_intake.fetch_job_posting')
+    def test_pasted_description_skips_fetch_and_preserves_text(self, mock_fetch):
+        from .services.job_intake import analyze_job_intake
+
+        analysis = analyze_job_intake(
+            job_url='https://example.com/job',
+            job_description='Senior Backend Engineer\nStripe\nRemote\n$150,000 - $180,000\nPython, Django, PostgreSQL',
+        )
+
+        mock_fetch.assert_not_called()
+        self.assertEqual(analysis['source_type'], 'pasted')
+        self.assertEqual(analysis['fields']['job_url'], 'https://example.com/job')
+        self.assertIn('Python', analysis['fields']['job_description'])
+        self.assertTrue(analysis['employer_research']['grounding_note'])
+        self.assertEqual(analysis['fit_analysis'], {})
+
+
+class JobIntakeViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='intakeuser', password='password123')
+        self.client.force_login(self.user)
+
+    def _analysis(self):
+        return {
+            'fields': {
+                'company_name': 'Stripe',
+                'role_title': 'Senior Backend Engineer',
+                'job_url': 'https://example.com/job',
+                'location': 'Remote',
+                'salary': '$150,000 - $180,000',
+                'employment_type': 'Full-time',
+                'job_description': 'Build payment APIs with Python and Django.',
+            },
+            'warnings': [],
+            'source_type': 'url',
+            'employer_research': {
+                'summary': 'Stripe is hiring a backend engineer.',
+                'tech_stack': ['Python', 'Django'],
+                'benefits': [],
+                'work_arrangement': ['Remote'],
+                'salary_transparency': True,
+                'compensation_note': '$150,000 - $180,000',
+                'red_flags': [],
+                'unavailable': ['Company size'],
+                'sources': ['https://example.com/job'],
+                'grounding_note': 'Derived only from the posting.',
+            },
+            'fit_analysis': {},
+            'extraction_status': 'extracted',
+        }
+
+    @patch('leads.views.analyze_job_intake')
+    def test_preview_renders_without_creating_a_job(self, mock_analyze):
+        mock_analyze.return_value = self._analysis()
+        response = self.client.post(reverse('leads:intake-analyze'), {
+            'job_url': 'https://example.com/job',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Senior Backend Engineer')
+        self.assertContains(response, 'Employer Brief')
+        self.assertEqual(JobApplication.objects.count(), 0)
+
+    @patch('leads.views.analyze_job_intake')
+    def test_preview_error_is_graceful(self, mock_analyze):
+        from .services.job_intake import JobIntakeError
+
+        mock_analyze.side_effect = JobIntakeError('Paste the description instead.')
+        response = self.client.post(reverse('leads:intake-analyze'), {'job_url': 'http://127.0.0.1/'})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, 'Paste the description instead.', status_code=400)
+        self.assertEqual(JobApplication.objects.count(), 0)
+
+    def test_reanalysis_preserves_user_edits_and_status(self):
+        job = JobApplication.objects.create(
+            user=self.user,
+            company_name='My Edited Company',
+            role_title='Backend Engineer',
+            status='interviewing',
+            notes='Keep my notes',
+            salary='',
+            job_description='',
+            job_url='https://example.com/job',
+        )
+
+        with patch('leads.views.analyze_job_intake', return_value=self._analysis()):
+            response = self.client.post(reverse('leads:lead-reanalyze', args=[job.pk]), {
+                'job_description': 'Build payment APIs with Python and Django.',
+            })
+
+        self.assertEqual(response.status_code, 200)
+        job.refresh_from_db()
+        self.assertEqual(job.status, 'interviewing')
+        self.assertEqual(job.company_name, 'My Edited Company')
+        self.assertEqual(job.notes, 'Keep my notes')
+        self.assertEqual(job.salary, '$150,000 - $180,000')
+        self.assertEqual(job.extraction_status, 'extracted')
+        self.assertTrue(job.employer_research['summary'])
+        self.assertIsNotNone(job.analyzed_at)
+
+    def test_reanalysis_is_scoped_to_owner(self):
+        other = User.objects.create_user(username='otherintake', password='password123')
+        job = JobApplication.objects.create(user=other, company_name='Other', role_title='Dev')
+
+        response = self.client.post(reverse('leads:lead-reanalyze', args=[job.pk]), {})
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_lead_create_records_intake_provenance_and_grounded_research(self):
+        response = self.client.post(reverse('leads:lead-create'), {
+            'company_name': 'Stripe',
+            'role_title': 'Senior Backend Engineer',
+            'job_url': 'https://example.com/job',
+            'intake_source': 'pasted',
+            'status': 'saved',
+            'job_description': 'Build payment APIs with Python and Django. Remote.',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        job = JobApplication.objects.get(user=self.user)
+        self.assertEqual(job.intake_source, 'pasted')
+        self.assertEqual(job.extraction_status, 'extracted')
+        self.assertTrue(job.employer_research['grounding_note'])
+        self.assertIsNotNone(job.analyzed_at)
